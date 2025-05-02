@@ -1,6 +1,7 @@
 # Configure aliases
 Set-Alias -Name c -Value clear
 Set-Alias -Name cm -Value chezmoi
+Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
 Set-Alias -Name pn -Value pnpm
 {{- if eq .hosttype "ewn" }}

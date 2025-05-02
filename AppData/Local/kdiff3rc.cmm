@@ -1,0 +1,4 @@
+source auto
+
+ignore regex "KDiff3 Options" "(Recent[ABC]Files|mainWindow-*|shell-*)"
+ignore section "MainWindow"

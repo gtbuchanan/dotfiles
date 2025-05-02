@@ -1,0 +1,5 @@
+@echo off
+REM HACK: CMM throws an error on Windows when using the shebang method, so we call the exe directly
+set TRIMMED={{ .chezmoi.sourceFile | trimSuffix ".bat.tmpl" | replace "modify_" "" }}
+set CHEZMOI_SOURCE_FILE=%TRIMMED%
+chezmoi_modify_manager "{{ .chezmoi.sourceDir }}/%TRIMMED%.cmm"
