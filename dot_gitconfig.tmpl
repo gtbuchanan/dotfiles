@@ -1,14 +1,62 @@
-[user]
-	name = Taylor Buchanan
-	email = {{ .email | quote }}
-	signingkey = E37B3051E06FBBC9
+[alias]
+	a = add
+	aa = a -A
+	ai = a -i
+{{- if eq .chezmoi.os "windows" }}
+	amt = !pwsh -File "~/Code/git-add-mergetool/git-add-mergetool.ps1"
+{{- end }}
+	ap = a -p
+	b = branch
+	ba = b -a
+	bc = b --show-current
+	br = b -lr
+	c = commit
+	cane = c --amend --no-edit
+	cp = cherry-pick
+	cpx = cp -x
+	co = checkout
+	dt = difftool
+	dts = dt --staged
+	dtsy = dts -y
+	dty = dt -y
+	f = fetch
+	fp = f --prune
+{{- if eq .hosttype "ewn" }}
+	jira = !pwsh -File "~/Desktop/git-jira.ps1"
+	j = jira
+	jc = j comment
+	jl = j link
+	jm = j move
+	jv = j view
+{{- end }}
+	l = log
+	lol = l --format=oneline-detailed
+	mt = mergetool
+	p = pull --prune
+	r = restore
+	rs = r --staged
+	rpo = remote prune origin
+	s = status
+	sol = show -s --format=oneline-detailed
+	ss = s -s
+	sss = s --show-stash
+	st = stash
+	stl = st list
+	stp = st -p
+	sw = switch
+	swc = sw -c
+{{- if eq .hosttype "ewn" }}
+	unpicked = !pwsh -File "~/Code/git-unpicked/git-unpicked.ps1"
+{{- end }}
+	unsynced = l --branches --not --remotes --no-walk --decorate --format=oneline-detailed
 
-[merge]
-	tool = kdiff3
+[commit]
+	gpgsign = true
 
 {{- if eq .chezmoi.os "windows" }}
-[mergetool "kdiff3"]
-	path = C:\\Program Files\\KDiff3\\kdiff3.exe
+[core]
+	editor = code --wait
+	autocrlf = true
 {{- end }}
 
 [diff]
@@ -16,34 +64,26 @@
 
 {{- if eq .chezmoi.os "windows" }}
 [difftool "kdiff3"]
-	path = C:\\Program Files\\KDiff3\\kdiff3.exe
+	path = C:\\Program Files\\KDiff3\\bin\\kdiff3.exe
 {{- end }}
-
-[alias]
-	a = add
-	aa = a -A
-	b = branch
-	ba = b -a
-	c = commit
-	cane = commit --amend --no-edit
-	co = checkout
-	dt = difftool
-	dty = dt -y
-	dts = dt --staged
-	dtsy = dts -y
-	fp = fetch --prune
-	lol = log --oneline
-	p = pull --prune
-	s = status
-	ss = s -s
-	st = stash
-	sw = switch
-	swc = sw -c
 
 {{- if eq .chezmoi.os "windows" }}
 [gpg]
 	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
 {{- end }}
 
-[commit]
-	gpgsign = true
+[merge]
+	tool = kdiff3
+
+{{- if eq .chezmoi.os "windows" }}
+[mergetool "kdiff3"]
+	path = C:\\Program Files\\KDiff3\\bin\\kdiff3.exe
+{{- end }}
+
+[pretty]
+	oneline-detailed = %C(auto,yellow)%h%C(auto,magenta)%  %C(auto,blue)%>(12,trunc)%ar %C(auto,green)%<(10,trunc)%aN %C(auto,reset)%s%C(auto,red)% gD% D
+
+[user]
+	name = Taylor Buchanan
+	email = {{ .email | quote }}
+	signingkey = {{ .signingkey }}

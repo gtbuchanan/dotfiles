@@ -1,5 +1,17 @@
+{{- $hostTypes := list "personal" "ewn" -}}
+{{- $hostType := promptChoiceOnce . "hosttype" "What type of host are you on" $hostTypes -}}
 data:
+{{- if eq $hostType "personal" }}
   email: "me+dev.git@taylorbuchanan.com"
+{{- else if eq $hostType "ewn" }}
+  email: "taylor.buchanan@ewn.com"
+{{- end }}
+  hosttype: {{ $hostType | quote }}
+{{- if eq $hostType "personal" }}
+  signingkey: E37B3051E06FBBC9
+{{- else if eq $hostType "ewn" }}
+  signingkey: C9FB125947F309D8
+{{- end }}
   
 interpreters:
   ps1:
