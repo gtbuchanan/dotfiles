@@ -1,0 +1,5 @@
+# KDiff3
+*.orig
+
+# MacOS
+.DS_Store
