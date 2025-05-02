@@ -1,0 +1,49 @@
+[user]
+	name = Taylor Buchanan
+	email = {{ .email | quote }}
+	signingkey = E37B3051E06FBBC9
+
+[merge]
+	tool = kdiff3
+
+{{- if eq .chezmoi.os "windows" }}
+[mergetool "kdiff3"]
+	path = C:\\Program Files\\KDiff3\\kdiff3.exe
+{{- end }}
+
+[diff]
+	guitool = kdiff3
+
+{{- if eq .chezmoi.os "windows" }}
+[difftool "kdiff3"]
+	path = C:\\Program Files\\KDiff3\\kdiff3.exe
+{{- end }}
+
+[alias]
+	a = add
+	aa = a -A
+	b = branch
+	ba = b -a
+	c = commit
+	cane = commit --amend --no-edit
+	co = checkout
+	dt = difftool
+	dty = dt -y
+	dts = dt --staged
+	dtsy = dts -y
+	fp = fetch --prune
+	lol = log --oneline
+	p = pull --prune
+	s = status
+	ss = s -s
+	st = stash
+	sw = switch
+	swc = sw -c
+
+{{- if eq .chezmoi.os "windows" }}
+[gpg]
+	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+{{- end }}
+
+[commit]
+	gpgsign = true
