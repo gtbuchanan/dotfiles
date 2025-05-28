@@ -1,0 +1,10 @@
+# winget.yaml hash: {{ include "winget.yaml.tmpl" | sha256sum }}
+$ChezmoiSourceDir = {{ .chezmoi.sourceDir | quote }}
+$OutputDir = Join-Path $ChezmoiSourceDir "dist"
+$TemplateFilePath = Join-Path $ChezmoiSourceDir "winget.yaml.tmpl"
+$ConfigFilePath = Join-Path $OutputDir "winget.yaml"
+
+New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
+& {{ .chezmoi.executable | quote }} execute-template -f $TemplateFilePath | `
+  Out-File -FilePath $ConfigFilePath
+winget configure -f $ConfigFilePath

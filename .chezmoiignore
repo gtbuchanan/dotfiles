@@ -1,13 +1,20 @@
 {{- if ne .chezmoi.os "windows" }}
+.chezmoiscripts/windows/**
 AppData
 Documents/PowerShell
 **/*.bat*
 {{- end }}
 
 {{- if ne .chezmoi.os "linux" }}
+.chezmoiscripts/linux/**
 .config/powershell
 **/*.sh*
 {{- end }}
 
+{{ if ne .chezmoi.os "darwin" }}
+.chezmoiscripts/darwin/**
+{{ end }}
+
 **/*.cmm
 **/*.src.ini
+winget.yaml.tmpl

@@ -1,0 +1,62 @@
+---
+# yaml-language-server: $schema=https://aka.ms/configuration-dsc-schema/0.2
+# https://learn.microsoft.com/en-us/windows/package-manager/configuration/create
+properties:
+  configurationVersion: 0.2.0
+  resources:
+    - resource: PSDscResources/Environment
+      dependsOn: [git]
+      directives:
+        description: Add Git binaries to Path
+      id: gitPath
+      settings:
+        ensure: Present
+        name: Path
+        path: true
+        target: [Machine]
+        value: C:\Program Files\Git\bin
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Git
+      id: git
+      settings:
+        id: Git.Git
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install NodeJS
+      id: nodejs
+      settings:
+        id: OpenJS.NodeJS.LTS
+{{- if eq .hosttype "ewn" }}
+        version: 20.19.1
+{{- end }}
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install pnpm
+      id: pnpm
+      settings:
+        id: pnpm.pnpm
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install PowerShell
+      id: pwsh
+      settings:
+        id: Microsoft.PowerShell
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Python Launcher
+      id: pythonLauncher
+      settings:
+        id: Python.Launcher
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Python
+      id: python3
+      settings:
+        id: Python.Python.3.13
+        source: winget
