@@ -60,3 +60,14 @@ properties:
       settings:
         id: Python.Python.3.13
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: visualStudio
+      directives:
+        description: Install Visual Studio 2022
+      settings:
+{{- if eq .hosttype "ewn" }}
+        id: Microsoft.VisualStudio.2022.Professional
+{{- else }}
+        id: Microsoft.VisualStudio.2022.Community
+{{- end }}
+        source: winget
