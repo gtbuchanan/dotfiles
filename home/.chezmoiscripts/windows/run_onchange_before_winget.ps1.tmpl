@@ -1,6 +1,6 @@
 # winget.yaml hash: {{ include "winget.yaml.tmpl" | sha256sum }}
 $ChezmoiSourceDir = {{ .chezmoi.sourceDir | quote }}
-$OutputDir = Join-Path $ChezmoiSourceDir "dist"
+$OutputDir = Join-Path $ChezmoiSourceDir ".." "dist"
 $TemplateFilePath = Join-Path $ChezmoiSourceDir "winget.yaml.tmpl"
 $ConfigFilePath = Join-Path $OutputDir "winget.yaml"
 
