@@ -1,0 +1,33 @@
+{{- $json := fromJson .chezmoi.stdin -}}
+{
+  "[git-commit]": {
+    "editor.rulers": [
+      72
+    ]
+  },
+  "[sql]": {
+    "editor.defaultFormatter": "dorzey.vscode-sqlfluff"
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "Vue.volar"
+  },
+  "editor.fontFamily": "'CaskaydiaCove NFM', Consolas, 'Courier New', monospace",
+  "editor.fontLigatures": true,
+  "editor.renderWhitespace": "all",
+  "editor.rulers": [
+    {
+      "column": 100,
+      "color": "#ff000040"
+    }
+  ],
+  "editor.wordWrap": "on",
+  "githubPullRequests.pullBranch": "never",
+  "markdown-preview-enhanced.previewTheme": "github-dark.css",
+{{- range $key := list "mssql.connections" "mssql.connectionGroups" }}
+  "{{ $key }}":
+{{- get $json $key | default list | toPrettyJson | indent 1 | trim | comment " " }},
+{{- end }}
+  "mssql.enableRichExperiences": true,
+  "workbench.colorTheme": "Default Dark+",
+  "workbench.startupEditor": "none"
+}

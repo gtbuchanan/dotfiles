@@ -1,0 +1,4 @@
+# chezmoi throws an error on Windows when referencing the template file directly, so we script it
+$TemplatePath = Join-Path {{ .chezmoi.sourceDir | quote }} ".chezmoitemplates" "vscode_settings.json"
+
+$input | & {{ .chezmoi.executable }} execute-template -f $TemplatePath --with-stdin

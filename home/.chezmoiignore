@@ -7,12 +7,14 @@ Documents/PowerShell
 
 {{- if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
+.config/Code
 .config/powershell
 **/*.sh*
 {{- end }}
 
 {{ if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**
+Library
 {{ end }}
 
 **/*.cmm
