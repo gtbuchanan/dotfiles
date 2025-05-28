@@ -17,4 +17,4 @@ Documents/PowerShell
 
 **/*.cmm
 **/*.src.ini
-winget.yaml.tmpl
+winget.yaml
