@@ -41,6 +41,18 @@ properties:
       settings:
         Ensure: Present
         RestartExplorer: true
+    - resource: PSDscResources/Script
+      directives:
+        description: Enable Sudo
+        allowPrerelease: true
+      id: sudo
+      settings:
+        GetScript: |
+          @{ Result = (sudo config) }
+        TestScript: |
+          (sudo config).Contains("Inline")
+        SetScript: |
+          Start-Process sudo -Verb runAs -ArgumentList "config --enable normal" -Wait
     - resource: PSDscResources/Environment
       dependsOn: [git]
       directives:
