@@ -395,6 +395,25 @@ properties:
         id: JanDeDobbeleer.OhMyPosh
         source: winget
         useLatest: true
+    - resource: PSDscResources/Script
+      dependsOn: [ohMyPosh]
+      directives:
+        description: Install Caskaydia Cove Font
+      id: caskaydiaCoveFont
+      settings:
+        GetScript: |
+          Add-Type -AssemblyName System.Drawing
+          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
+            Where-Object Name -Like "CaskaydiaCove*" | `
+            Select-Object -ExpandProperty Name
+          ${ Result = $Fonts }
+        TestScript: |
+          Add-Type -AssemblyName System.Drawing
+          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
+            Select-Object -ExpandProperty Name
+          $Fonts.Contains("CaskaydiaCove NFM")
+        SetScript: |
+          oh-my-posh font install CascadiaCove
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install OpenSSL
