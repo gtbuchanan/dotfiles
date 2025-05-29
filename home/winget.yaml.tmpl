@@ -4,6 +4,43 @@
 properties:
   configurationVersion: 0.2.0
   resources:
+    - resource: Microsoft.Windows.Developer/DeveloperMode
+      directives:
+        description: Enable Developer Mode
+        allowPrerelease: true
+      settings:
+        Ensure: Present
+    - resource: Microsoft.Windows.Developer/Taskbar
+      directives:
+        description: Configure Taskbar
+        allowPrerelease: true
+      settings:
+        SearchBoxMode: Hide
+        TaskViewButton: Hide
+        RestartExplorer: true
+        WidgetsButton: Hide
+    - resource: Microsoft.Windows.Developer/WindowsExplorer
+      directives:
+        description: Configure Explorer
+        allowPrerelease: true
+      settings:
+        FileExtensions: Show
+        HiddenFiles: Show
+        ItemCheckBoxes: Show
+        RestartExplorer: true
+    - resource: Microsoft.Windows.Developer/ShowSecondsInClock
+      directives:
+        description: Show Seconds in Clock
+        allowPrerelease: true
+      settings:
+        Ensure: Present
+    - resource: Microsoft.Windows.Developer/EnableDarkMode
+      directives:
+        description: Enable Dark Mode
+        allowPrerelease: true
+      settings:
+        Ensure: Present
+        RestartExplorer: true
     - resource: PSDscResources/Environment
       dependsOn: [git]
       directives:
