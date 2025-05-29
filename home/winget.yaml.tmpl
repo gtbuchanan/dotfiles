@@ -96,6 +96,26 @@ properties:
         id: Audacity.Audacity
         source: winget
         useLatest: true
+{{- end }}
+{{- if eq .hosttype "ewn" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Azure CLI
+      id: azureCli
+      settings:
+        id: Microsoft.AzureCLI
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Azure Storage Explorer
+      id: azureStorageExplorer
+      settings:
+        id: Microsoft.Azure.StorageExplorer
+        source: winget
+        useLatest: true
+{{- end }}
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Bitwarden
@@ -148,6 +168,16 @@ properties:
         id: DBBrowserForSQLite.DBBrowserForSQLite
         source: winget
         useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Debug Diagnostics
+      id: debugDiag
+      settings:
+        id: Microsoft.DebugDiag
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Deluge
@@ -236,10 +266,26 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install GitHub CLI
+      id: githubCli
+      settings:
+        id: GitHub.cli
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install Gpg4win
       id: gpg4win
       settings:
         id: GnuPG.Gpg4win
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Grammarly
+      id: grammarly
+      settings:
+        id: Grammarly.Grammarly
         source: winget
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -267,6 +313,14 @@ properties:
       settings:
         # TODO: Pass CLI options when supported
         id: KDE.KDiff3
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Logitech LogiTune
+      id: logitechLogiTune
+      settings:
+        id: Logitech.LogiTune
         source: winget
         useLatest: true
 {{- if eq .hosttype "personal" }}
@@ -459,6 +513,26 @@ properties:
         id: RaspberryPiFoundation.RaspberryPiImager
         source: winget
         useLatest: true
+{{- end }}
+{{- if eq .hosttype "ewn" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Safe Exam Browser
+      id: seb
+      settings:
+        id: ETHZurich.SafeExamBrowser
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Service Bus Explorer
+      id: serviceBusExplorer
+      settings:
+        id: paolosalvatori.ServiceBusExplorer
+        source: winget
+        useLatest: true
+{{- end }}
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Slack
@@ -467,6 +541,16 @@ properties:
         id: SlackTechnologies.Slack
         source: winget
         useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install SSMS
+      id: ssms
+      settings:
+        id: Microsoft.SQLServerManagementStudio
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Steam
@@ -482,6 +566,22 @@ properties:
       id: sysinternals
       settings:
         id: Microsoft.Sysinternals
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Terraform
+      id: terraform
+      settings:
+        id: Hashicorp.Terraform
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install TFLint
+      id: tflint
+      settings:
+        id: TerraformLinters.tflint
         source: winget
         useLatest: true
 {{- if eq .hosttype "personal" }}
@@ -501,6 +601,26 @@ properties:
         id: TorProject.TorBrowser
         source: winget
         useLatest: true
+{{- end }}
+{{- if eq .hosttype "ewn" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install TortoiseGit
+      id: tortoiseGit
+      settings:
+        id: TortoiseGit.TortoiseGit
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install TortoiseSVN
+      id: tortoiseSVN
+      settings:
+        id: TortoiseSVN.TortoiseSVN
+        source: winget
+        useLatest: true
+{{- end }}
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Trezor Suite
@@ -529,7 +649,8 @@ properties:
         id: Microsoft.VisualStudio.2022.Community
 {{- end }}
         source: winget
-        useLatest: true
+        # It's better to use Visual Studio Installer
+        useLatest: false
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Visual Studio Code
@@ -772,6 +893,14 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install WinDirStat
+      id: winDirStat
+      settings:
+        id: WinDirStat.WinDirStat
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install Windows Terminal
       id: windowsTerminal
       settings:
@@ -787,6 +916,16 @@ properties:
         id: WireGuard.WireGuard
         source: winget
         useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Wireshark
+      id: wireshark
+      settings:
+        id: WiresharkFoundation.Wireshark
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install yt-dlp
