@@ -96,6 +96,40 @@ properties:
         id: Microsoft.PowerShell
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: powerToys
+      directives:
+        description: Install PowerToys
+        allowPrerelease: true
+      settings:
+        id: Microsoft.PowerToys
+        source: winget
+    - resource: Microsoft.PowerToys.Configure/PowerToysConfigure
+      dependsOn: [powerToys]
+      directives:
+        description: Configure PowerToys
+      settings:
+        AdvancedPaste:
+          Enabled: true
+        Awake:
+          Enabled: true
+        ColorPicker:
+          Enabled: true
+        FancyZones:
+          Enabled: true
+        FileLocksmith:
+          Enabled: true
+        # Interferes with KVM switch keybinding
+        FindMyMouse:
+          Enabled: false
+        Hosts:
+          Enabled: true
+        ImageResizer:
+          Enabled: true
+        PowerAccent:
+          Enabled: true
+        PowerRename:
+          Enabled: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Python Launcher
       id: pythonLauncher
