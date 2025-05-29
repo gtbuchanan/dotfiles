@@ -154,3 +154,226 @@ properties:
         id: Microsoft.VisualStudio.2022.Community
 {{- end }}
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      id: vsCode
+      directives:
+        description: Install Visual Studio Code
+      settings:
+        id: Microsoft.VisualStudioCode
+        source: winget
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - C# Dev Kit
+        allowPrerelease: true
+      settings:
+        name: ms-dotnettools.csdevkit
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Code Spell Checker
+        allowPrerelease: true
+      settings:
+        name: streetsidesoftware.code-spell-checker
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Color Highlight
+        allowPrerelease: true
+      settings:
+        name: naumovs.color-highlight
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Debugger for Firefox
+        allowPrerelease: true
+      settings:
+        name: firefox-devtools.vscode-firefox-debug
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Docker
+        allowPrerelease: true
+      settings:
+        name: ms-azuretools.vscode-docker
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - EditorConfig
+        allowPrerelease: true
+      settings:
+        name: editorconfig.editorconfig
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - ESLint
+        allowPrerelease: true
+      settings:
+        name: dbaeumer.vscode-eslint
+        exist: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - ESPHome
+        allowPrerelease: true
+      settings:
+        name: esphome.esphome-vscode
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - fstar-vscode-assistant
+        allowPrerelease: true
+      settings:
+        name: fstarlang.fstar-vscode-assistant
+        exist: true
+{{- end }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - GitHub Copilot
+        allowPrerelease: true
+      settings:
+        name: github.copilot
+        exist: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - HAProxy
+        allowPrerelease: true
+      settings:
+        name: bmarkovic.haproxy
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Haskell Syntax Highlighting
+        allowPrerelease: true
+      settings:
+        name: justusadam.language-haskell
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Ionide for F#
+        allowPrerelease: true
+      settings:
+        name: ionide.ionide-fsharp
+        exist: true
+{{- end }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Jupyter
+        allowPrerelease: true
+      settings:
+        name: ms-toolsai.jupyter
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Kubernetes
+        allowPrerelease: true
+      settings:
+        name: ms-kubernetes-tools.vscode-kubernetes-tools
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Markdown Preview Enhanced
+        allowPrerelease: true
+      settings:
+        name: shd101wyy.markdown-preview-enhanced
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - markdownlint
+        allowPrerelease: true
+      settings:
+        name: davidanson.vscode-markdownlint
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Polyglot Notebooks
+        allowPrerelease: true
+      settings:
+        name: ms-dotnettools.dotnet-interactive-vscode
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - PowerShell
+        allowPrerelease: true
+      settings:
+        name: ms-vscode.powershell
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Python
+        allowPrerelease: true
+      settings:
+        name: ms-python.python
+        exist: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Simple GHC (Haskell) Integration
+        allowPrerelease: true
+      settings:
+        name: dramforever.vscode-ghc-simple
+        exist: true
+{{- end }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Todo Tree
+        allowPrerelease: true
+      settings:
+        name: gruntfuggly.todo-tree
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Vim
+        allowPrerelease: true
+      settings:
+        name: vscodevim.vim
+        exist: true
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Vitest
+        allowPrerelease: true
+      settings:
+        name: vitest.explorer
+        exist: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - Vy(atta) like .boot file support
+        allowPrerelease: true
+      settings:
+        name: zunix.edgerouter-conf
+        exist: true
+{{- end }}
+    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
+      dependsOn: [vsCode]
+      directives:
+        description: Install VS Code Extension - YAML
+        allowPrerelease: true
+      settings:
+        name: redhat.vscode-yaml
+        exist: true
