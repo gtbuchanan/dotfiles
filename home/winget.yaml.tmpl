@@ -152,13 +152,22 @@ properties:
         useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      dependsOn: [chromeExe]
       directives:
         description: Install Chrome
       id: chrome
       settings:
-        id: Google.Chrome.EXE
+        id: Google.Chrome
         source: winget
         useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Remove Chrome.EXE
+      id: chromeExe
+      settings:
+        id: Google.Chrome.EXE
+        ensure: Absent
+        source: winget
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
