@@ -53,6 +53,168 @@ properties:
           (sudo config).Contains("Inline")
         SetScript: |
           Start-Process sudo -Verb runAs -ArgumentList "config --enable normal" -Wait
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install 7zip
+      id: 7zip
+      settings:
+        id: 7zip.7zip
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Adobe Reader
+      id: adobeReader
+      settings:
+        id: Adobe.Acrobat.Reader.64-bit
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Advanced IP Scanner
+      id: advancedIPScanner
+      settings:
+        id: Famatech.AdvancedIPScanner
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Android Studio
+      id: androidStudio
+      settings:
+        id: Google.AndroidStudio
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Audacity
+      id: audacity
+      settings:
+        id: Audacity.Audacity
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Bitwarden
+      id: bitwarden
+      settings:
+        id: Bitwarden.Bitwarden
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Blender
+      id: blender
+      settings:
+        id: BlenderFoundation.Blender
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Brave
+      id: brave
+      settings:
+        id: Brave.Brave
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Calibre
+      id: calibre
+      settings:
+        id: calibre.calibre
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Chrome
+      id: chrome
+      settings:
+        id: Google.Chrome.EXE
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install DB Browser for SQLite
+      id: dbBrowserForSQLite
+      settings:
+        id: DBBrowserForSQLite.DBBrowserForSQLite
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Deluge
+      id: deluge
+      settings:
+        id: DelugeTeam.Deluge
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Docker
+      id: docker
+      settings:
+        id: Docker.DockerDesktop
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Etcher
+      id: etcher
+      settings:
+        id: Balena.Etcher
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Exercism CLI
+      id: exercism
+      settings:
+        id: Exercism.CLI
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Feather Wallet
+      id: featherWallet
+      settings:
+        id: FeatherWallet.Feather
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install FFmpeg
+      id: ffmpeg
+      settings:
+        id: Gyan.FFmpeg
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Firefox
+      id: firefox
+      settings:
+        id: Mozilla.Firefox
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Free Download Manager
+      id: fdm
+      settings:
+        id: SoftDeluxe.FreeDownloadManager
+        source: winget
+        useLatest: true
     - resource: PSDscResources/Environment
       dependsOn: [git]
       directives:
@@ -71,16 +233,122 @@ properties:
       settings:
         id: Git.Git
         source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Gpg4win
+      id: gpg4win
+      settings:
+        id: GnuPG.Gpg4win
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Handbrake
+      id: handbrake
+      settings:
+        id: HandBrake.HandBrake
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install ImgBurn
+      id: imgburn
+      settings:
+        id: LIGHTNINGUK.ImgBurn
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install KDiff3
+      id: kdiff3
+      settings:
+        # TODO: Pass CLI options when supported
+        id: KDE.KDiff3
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Minecraft Launcher
+      id: minecraft
+      settings:
+        id: Mojang.MinecraftLauncher
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Mp3Tag
+      id: mp3tag
+      settings:
+        id: FlorianHeidenreich.Mp3tag
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install mRemoteNG
+      id: mremoteng
+      settings:
+        id: mRemoteNG.mRemoteNG
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install NextCloud Desktop
+      id: nextcloudDesktop
+      settings:
+        id: Nextcloud.NextcloudDesktop
+        source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NodeJS
       id: nodejs
       settings:
         id: OpenJS.NodeJS.LTS
+        source: winget
 {{- if eq .hosttype "ewn" }}
         version: 20.19.1
+{{- else }}
+        useLatest: true
 {{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install NuGet
+      id: nuget
+      settings:
+        id: Microsoft.NuGet
         source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install OBS Studio
+      id: obsStudio
+      settings:
+        id: OBSProject.OBSStudio
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Oh My Posh
+      id: ohMyPosh
+      settings:
+        id: JanDeDobbeleer.OhMyPosh
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install OpenSSL
+      id: openssl
+      settings:
+        id: FireDaemon.OpenSSL
+        source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install pnpm
@@ -88,6 +356,15 @@ properties:
       settings:
         id: pnpm.pnpm
         source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Postman
+      id: postman
+      settings:
+        id: Postman.Postman
+        source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install PowerShell
@@ -95,6 +372,7 @@ properties:
       settings:
         id: Microsoft.PowerShell
         source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: powerToys
       directives:
@@ -103,6 +381,7 @@ properties:
       settings:
         id: Microsoft.PowerToys
         source: winget
+        useLatest: true
     - resource: Microsoft.PowerToys.Configure/PowerToysConfigure
       dependsOn: [powerToys]
       directives:
@@ -129,6 +408,16 @@ properties:
           Enabled: true
         PowerRename:
           Enabled: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install PuTTY
+      id: putty
+      settings:
+        id: PuTTY.PuTTY
+        source: winget
+        useLatest: true
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Python Launcher
@@ -136,6 +425,7 @@ properties:
       settings:
         id: Python.Launcher
         source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Python
@@ -143,6 +433,91 @@ properties:
       settings:
         id: Python.Python.3.13
         source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install QMKToolbox
+      id: qmktoolbox
+      settings:
+        id: QMK.QMKToolbox
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install QOwnNotes
+      id: qownnotes
+      settings:
+        id: pbek.QOwnNotes
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Raspberry Pi Imager
+      id: raspiImager
+      settings:
+        id: RaspberryPiFoundation.RaspberryPiImager
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Slack
+      id: slack
+      settings:
+        id: SlackTechnologies.Slack
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Steam
+      id: steam
+      settings:
+        id: Valve.Steam
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Sysinternals
+      id: sysinternals
+      settings:
+        id: Microsoft.Sysinternals
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Thunderbird
+      id: thunderbird
+      settings:
+        id: Mozilla.Thunderbird
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Tor Browser
+      id: torBrowser
+      settings:
+        id: TorProject.TorBrowser
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Trezor Suite
+      id: trezorSuite
+      settings:
+        id: SatoshiLabs.trezor-suite
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install VeraCrypt
+      id: veracrypt
+      settings:
+        id: IDRIX.VeraCrypt
+        source: winget
+        useLatest: true
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: visualStudio
       directives:
@@ -154,13 +529,15 @@ properties:
         id: Microsoft.VisualStudio.2022.Community
 {{- end }}
         source: winget
+        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
-      id: vsCode
       directives:
         description: Install Visual Studio Code
+      id: vsCode
       settings:
         id: Microsoft.VisualStudioCode
         source: winget
+        useLatest: true
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       dependsOn: [vsCode]
       directives:
@@ -377,3 +754,61 @@ properties:
       settings:
         name: redhat.vscode-yaml
         exist: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install VLC
+      id: vlc
+      settings:
+        id: VideoLAN.VLC
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Vim
+      id: vim
+      settings:
+        id: vim.vim
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Windows Terminal
+      id: windowsTerminal
+      settings:
+        id: Microsoft.WindowsTerminal
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Wireguard
+      id: wireguard
+      settings:
+        id: WireGuard.WireGuard
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install yt-dlp
+      id: ytDlp
+      settings:
+        id: yt-dlp.yt-dlp
+        source: winget
+        useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Yubico Authenticator
+      id: yubicoAuthenticator
+      settings:
+        id: Yubico.Authenticator
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Zoom
+      id: zoom
+      settings:
+        id: Zoom.Zoom.EXE
+        source: winget
+        useLatest: true
