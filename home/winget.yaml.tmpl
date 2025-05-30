@@ -43,8 +43,9 @@ properties:
         RestartExplorer: true
     - resource: xPSDesiredStateConfiguration/xScript
       directives:
-        description: Enable Sudo
         allowPrerelease: true
+        description: Enable Sudo
+        securityContext: elevated
       id: sudo
       settings:
         GetScript: |
@@ -52,7 +53,7 @@ properties:
         TestScript: |
           (sudo config).Contains("Inline")
         SetScript: |
-          Start-Process sudo -Verb runAs -ArgumentList "config --enable normal" -Wait
+          sudo config --enable normal
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install 7zip
@@ -266,6 +267,7 @@ properties:
       dependsOn: [git]
       directives:
         description: Prepend Git to PATH variable
+        securityContext: elevated
       id: gitPath
       settings:
         GetScript: |
@@ -273,7 +275,7 @@ properties:
           @{ Result = $Result }
         TestScript: |
           $Value = [Environment]::GetEnvironmentVariable("Path", "Machine")
-          $Value -Contains "$env:PROGRAMFILES\Git\bin"
+          $Value.Contains("$env:PROGRAMFILES\Git\bin")
         SetScript: |
           # Preserve unexpanded variables
           $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
@@ -282,9 +284,7 @@ properties:
           # Prepend to support pre-commit
           # https://github.com/pre-commit/pre-commit/issues/3091#issuecomment-1848626206
           $New = "%PROGRAMFILES%\Git\bin;$Current"
-          $Command = "[Environment]::SetEnvironmentVariable(""Path"", ""$New"", ""Machine"")"
-          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
-          sudo --disable-input powershell -EncodedCommand $EncodedCommand
+          [Environment]::SetEnvironmentVariable("Path", $New, "Machine")
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install GitHub CLI
@@ -464,22 +464,16 @@ properties:
         Name: ssh-agent
         State: Running
         StartupType: Automatic
-    - resource: xPSDesiredStateConfiguration/xScript
+    - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [openssh]
       directives:
         description: Set GIT_SSH variable
+        securityContext: elevated
       id: gitSsh
       settings:
-        GetScript: |
-          $Result = [Environment]::GetEnvironmentVariable("GIT_SSH", "Machine")
-          @{ Result = $Result }
-        TestScript: |
-          $Value = [Environment]::GetEnvironmentVariable("GIT_SSH", "Machine")
-          $Value -Eq '%SYSTEMROOT%\System32\OpenSSH\ssh.exe'
-        SetScript: |
-          $Command = '[Environment]::SetEnvironmentVariable("GIT_SSH", "%SYSTEMROOT%\System32\OpenSSH\ssh.exe", "Machine")'
-          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
-          sudo --disable-input powershell -EncodedCommand $EncodedCommand
+        Name: GIT_SSH
+        Target: [Machine]
+        Value: '%SYSTEMROOT%\System32\OpenSSH\ssh.exe'
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install OpenSSL
