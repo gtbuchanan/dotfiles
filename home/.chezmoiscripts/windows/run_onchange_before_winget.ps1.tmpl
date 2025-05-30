@@ -7,7 +7,7 @@ $ConfigFilePath = Join-Path $OutputDir "winget.yaml"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 & {{ .chezmoi.executable | quote }} execute-template -f $TemplateFilePath | `
   Out-File -FilePath $ConfigFilePath
-winget configure -f $ConfigFilePath
+winget configure -f $ConfigFilePath --suppress-initial-details --accept-configuration-agreements
 
 # TODO: Download
 # * ADOM: https://www.adom.de/home/downloads.html
