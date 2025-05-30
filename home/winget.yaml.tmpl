@@ -254,17 +254,6 @@ properties:
         id: SoftDeluxe.FreeDownloadManager
         source: winget
         useLatest: true
-    - resource: xPSDesiredStateConfiguration/xEnvironment
-      dependsOn: [git]
-      directives:
-        description: Add Git binaries to Path
-      id: gitPath
-      settings:
-        ensure: Present
-        name: Path
-        path: true
-        target: [Machine]
-        value: C:\Program Files\Git\bin
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Git
@@ -273,6 +262,29 @@ properties:
         id: Git.Git
         source: winget
         useLatest: true
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [git]
+      directives:
+        description: Prepend Git to PATH variable
+      id: gitPath
+      settings:
+        GetScript: |
+          $Result = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          @{ Result = $Result }
+        TestScript: |
+          $Value = [Environment]::GetEnvironmentVariable("Path", "Machine")
+          $Value -Contains "$env:PROGRAMFILES\Git\bin"
+        SetScript: |
+          # Preserve unexpanded variables
+          $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
+          $Current = (Get-Item -Path $RegPath).GetValue(`
+            "Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+          # Prepend to support pre-commit
+          # https://github.com/pre-commit/pre-commit/issues/3091#issuecomment-1848626206
+          $New = "%PROGRAMFILES%\Git\bin;$Current"
+          $Command = "[Environment]::SetEnvironmentVariable(""Path"", ""$New"", ""Machine"")"
+          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
+          sudo --disable-input powershell -EncodedCommand $EncodedCommand
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install GitHub CLI
