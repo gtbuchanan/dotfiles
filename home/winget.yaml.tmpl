@@ -484,6 +484,14 @@ properties:
         id: pnpm.pnpm
         source: winget
         useLatest: true
+    - resource: PowerShellGet/PSModule
+      dependsOn: [pwsh]
+      directives:
+        description: Install posh-git
+      id: poshGit
+      settings:
+        Name: posh-git
+        InstallationPolicy: Trusted
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Postman
