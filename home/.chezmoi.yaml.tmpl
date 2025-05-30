@@ -12,8 +12,8 @@ data:
 {{- else if eq $hostType "ewn" }}
   signingkey: C9FB125947F309D8
 {{- end }}
-  
+
 interpreters:
   ps1:
     command: pwsh
-    args: ["-NoLogo"]
+    args: ["-NoLogo", "-NoProfile"]
