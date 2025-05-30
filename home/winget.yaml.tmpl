@@ -404,16 +404,6 @@ properties:
         id: JanDeDobbeleer.OhMyPosh
         source: winget
         useLatest: true
-    - resource: PSDscResources/Environment
-      dependsOn: [ohMyPosh]
-      directives:
-        description: Set POSH_THEMES_PATH variable
-      id: poshThemesPath
-      settings:
-        ensure: Present
-        name: POSH_THEMES_PATH
-        target: [User]
-        value: C:\Program Files (x86)\oh-my-posh\themes
     - resource: PSDscResources/Script
       dependsOn: [ohMyPosh]
       directives:
