@@ -14,6 +14,9 @@ Function cmcd { cd "$(cm source-path)/.." }
 $env:POSH_THEME = "$env:POSH_THEMES_PATH/cobalt2.omp.json"
 oh-my-posh init pwsh | Invoke-Expression
 
+# Configure PowerShellGet
+Import-Module PowerShellGet
+
 # Configure posh-git
 Import-Module posh-git
 
