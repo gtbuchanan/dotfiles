@@ -41,7 +41,7 @@ properties:
       settings:
         Ensure: Present
         RestartExplorer: true
-    - resource: PSDscResources/Script
+    - resource: xPSDesiredStateConfiguration/xScript
       directives:
         description: Enable Sudo
         allowPrerelease: true
@@ -254,7 +254,7 @@ properties:
         id: SoftDeluxe.FreeDownloadManager
         source: winget
         useLatest: true
-    - resource: PSDscResources/Environment
+    - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [git]
       directives:
         description: Add Git binaries to Path
@@ -404,7 +404,7 @@ properties:
         id: JanDeDobbeleer.OhMyPosh
         source: winget
         useLatest: true
-    - resource: PSDscResources/Script
+    - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [ohMyPosh]
       directives:
         description: Install Caskaydia Cove Font
