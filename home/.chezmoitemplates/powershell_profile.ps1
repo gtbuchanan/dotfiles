@@ -8,7 +8,7 @@ Set-Alias -Name pn -Value pnpm
 Set-Alias -Name tg -Value TortoiseGitProc
 {{- end }}
 
-Function cmcd { cd (cm source-path) }
+Function cmcd { cd "$(cm source-path)/.." }
 
 # Configure Oh My Posh
 $env:POSH_THEME = "$env:POSH_THEMES_PATH/cobalt2.omp.json"
