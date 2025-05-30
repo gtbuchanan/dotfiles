@@ -433,6 +433,51 @@ properties:
           $Fonts.Contains("CaskaydiaCove NFM")
         SetScript: |
           oh-my-posh font install CascadiaCove
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [sudo]
+      directives:
+        description: Install OpenSSH Client
+      id: openssh
+      settings:
+        GetScript: |
+          $Command = "(Get-WindowsCapability -Online | Where-Object Name -Like 'OpenSSH.Client*').State"
+          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
+          $State = (sudo --disable-input powershell -EncodedCommand $EncodedCommand)
+          @{ Result = $State }
+        TestScript: |
+          $Command = "(Get-WindowsCapability -Online | Where-Object Name -Like 'OpenSSH.Client*').State"
+          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
+          $State = (sudo --disable-input powershell -EncodedCommand $EncodedCommand)
+          $State -Eq 'Installed'
+        SetScript: |
+          $Command = "Add-WindowsCapability -Online -Name 'OpenSSH.Client~~~~0.0.1.0'"
+          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
+          sudo --disable-input powershell -EncodedCommand $EncodedCommand
+    - resource: xPSDesiredStateConfiguration/xService
+      dependsOn: [openssh]
+      directives:
+        description: Start ssh-agent
+      id: sshAgent
+      settings:
+        Name: ssh-agent
+        State: Running
+        StartupType: Automatic
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [openssh]
+      directives:
+        description: Set GIT_SSH variable
+      id: gitSsh
+      settings:
+        GetScript: |
+          $Result = [Environment]::GetEnvironmentVariable("GIT_SSH", "Machine")
+          @{ Result = $Result }
+        TestScript: |
+          $Value = [Environment]::GetEnvironmentVariable("GIT_SSH", "Machine")
+          $Value -Eq '%SYSTEMROOT%\System32\OpenSSH\ssh.exe'
+        SetScript: |
+          $Command = '[Environment]::SetEnvironmentVariable("GIT_SSH", "%SYSTEMROOT%\System32\OpenSSH\ssh.exe", "Machine")'
+          $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
+          sudo --disable-input powershell -EncodedCommand $EncodedCommand
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install OpenSSL
