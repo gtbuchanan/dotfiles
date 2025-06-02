@@ -46,7 +46,7 @@
 	sw = switch
 	swc = sw -c
 {{- if eq .hosttype "ewn" }}
-	unpicked = !pwsh -File "~/Code/git-unpicked/git-unpicked.ps1"
+	unpicked = !pwsh -File "~/Code/git-unpicked/git-unpicked.ps1" -Format "oneline-detailed"
 {{- end }}
 	unsynced = l --branches --not --remotes --no-walk --decorate --format=oneline-detailed
 
