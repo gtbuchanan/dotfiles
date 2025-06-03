@@ -271,11 +271,11 @@ properties:
       id: gitPath
       settings:
         GetScript: |
-          $Result = [Environment]::GetEnvironmentVariable("Path", "Machine")
-          @{ Result = $Result }
+          $BashPath = (Get-Command bash -ErrorAction SilentlyContinue).Source
+          @{ Result = $BashPath }
         TestScript: |
-          $Value = [Environment]::GetEnvironmentVariable("Path", "Machine")
-          $Value.Contains("$env:PROGRAMFILES\Git\bin")
+          $BashPath = (Get-Command bash -ErrorAction SilentlyContinue).Source
+          $BashPath -Ne $null -And $BashPath.StartsWith("$env:PROGRAMFILES\Git\bin")
         SetScript: |
           # Preserve unexpanded variables
           $RegPath = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment"
@@ -283,8 +283,10 @@ properties:
             "Path", "", [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
           # Prepend to support pre-commit
           # https://github.com/pre-commit/pre-commit/issues/3091#issuecomment-1848626206
-          $New = "%PROGRAMFILES%\Git\bin;$Current"
-          [Environment]::SetEnvironmentVariable("Path", $New, "Machine")
+          $GitBinPath = "%PROGRAMFILES%\Git\bin"
+          $New = @($GitBinPath) + [Linq.Enumerable]::Except[object](`
+            $Current.Split(";"), @($GitBinPath, "$env:PROGRAMFILES\Git\bin")) -Join ";"
+          [Environment]::SetEnvironmentVariable("Path", $New.TrimEnd(";"), "Machine")
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install GitHub CLI
