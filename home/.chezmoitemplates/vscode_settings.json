@@ -1,4 +1,7 @@
-{{- $json := fromJson .chezmoi.stdin -}}
+{{- $json := dict -}}
+{{- if ne .chezmoi.stdin "" -}}
+{{- $json = fromJson .chezmoi.stdin -}}
+{{- end -}}
 {
   "[git-commit]": {
     "editor.rulers": [
