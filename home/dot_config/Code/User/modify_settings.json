@@ -1,2 +1,2 @@
 {{- /* chezmoi:modify-template */ -}}
-{{- template "vscode_settings.json" . -}}
+{{- includeTemplate "vscode_settings.json" . -}}
