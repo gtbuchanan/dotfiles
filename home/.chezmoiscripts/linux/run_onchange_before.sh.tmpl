@@ -22,11 +22,6 @@ APT_PACKAGES+=(
   "dotnet-sdk-9.0"
   "wslu"
 )
-
-# Forward GPG to Windows
-# https://gist.github.com/matthiasr/473072eeffe449459e3ccd0f5192afc7
-# sudo ln -fs /mnt/c/Program\ Files\ \(x86\)/GnuPG/bin/gpg.exe /usr/local/bin/gpg
-# sudo ln -fs gpg /usr/local/bin/gpg2
 #####################################
 {{ end }}
 for APT_REPO in "${APT_REPOS[@]}"; do

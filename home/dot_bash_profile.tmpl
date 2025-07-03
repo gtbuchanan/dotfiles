@@ -7,6 +7,13 @@ source ~/.profile
 # https://ohmyposh.dev/docs/installation/linux
 export POSH_THEMES_PATH=~/code/oh-my-posh/themes
 
+# TODO: Proxy GPG to Windows. Currently, the Windows GPG path is configured directly in .gitconfig.
+# I couldn't get any of these working (at least with Windows native ssh-agent instead of Pagaent)
+# https://twobiers.github.io/posts/wsl_systemd_gpg_ssh_relay/
+# https://justyn.io/blog/using-a-yubikey-for-gpg-in-wsl-windows-subsystem-for-linux-on-windows-10/
+# https://gist.github.com/rmtsrc/d1a1e6b5310677ca952a7c5c1c4b9cf7
+# https://github.com/microsoft/WSL/issues/9817
+
 # Proxy SSH to Windows
 source ssh-agent-pipe
 #####################################
