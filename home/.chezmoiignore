@@ -1,7 +1,7 @@
 {{- if ne .chezmoi.os "windows" }}
 .chezmoiscripts/windows/**
 AppData
-Documents/PowerShell
+Documents
 **/*.bat*
 {{- end }}
 

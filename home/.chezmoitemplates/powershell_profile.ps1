@@ -4,7 +4,7 @@ Set-Alias -Name cm -Value chezmoi
 Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
 Set-Alias -Name pn -Value pnpm
-{{- if eq .hosttype "ewn" }}
+{{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 Set-Alias -Name tg -Value TortoiseGitProc
 {{- end }}
 
@@ -20,7 +20,7 @@ Import-Module PowerShellGet
 # Configure posh-git
 Import-Module posh-git
 
-{{- if eq .hosttype "ewn" }}
+{{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Configure PSRSA module
 Import-Module -Name $env:USERPROFILE/Code/PSRSA/src/PSRSA.psm1
 

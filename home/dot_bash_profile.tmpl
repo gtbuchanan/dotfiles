@@ -1,0 +1,13 @@
+source ~/.profile
+{{ if .wsl }}
+#####################################
+# Windows Subsystem for Linux (WSL) #
+#####################################
+# Oh My Posh only has a Homebrew installer and the manual install doesn't include themes
+# https://ohmyposh.dev/docs/installation/linux
+export POSH_THEMES_PATH=~/code/oh-my-posh/themes
+
+# Proxy SSH to Windows
+source ssh-agent-pipe
+#####################################
+{{ end }}

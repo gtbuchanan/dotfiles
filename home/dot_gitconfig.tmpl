@@ -67,9 +67,11 @@
 	path = C:\\Program Files\\KDiff3\\bin\\kdiff3.exe
 {{- end }}
 
-{{- if eq .chezmoi.os "windows" }}
 [gpg]
+{{- if eq .chezmoi.os "windows" }}
 	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+{{- else if .wsl }}
+	program = /mnt/c/Program Files (x86)/GnuPG/bin/gpg.exe
 {{- end }}
 
 [init]

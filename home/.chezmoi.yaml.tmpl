@@ -1,5 +1,10 @@
 {{- $hostTypes := list "personal" "ewn" -}}
 {{- $hostType := promptChoiceOnce . "hosttype" "What type of host are you on" $hostTypes -}}
+{{- $osid := .chezmoi.os -}}
+{{- if hasKey .chezmoi.osRelease "id" -}}
+{{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
+{{- end -}}
+
 data:
 {{- if eq $hostType "personal" }}
   email: "me+dev.git@taylorbuchanan.com"
@@ -7,10 +12,17 @@ data:
   email: "taylor.buchanan@ewn.com"
 {{- end }}
   hosttype: {{ $hostType | quote }}
+  # https://www.chezmoi.io/user-guide/machines/linux/
+  osid: {{ $osid | quote }}
 {{- if eq $hostType "personal" }}
   signingkey: E37B3051E06FBBC9
 {{- else if eq $hostType "ewn" }}
   signingkey: C9FB125947F309D8
+{{- end }}
+{{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
+  wsl: true
+{{- else }}
+  wsl: false
 {{- end }}
 
 interpreters:

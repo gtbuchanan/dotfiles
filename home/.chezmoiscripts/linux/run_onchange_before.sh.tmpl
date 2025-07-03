@@ -1,0 +1,41 @@
+#!/bin/bash
+APT_REPOS=()
+APT_PACKAGES=(
+  "socat"
+  "unzip"
+)
+{{ if eq .osid "linux-ubuntu" }}
+SNAP_PACKAGES_CLASSIC=(
+  "chezmoi"
+  "powershell"
+)
+{{ end }}
+{{ if .wsl }}
+#####################################
+# Windows Subsystem for Linux (WSL) #
+#####################################
+APT_REPOS+=(
+  "ppa:dotnet/backports"
+  "ppa:wslutilities/wslu"
+)
+APT_PACKAGES+=(
+  "dotnet-sdk-9.0"
+  "wslu"
+)
+
+# Forward GPG to Windows
+# https://gist.github.com/matthiasr/473072eeffe449459e3ccd0f5192afc7
+# sudo ln -fs /mnt/c/Program\ Files\ \(x86\)/GnuPG/bin/gpg.exe /usr/local/bin/gpg
+# sudo ln -fs gpg /usr/local/bin/gpg2
+#####################################
+{{ end }}
+for APT_REPO in "${APT_REPOS[@]}"; do
+  sudo add-apt-repository -y "$APT_REPO"
+done
+sudo apt update
+sudo apt -y install $(printf "%s " "${APT_PACKAGES[@]}")
+{{- if eq .osid "linux-ubuntu" }}
+for SNAP_PACKAGE in "${SNAP_PACKAGES_CLASSIC[@]}"; do
+    sudo snap install --classic "$SNAP_PACKAGE"
+done
+{{ end }}
