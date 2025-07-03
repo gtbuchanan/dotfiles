@@ -726,6 +726,16 @@ properties:
         id: SatoshiLabs.trezor-suite
         source: winget
         useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Ubuntu
+      id: ubuntu
+      settings:
+        id: Canonical.Ubuntu
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install VeraCrypt
