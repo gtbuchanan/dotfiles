@@ -9,13 +9,21 @@ Documents
 .chezmoiscripts/linux/**
 .config/Code
 .config/powershell
-**/*.sh*
 {{- end }}
 
-{{ if ne .chezmoi.os "darwin" }}
+{{- if not .wsl }}
+.local/bin
+{{- end }}
+
+{{- if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**
 Library
-{{ end }}
+{{- end }}
+
+{{- if and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin") }}
+**/*.sh*
+.bash*
+{{- end }}
 
 **/*.cmm
 **/*.src.ini
