@@ -10,6 +10,22 @@ Set-Alias -Name tg -Value TortoiseGitProc
 
 Function cmcd { cd "$(cm source-path)/.." }
 
+# Sane ls formatting
+Remove-Alias ls -ErrorAction SilentlyContinue
+Function ls {
+  $NewArgs = New-Object System.Collections.Generic.List[object]
+  foreach ($Arg in $Args) {
+    $Uri = $null
+    $Arg = $Arg.Replace("~", $env:USERPROFILE)
+    if ([Uri]::TryCreate($Arg, [UriKind]::RelativeOrAbsolute, [ref]$Uri) -and $Uri.Scheme -eq "file") {
+      $Arg = $(wsl wslpath $Arg.Replace("\", "/"))
+    }
+    $NewArgs.Add($Arg)
+  }
+  $NewArgs = $NewArgs.Count -gt 0 ? $NewArgs -join " " : "."
+  wsl ls --color=auto -hF $NewArgs
+}
+
 # Configure Oh My Posh
 $env:POSH_THEME = "$env:POSH_THEMES_PATH/cobalt2.omp.json"
 oh-my-posh init pwsh | Invoke-Expression
