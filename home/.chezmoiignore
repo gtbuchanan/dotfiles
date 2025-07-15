@@ -26,5 +26,6 @@ Library
 {{- end }}
 
 **/*.cmm
+**/*.orig
 **/*.src.ini
 winget.yaml
