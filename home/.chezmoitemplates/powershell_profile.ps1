@@ -12,6 +12,7 @@ Function cmcd { cd "$(cm source-path)/.." }
 
 # Sane ls formatting
 Remove-Alias ls -ErrorAction SilentlyContinue
+{{- if eq .chezmoi.os "windows" }}
 Function ls {
   $NewArgs = New-Object System.Collections.Generic.List[object]
   foreach ($Arg in $Args) {
@@ -25,6 +26,7 @@ Function ls {
   $NewArgs = $NewArgs.Count -gt 0 ? $NewArgs -join " " : "."
   wsl ls --color=auto -hF $NewArgs
 }
+{{- end }}
 
 # Configure Oh My Posh
 $env:POSH_THEME = "$env:POSH_THEMES_PATH/cobalt2.omp.json"
