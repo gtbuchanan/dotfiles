@@ -87,7 +87,9 @@ properties:
       settings:
         id: Google.AndroidStudio
         source: winget
-        useLatest: true
+        # Android Studio doesn't report the last two parts of the version number, so forcing the
+        # latest will always cause an update even when the latest version is installed
+        useLatest: false
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
