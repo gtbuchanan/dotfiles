@@ -52,7 +52,8 @@ properties:
         GetScript: |
           @{ Result = (sudo config) }
         TestScript: |
-          (sudo config).Contains("Inline")
+          $Result = (sudo config 2> $null)
+          $Result -ne $null -and $Result.Contains("Inline")
         SetScript: |
           sudo config --enable normal
     - resource: Microsoft.WinGet.DSC/WinGetPackage
