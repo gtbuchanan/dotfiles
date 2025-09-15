@@ -8,6 +8,7 @@ properties:
       directives:
         description: Enable Developer Mode
         allowPrerelease: true
+        securityContext: elevated
       settings:
         Ensure: Present
     - resource: Microsoft.Windows.Developer/Taskbar
@@ -471,6 +472,7 @@ properties:
       dependsOn: [openssh]
       directives:
         description: Start ssh-agent
+        securityContext: elevated
       id: sshAgent
       settings:
         Name: ssh-agent
