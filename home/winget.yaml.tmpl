@@ -176,6 +176,14 @@ properties:
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install CUETools
+      id: cueTools
+      settings:
+        id: gchudov.CUETools
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install DB Browser for SQLite
       id: dbBrowserForSQLite
       settings:
