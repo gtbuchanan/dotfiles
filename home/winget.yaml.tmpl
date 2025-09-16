@@ -449,6 +449,16 @@ properties:
           $Fonts.Contains("CaskaydiaCove NFM")
         SetScript: |
           oh-my-posh font install CascadiaCode
+{{- if eq .hosttype "personal" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Olive Tree Bible
+      id: oliveTreeBible
+      settings:
+        id: 9NRSP6BRXBZQ
+        source: msstore
+        useLatest: true
+{{- end }}
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [sudo]
       directives:
