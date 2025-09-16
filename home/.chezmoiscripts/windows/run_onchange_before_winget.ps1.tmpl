@@ -9,6 +9,10 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
   Out-File -FilePath $ConfigFilePath
 winget configure -f $ConfigFilePath --suppress-initial-details --accept-configuration-agreements
 
+# Purge Desktop Shortcuts
+Join-Path $env:USERPROFILE "Desktop" "*.lnk" | Remove-Item
+Remove-Item "C:\Users\Public\Desktop\*.lnk"
+
 # TODO: Download
 # * ADOM: https://www.adom.de/home/downloads.html
 # * Age of Empires II
