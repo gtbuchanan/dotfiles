@@ -26,6 +26,17 @@ Function ls {
   $NewArgs = $NewArgs.Count -gt 0 ? $NewArgs -join " " : "."
   wsl ls --color=auto -hF $NewArgs
 }
+
+Function Update-SessionEnvironment {
+  # Adapted from StackOverflow:
+  # https://stackoverflow.com/a/31845512/1409101
+  $env:Path = `
+    [System.Environment]::GetEnvironmentVariable("Path", "Machine") + `
+    ";" + `
+    [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+Function refreshenv { Update-SessionEnvironment }
 {{- end }}
 
 # Configure Oh My Posh
