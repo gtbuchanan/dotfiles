@@ -40,7 +40,7 @@ Function refreshenv { Update-SessionEnvironment }
 {{- end }}
 
 # Configure Oh My Posh
-$env:POSH_THEME = (Join-Path "$env:POSH_THEMES_PATH" "cobalt2.omp.json")
+$env:POSH_THEME = "https://raw.githubusercontent.com/gtbuchanan/dotfiles/refs/heads/main/oh-my-posh/theme.omp.json"
 oh-my-posh init pwsh --config $env:POSH_THEME | Invoke-Expression
 
 # Configure PowerShellGet
