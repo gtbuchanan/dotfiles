@@ -8,7 +8,9 @@ Set-Alias -Name pn -Value pnpm
 Set-Alias -Name tg -Value TortoiseGitProc
 {{- end }}
 
-Function cmcd { cd "$(cm source-path)/.." }
+$ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
+
+Function cmcd { Set-Location $ChezmoiSourcePath }
 
 # Sane ls formatting
 Remove-Alias ls -ErrorAction SilentlyContinue
@@ -40,7 +42,7 @@ Function refreshenv { Update-SessionEnvironment }
 {{- end }}
 
 # Configure Oh My Posh
-$env:POSH_THEME = "https://raw.githubusercontent.com/gtbuchanan/dotfiles/refs/heads/main/oh-my-posh/theme.omp.json"
+$env:POSH_THEME = (Join-Path $ChezmoiSourcePath "oh-my-posh/theme.omp.json")
 oh-my-posh init pwsh --config $env:POSH_THEME | Invoke-Expression
 
 # Configure PowerShellGet
