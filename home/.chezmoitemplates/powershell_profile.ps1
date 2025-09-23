@@ -29,6 +29,8 @@ Function ls {
   wsl ls --color=auto -hF $NewArgs
 }
 
+Function su { sudo pwsh -NoLogo }
+
 Function Update-SessionEnvironment {
   # Adapted from StackOverflow:
   # https://stackoverflow.com/a/31845512/1409101
