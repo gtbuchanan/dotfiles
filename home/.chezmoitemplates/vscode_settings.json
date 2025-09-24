@@ -24,6 +24,9 @@
     }
   ],
   "editor.wordWrap": "on",
+  "extensions.experimental.affinity": {
+    "vscodevim.vim": 1
+  },
   "githubPullRequests.pullBranch": "never",
   "markdown-preview-enhanced.previewTheme": "github-dark.css",
 {{- range $key := list "mssql.connections" "mssql.connectionGroups" }}
