@@ -13,6 +13,8 @@
 	c = commit
 	cane = c --amend --no-edit
 	cp = cherry-pick
+	cpa = cp --abort
+	cpc = cp --continue
 	cpx = cp -x
 	co = checkout
 	d = diff
@@ -33,9 +35,16 @@
 {{- end }}
 	l = log
 	lol = l --format=oneline-detailed
+	m = merge
+	ma = m --abort
+	mc = m --continue
 	mt = mergetool
 	p = pull --prune
 	r = restore
+	rb = rebase
+	rba = rb --abort
+	rbc = rb --continue
+	rbi = rb -i
 	rs = r --staged
 	rpo = remote prune origin
 	s = status
