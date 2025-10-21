@@ -34,3 +34,13 @@ for SNAP_PACKAGE in "${SNAP_PACKAGES_CLASSIC[@]}"; do
     sudo snap install --classic "$SNAP_PACKAGE"
 done
 {{ end }}
+
+# Install Nerd Font
+curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
+getnf -i CascadiaCode
+
+# Install Oh My Bash
+if [ ! -d "$HOME/.oh-my-bash" ]; then
+  curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | bash
+fi
+
