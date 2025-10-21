@@ -1,4 +1,7 @@
-source ~/.profile
+if [ -f "$HOME/.profile" ]; then
+  . "$HOME/.profile"
+fi
+
 {{ if .wsl }}
 #####################################
 # Windows Subsystem for Linux (WSL) #
