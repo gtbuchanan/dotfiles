@@ -1,6 +1,4 @@
-if [ -f "$HOME/.profile" ]; then
-  . "$HOME/.profile"
-fi
+[ -f "$HOME/.profile" ] && . "$HOME/.profile"
 
 {{ if .wsl }}
 #####################################
@@ -17,3 +15,7 @@ fi
 source ssh-agent-pipe
 #####################################
 {{ end }}
+
+# Always source .bashrc
+# https://mywiki.wooledge.org/DotFiles
+[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"
