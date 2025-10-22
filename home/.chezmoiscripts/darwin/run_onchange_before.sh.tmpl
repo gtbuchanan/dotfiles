@@ -6,6 +6,12 @@ BREW_FORMULAS=(
   dashlane/tap/dashlane-cli
 {{- end }}
   gnupg
+{{- if eq .hosttype "ewn" }}
+  node@20
+{{- else }}
+  node
+{{- end }}
+  pnpm
   tmux
   vim
 )

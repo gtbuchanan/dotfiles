@@ -5,4 +5,7 @@
 {{- if eq .chezmoi.os "darwin" }}
 # Add Homebrew to PATH early to override built-in tool versions
 PATH="/opt/homebrew/bin:$PATH"
+
+# Add Node 20 to PATH since it's excluded by default
+PATH="$(brew --prefix node@20)/bin:$PATH"
 {{- end }}
