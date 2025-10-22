@@ -1,0 +1,10 @@
+# Allow modular configs (mainly to avoid exposing internal infrastructure)
+# https://superuser.com/a/1142813
+Include ./*.conf
+
+{{- if eq .chezmoi.os "darwin" }}
+Host *
+  # Persist keys across restarts
+  # https://unix.stackexchange.com/a/140077
+  UseKeychain yes
+{{- end }}
