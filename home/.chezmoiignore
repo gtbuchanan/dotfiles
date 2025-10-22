@@ -5,6 +5,10 @@ Documents
 **/*.bat*
 {{- end }}
 
+{{- if ne .chezmoi.os "android" }}
+.chezmoiscripts/android/**
+{{- end }}
+
 {{- if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
 .config/Code
@@ -20,7 +24,7 @@ Documents
 Library
 {{- end }}
 
-{{- if and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin") }}
+{{- if and (ne .chezmoi.os "android") (and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin")) }}
 **/*.sh*
 .bash*
 {{- end }}

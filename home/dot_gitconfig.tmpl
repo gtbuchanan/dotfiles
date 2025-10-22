@@ -64,6 +64,11 @@
 [commit]
 	gpgsign = true
 
+{{- if eq .chezmoi.os "android" }}
+[core]
+	sshCommand = ssha
+{{- end }}
+
 {{- if eq .chezmoi.os "windows" }}
 [core]
 	editor = code --wait

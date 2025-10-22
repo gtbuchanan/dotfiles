@@ -28,6 +28,8 @@ plugins=(
   git
 )
 
+export GPG_TTY=$(tty)
+
 . "$OSH/oh-my-bash.sh"
 
 . "$HOME/.bash_aliases"

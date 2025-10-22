@@ -1,0 +1,23 @@
+#!/data/data/com.termux/files/usr/bin/bash
+PKG_PACKAGES=(
+  "ncurses-utils"
+  "openssh"
+  "gnupg"
+  "nodejs-lts"
+  "termux-services"
+  "tmux"
+  "vim"
+)
+pkg update
+pkg install -y $(printf "%s " "${PKG_PACKAGES[@]}")
+
+# Imstall pnpm
+npm i -g pnpm
+
+# Install Nerd Font
+curl -fsSL https://raw.githubusercontent.com/arnavgr/termux-nf/main/install.sh | bash
+getnf -i CascadiaCode
+
+# Install Oh My Bash
+curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | bash
+
