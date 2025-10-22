@@ -1,0 +1,75 @@
+" Install vim-plug if not found
+let data_dir = '~/.vim'
+if empty(glob(data_dir . '/autoload/plug.vim'))
+{{- if eq .chezmoi.os "windows" }}
+  silent execute '!pwsh -Command "& { Invoke-WebRequest -useb https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim | New-Item ' . data_dir . '/autoload/plug.vim -Force }"'
+{{- else }}
+  silent execute '!curl -fLo ' . data_dir . '/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+{{- end }}
+  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+endif
+
+" Install plugins
+call plug#begin(data_dir . '/bundle')
+
+" Sensible defaults
+Plug 'tpope/vim-sensible'
+
+" Chezmoi Templates
+Plug 'alker0/chezmoi.vim'
+
+" Toggle line number modes automatically
+Plug 'jeffkreeftmeijer/vim-numbertoggle'
+
+" Fuzzy Finder
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+" Language Server
+Plug 'dense-analysis/ale'
+Plug 'prabirshrestha/vim-lsp'
+Plug 'mattn/vim-lsp-settings'
+Plug 'rhysd/vim-lsp-ale'
+
+" Autocomplete
+Plug 'prabirshrestha/asyncomplete.vim'
+Plug 'prabirshrestha/asyncomplete-lsp.vim'
+Plug 'OmniSharp/omnisharp-vim'
+
+" Git
+Plug 'tpope/vim-fugitive'
+
+call plug#end()
+
+{{- if eq .chezmoi.os "windows" }}
+" Use PowerShell
+" TODO: This appears to break vim-plug
+"set shell=pwsh
+"set shellcmdflag=-Command
+"set shellquote=\"
+"set shellxquote=
+{{- end }}
+
+" Enable line numbers
+set number
+
+" Set line length with guideline
+set textwidth=100
+set colorcolumn=+1
+
+" Vue Language Tools support
+" https://github.com/mattn/vim-lsp-settings#volar-vue-language-tools
+let g:lsp_settings_filetype_vue = ['vtsls', 'volar-server']
+let g:lsp_settings_filetype_typescript = ['vtsls']
+
+" Tab completion
+inoremap <expr> <Tab>   pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <S-Tab> pumvisible() ? "\<C-p>" : "\<S-Tab>"
+inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
+
+" Force refresh completion (@ = space)
+imap <c-@> <Plug>(asyncomplete_force_refresh)
+
+" Copy to clipboard in Visual/Select mode
+vnoremap <C-c> "+y
+
