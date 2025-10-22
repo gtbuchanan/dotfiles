@@ -1,0 +1,33 @@
+#!/bin/bash
+BREW_FORMULAS=(
+  bash
+  chezmoi
+{{- if eq .hosttype "ewn" }}
+  dashlane/tap/dashlane-cli
+{{- end }}
+  gnupg
+  tmux
+  vim
+)
+BREW_CASKS=(
+  google-chrome
+  visual-studio-code
+)
+
+brew update
+brew install $(printf "%s " "${BREW_FORMULAS[@]}")
+brew install --cask $(printf "%s " "${BREW_CASKS[@]}")
+
+# Replace ZSH with newer Bash
+BASH_PATH=/opt/homebrew/bin/bash
+grep -Fxq "$BASH_PATH" /etc/shells || echo "$BASH_PATH" | sudo tee -a /etc/shells
+chsh -s "$BASH_PATH"
+
+# Install Nerd Font
+curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
+getnf -i CascadiaCode
+
+# Install Oh My Bash
+if [ ! -d "$HOME/.oh-my-bash" ]; then
+  curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | bash
+fi

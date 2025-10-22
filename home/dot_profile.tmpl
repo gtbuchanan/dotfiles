@@ -1,0 +1,8 @@
+# Add user's private bin to PATH
+[ -d "$HOME/bin" ] && PATH="$HOME/bin:$PATH"
+[ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH"
+
+{{- if eq .chezmoi.os "darwin" }}
+# Add Homebrew to PATH early to override built-in tool versions
+PATH="/opt/homebrew/bin:$PATH"
+{{- end }}
