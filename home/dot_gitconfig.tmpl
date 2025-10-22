@@ -64,17 +64,17 @@
 [commit]
 	gpgsign = true
 
-{{- if eq .chezmoi.os "android" }}
+
 [core]
+{{- if eq .chezmoi.os "windows" }}
+	autocrlf = true
+	editor = code --wait
+	# Fix WezTerm unable to resolve %SYSTEMROOT% environment variable in default path
+	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
+{{- end }}
+{{- if eq .chezmoi.os "android" }}
 	sshCommand = ssha
 {{- end }}
-
-{{- if eq .chezmoi.os "windows" }}
-[core]
-	editor = code --wait
-	autocrlf = true
-{{- end }}
-
 [diff]
 	guitool = kdiff3
 

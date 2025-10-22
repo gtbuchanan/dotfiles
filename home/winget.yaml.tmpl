@@ -1049,6 +1049,14 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install WezTerm
+      id: wezTerm
+      settings:
+        id: wez.wezterm
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install WinDirStat
       id: winDirStat
       settings:
