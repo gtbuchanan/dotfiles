@@ -2,7 +2,6 @@
 APT_REPOS=()
 APT_PACKAGES=(
   "socat"
-  "starship"
   "unzip"
 )
 {{ if eq .osid "linux-ubuntu" }}
@@ -39,3 +38,7 @@ done
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i CascadiaCode
+
+# Install Starship
+# The package doesn't seem to be available in apt on Ubuntu WSL
+curl -sS https://starship.rs/install.sh | sh
