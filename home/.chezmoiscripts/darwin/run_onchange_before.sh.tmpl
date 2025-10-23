@@ -12,6 +12,7 @@ BREW_FORMULAS=(
   node
 {{- end }}
   pnpm
+  starship
   tmux
   vim
 )
@@ -33,8 +34,3 @@ chsh -s "$BASH_PATH"
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i CascadiaCode
-
-# Install Oh My Bash
-if [ ! -d "$HOME/.oh-my-bash" ]; then
-  curl -fsSL https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh | bash
-fi

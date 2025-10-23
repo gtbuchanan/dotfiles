@@ -4,33 +4,12 @@ case $- in
     *) return;;
 esac
 
-# Path to your oh-my-bash installation.
-export OSH="$HOME/.oh-my-bash"
-
-COMPLETION_WAITING_DOTS=true
-DEFAULT_USER=`whoami`
-OMB_USE_SUDO=true
-OSH_THEME="agnoster"
-PROMPT_DIRTRIM=false
-
-# https://github.com/ohmybash/oh-my-bash/tree/master/aliases
-aliases=()
-
-# https://github.com/ohmybash/oh-my-bash/tree/master/completions
-completions=(
-  git
-  composer
-  ssh
-)
-
-# https://github.com/ohmybash/oh-my-bash/tree/master/plugins
-plugins=(
-  git
-)
-
+# Forward GPG pinentry to terminal
 export GPG_TTY=$(tty)
 
-. "$OSH/oh-my-bash.sh"
+# Enable Starship
+eval "$(starship init bash)"
 
+# Add aliases
 . "$HOME/.bash_aliases"
 

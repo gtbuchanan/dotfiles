@@ -1,0 +1,125 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[](env_bg)\
+$os\
+$shell\
+$time\
+(\
+[](fg:prev_bg bg:id_bg)\
+$username\
+$hostname\
+)\
+[](fg:prev_bg bg:dir_bg)\
+$directory\
+(\
+[](fg:prev_bg bg:git_bg)\
+$git_branch\
+$git_status\
+$git_state\
+)\
+[ ](prev_bg)"""
+
+add_newline = false
+
+palette = 'default'
+
+[os]
+disabled = false
+style = "bg:env_bg fg:light_fg"
+
+[os.symbols]
+Windows = ""
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+Arch = "󰣇"
+Artix = "󰣇"
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+
+[shell]
+disabled = false
+bash_indicator = "bash"
+cmd_indicator = "cmd"
+format = "[ $indicator ]($style)"
+powershell_indicator = "posh"
+pwsh_indicator = "pwsh"
+style = "bg:env_bg fg:light_fg"
+
+[username]
+format = '[ $user]($style)'
+show_always = false
+style_user = "bg:id_bg fg:light_fg"
+style_root = "bg:id_bg fg:light_fg"
+
+[hostname]
+format = "[ $hostname ]($style)"
+style = "bg:id_bg fg:light_fg"
+
+[directory]
+before_repo_root_style = "bold"
+format = "[ $path ]($style)"
+repo_root_format = "[ \uF408 $repo_root$path [$read_only]($read_only_style)]($style)"
+repo_root_style = "bold"
+style = "bg:dir_bg fg:dark_fg"
+truncation_length = 5
+truncation_symbol = '.../'
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
+
+[git_branch]
+format = '[ $symbol $branch ]($style)'
+style = "bg:git_bg fg:light_fg"
+symbol = ""
+
+[git_status]
+format = '([\[$all_status$ahead_behind\] ]($style))'
+style = "bg:git_bg fg:light_fg"
+stashed = '\$${count}'
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕${count}"
+conflicted = "=${count}"
+deleted = "✘${count}"
+renamed = "»${count}"
+modified = "!${count}"
+staged = "+${count}"
+untracked = "?${count}"
+
+[git_state]
+style = "bg:git_bg fg:light_fg"
+
+[time]
+disabled = false
+time_format = "%R"
+style = "bg:time_bg"
+format = '[[ $time ](fg:light_fg bg:env_bg)]($style)'
+
+[line_break]
+disabled = true
+
+[palettes.default]
+env_bg = "#3A3A3A"
+dark_fg = "#282828"
+dir_bg = "cyan"
+git_bg = "#6F42C1"
+id_bg = "#F96C2A"
+light_fg = "#FFFFFF"
+
