@@ -633,6 +633,14 @@ properties:
         source: winget
         useLatest: true
 {{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install ripgrep
+      id: ripgrep
+      settings:
+        id: BurntSushi.ripgrep.MSVC
+        source: winget
+        useLatest: true
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
