@@ -43,9 +43,8 @@ Function Update-SessionEnvironment {
 Function refreshenv { Update-SessionEnvironment }
 {{- end }}
 
-# Configure Oh My Posh
-$env:POSH_THEME = (Join-Path $ChezmoiSourcePath "oh-my-posh/theme.omp.json")
-oh-my-posh init pwsh --config $env:POSH_THEME | Invoke-Expression
+# Enable Starship
+Invoke-Expression (&starship init powershell)
 
 # Configure PowerShellGet
 Import-Module PowerShellGet

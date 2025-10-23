@@ -384,6 +384,34 @@ properties:
         id: mRemoteNG.mRemoteNG
         source: winget
         useLatest: true
+    - resource: PowerShellGet/PSModule
+      dependsOn: [pwsh]
+      directives:
+        description: Install NerdFonts Module
+      id: nerdFonts
+      settings:
+        Name: NerdFonts
+        InstallationPolicy: Trusted
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [nerdFonts]
+      directives:
+        description: Install Caskaydia Cove Font
+      id: caskaydiaCoveFont
+      settings:
+        GetScript: |
+          Add-Type -AssemblyName System.Drawing
+          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
+            Where-Object Name -Like "CaskaydiaCove*" | `
+            Select-Object -ExpandProperty Name
+          ${ Result = $Fonts }
+        TestScript: |
+          Add-Type -AssemblyName System.Drawing
+          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
+            Select-Object -ExpandProperty Name
+          $Fonts.Contains("CaskaydiaCove NFM")
+        SetScript: |
+          Import-Module -Name NerdFonts
+          Install-NerdFont -Name 'CascadiaCove'
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NextCloud Desktop
@@ -429,35 +457,6 @@ properties:
         id: OBSProject.OBSStudio
         source: winget
         useLatest: true
-{{- end }}
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Install Oh My Posh
-      id: ohMyPosh
-      settings:
-        id: JanDeDobbeleer.OhMyPosh
-        source: winget
-        useLatest: true
-    - resource: xPSDesiredStateConfiguration/xScript
-      dependsOn: [ohMyPosh]
-      directives:
-        description: Install Caskaydia Cove Font
-      id: caskaydiaCoveFont
-      settings:
-        GetScript: |
-          Add-Type -AssemblyName System.Drawing
-          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
-            Where-Object Name -Like "CaskaydiaCove*" | `
-            Select-Object -ExpandProperty Name
-          ${ Result = $Fonts }
-        TestScript: |
-          Add-Type -AssemblyName System.Drawing
-          $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
-            Select-Object -ExpandProperty Name
-          $Fonts.Contains("CaskaydiaCove NFM")
-        SetScript: |
-          oh-my-posh font install CascadiaCode
-{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Olive Tree Bible
@@ -668,6 +667,14 @@ properties:
       id: ssms
       settings:
         id: Microsoft.SQLServerManagementStudio.21
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Starship
+      id: starship
+      settings:
+        id: Starship.Starship
         source: winget
         useLatest: true
 {{- if eq .hosttype "personal" }}
