@@ -6,11 +6,12 @@ config.color_scheme = 'Helios (base16)'
 {{- if eq .osid "windows" }}
 config.default_prog = { 'pwsh', '-NoLogo' }
 {{- end }}
-config.font = wezterm.font 'CaskaydiaCove NFM'
+config.font = wezterm.font 'CaskaydiaCove NF'
 {{- if eq .osid "windows" }}
 -- The default font size is huge on Windows
 config.font_size = 10
 {{- end }}
+config.unicode_version = 14
 config.window_background_opacity = 0.9
 
 return config
