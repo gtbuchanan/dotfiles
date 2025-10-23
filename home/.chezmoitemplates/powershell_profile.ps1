@@ -46,6 +46,9 @@ Function refreshenv { Update-SessionEnvironment }
 # Enable Starship
 Invoke-Expression (&starship init powershell)
 
+# Enable Vi mode
+Set-PSReadLineOption -EditMode Vi -ViModeIndicator Cursor
+
 # Configure PowerShellGet
 Import-Module PowerShellGet
 
