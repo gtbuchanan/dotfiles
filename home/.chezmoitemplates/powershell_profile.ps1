@@ -7,6 +7,7 @@ Set-Alias -Name pn -Value pnpm
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 Set-Alias -Name tg -Value TortoiseGitProc
 {{- end }}
+Set-Alias -Name v -Value vim
 
 $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 
