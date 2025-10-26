@@ -50,6 +50,9 @@ call plug#end()
 "set shellxquote=
 {{- end }}
 
+" Fix Chezmoi file type race condition
+let g:chezmoi#use_tmp_buffer = 1
+
 " Enable line numbers
 set number
 
