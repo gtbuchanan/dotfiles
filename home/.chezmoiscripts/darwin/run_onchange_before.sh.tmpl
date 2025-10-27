@@ -32,6 +32,11 @@ BASH_PATH=/opt/homebrew/bin/bash
 grep -Fxq "$BASH_PATH" /etc/shells || echo "$BASH_PATH" | sudo tee -a /etc/shells
 chsh -s "$BASH_PATH"
 
+# Install ble.sh
+curl -L https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz | tar -xJf - -C /tmp
+bash /tmp/ble-nightly/ble.sh --install "$HOME/.local/share"
+rm -Rf /tmp/ble-nightly
+
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i CascadiaCode

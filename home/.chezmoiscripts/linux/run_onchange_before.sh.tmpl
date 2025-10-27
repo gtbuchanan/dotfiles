@@ -36,6 +36,11 @@ for SNAP_PACKAGE in "${SNAP_PACKAGES_CLASSIC[@]}"; do
 done
 {{ end }}
 
+# Install ble.sh
+curl -L https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz | tar -xJf - -C /tmp
+bash /tmp/ble-nightly/ble.sh --install "$HOME/.local/share"
+rm -Rf /tmp/ble-nightly
+
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i CascadiaCode

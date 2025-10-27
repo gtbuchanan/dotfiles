@@ -27,6 +27,7 @@ Library
 {{- if and (ne .chezmoi.os "android") (and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin")) }}
 **/*.sh*
 .bash*
+.blesh
 .profile
 {{- end }}
 

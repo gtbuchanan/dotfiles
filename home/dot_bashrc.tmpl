@@ -1,0 +1,25 @@
+# Enable the subsequent settings only in interactive sessions
+case $- in
+  *i*) ;;
+    *) return;;
+esac
+
+{{- if eq .chezmoi.os "android" }}
+# BUG: USER isn't defined in Termux, so we define it to silence ble.sh
+# https://github.com/akinomyoga/ble.sh/issues/596#issuecomment-2992320082
+: "${USER:=$(id -un)}"
+export USER
+{{- end }}
+
+# Forward GPG pinentry to terminal
+export GPG_TTY=$(tty)
+
+# Enable ble.sh
+. "$HOME/.local/share/blesh/ble.sh"
+
+# Enable Starship
+eval "$(starship init bash)"
+
+# Add aliases
+. "$HOME/.bash_aliases"
+
