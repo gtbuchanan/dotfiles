@@ -14,6 +14,16 @@ export USER
 # Forward GPG pinentry to terminal
 export GPG_TTY=$(tty)
 
+# Enable Bash Completion
+{{- if eq .chezmoi.os "android" }}
+BASH_COMP_PATH="/data/data/com.termux/files/usr/share/bash-completion/bash_completion"
+{{- else if eq .chezmoi.os "darwin" }}
+BASH_COMP_PATH="/opt/homebrew/etc/profile.d/bash_completion.sh"
+{{- else }}
+BASH_COMP_PATH="/usr/share/bash-completion/bash_completion"
+{{- end }}
+[[ -f "$BASH_COMP_PATH" ]] && . "$BASH_COMP_PATH"
+
 # Enable ble.sh
 . "$HOME/.local/share/blesh/ble.sh"
 
