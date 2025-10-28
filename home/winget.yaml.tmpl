@@ -442,6 +442,14 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install NTop
+      id: ntop
+      settings:
+        id: gsass1.NTop
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install NuGet
       id: nuget
       settings:

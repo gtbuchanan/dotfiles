@@ -3,10 +3,12 @@ Set-Alias -Name c -Value clear
 Set-Alias -Name cm -Value chezmoi
 Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
+Set-Alias -Name htop -Value ntop
 Set-Alias -Name pn -Value pnpm
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 Set-Alias -Name tg -Value TortoiseGitProc
 {{- end }}
+Set-Alias -Name top -Value ntop
 Set-Alias -Name v -Value vim
 
 $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
