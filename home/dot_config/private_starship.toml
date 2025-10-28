@@ -18,11 +18,28 @@ $git_branch\
 $git_status\
 $git_state\
 )\
+[](fg:prev_bg bg:env_bg)\
+[ \
+${custom.vi_mode_bash}\
+${env_var.VI_MODE_PROMPT}\
+](bg:env_bg fg:light_fg)\
 [ ](prev_bg)"""
 
 add_newline = false
 
 palette = 'default'
+
+[env_var.VI_MODE_PROMPT]
+default = ''
+format = '$env_value'
+
+[custom.vi_mode_bash]
+command = 'echo "\q{blerc/vim-mode}"'
+format = '$output'
+ignore_timeout = true # PowerShell is slow to test
+os = 'unix'
+unsafe_no_escape = true # Required for the escape sequence
+when = 'test "$STARSHIP_SHELL" = "bash"' # This needs to work in PowerShell
 
 [os]
 disabled = false

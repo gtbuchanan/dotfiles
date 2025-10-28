@@ -1,2 +1,34 @@
 # Enable Vi mode
 set -o vi
+
+bleopt keymap_vi_mode_show:=
+
+function ble/prompt/backslash:blerc/vim-mode-debug {
+  local mode
+  ble/keymap:vi/script/get-mode
+  # TODO: Replace Ctrl characters with ^
+  ble/prompt/print $mode
+}
+
+function ble/prompt/backslash:blerc/vim-mode-real {
+  local mode
+  ble/keymap:vi/script/get-mode
+  case $mode in
+  (*$'\x12') ble/prompt/print 'VR' ;;
+  (*R)       ble/prompt/print 'R ' ;;
+  (i*)       ble/prompt/print 'I ' ;;
+  (*s)       ble/prompt/print 'S ' ;;
+  (*$'\x13') ble/prompt/print 'SB' ;;
+  (*S)       ble/prompt/print 'SL' ;;
+  (*v)       ble/prompt/print 'V ' ;;
+  (*$'\x16') ble/prompt/print 'VB' ;;
+  (*V)       ble/prompt/print 'VL' ;;
+  (n*)       ble/prompt/print 'N ' ;;
+  (*)        ble/prompt/print '??' ;;
+  esac
+}
+
+function ble/prompt/backslash:blerc/vim-mode {
+  # get-mode does not always succeed right away
+  ble/prompt/backslash:blerc/vim-mode-real 2> /dev/null
+}

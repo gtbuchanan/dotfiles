@@ -50,7 +50,16 @@ Function refreshenv { Update-SessionEnvironment }
 Invoke-Expression (&starship init powershell)
 
 # Enable Vi mode
-Set-PSReadLineOption -EditMode Vi -ViModeIndicator Cursor
+$env:VI_MODE_PROMPT = "I "
+Set-PSReadLineOption -EditMode Vi -ViModeIndicator Script -ViModeChangeHandler {
+  switch ($args[0]) {
+    'Command' { $env:VI_MODE_PROMPT = "N " }
+    'Insert' { $env:VI_MODE_PROMPT = "I " }
+    'Visual' { $env:VI_MODE_PROMPT = "V " }
+    default { $env:VI_MODE_PROMPT = "??" }
+  }
+  [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
+}
 
 # Configure PowerShellGet
 Import-Module PowerShellGet
