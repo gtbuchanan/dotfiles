@@ -11,6 +11,13 @@ config.font = wezterm.font 'CaskaydiaCove NF'
 -- The default font size is huge on Windows
 config.font_size = 10
 {{- end }}
+config.launch_menu = {}
+{{- if eq .osid "windows" }}
+table.insert(config.launch_menu, {
+  label = "PowerShell Legacy",
+  args = { "powershell", "-NoLogo" }
+})
+{{- end }}
 config.unicode_version = 14
 config.window_background_opacity = 0.9
 
