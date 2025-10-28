@@ -102,12 +102,12 @@ truncation_symbol = '.../'
 "Developer" = "󰲋 "
 
 [git_branch]
-format = '[ $symbol $branch]($style)'
+format = '[ $symbol $branch ]($style)'
 style = "bg:git_bg fg:light_fg"
 symbol = ""
 
 [git_status]
-format = '([( $stashed)( ( $untracked)( $modified)( $renamed)( $deleted)( $conflicted))( $staged)( $ahead_behind)]($style))'
+format = '([($stashed )( ($untracked )($modified )($renamed )($deleted )($conflicted ))($staged )($ahead_behind )]($style))'
 style = "bg:git_bg fg:light_fg"
 stashed = ' ${count}'
 ahead = "⇡${count}"
@@ -121,7 +121,7 @@ staged = " ${count}"
 untracked = "?${count}"
 
 [git_state]
-format = '[ $state( $progress_current/$progress_total)]($style)'
+format = '[$state ($progress_current/$progress_total )]($style)'
 style = "bg:git_bg fg:light_fg"
 rebase = "\uE728"
 merge = "\uE727"
