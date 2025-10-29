@@ -7,6 +7,7 @@ Documents
 
 {{- if ne .chezmoi.os "android" }}
 .chezmoiscripts/android/**
+.termux
 {{- end }}
 
 {{- if ne .chezmoi.os "linux" }}
