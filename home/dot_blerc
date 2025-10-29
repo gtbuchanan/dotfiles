@@ -32,3 +32,6 @@ function ble/prompt/backslash:blerc/vim-mode {
   # get-mode does not always succeed right away
   ble/prompt/backslash:blerc/vim-mode-real 2> /dev/null
 }
+
+# Autocomplete aliases
+shopt -s progcomp_alias
