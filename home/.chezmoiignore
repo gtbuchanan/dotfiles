@@ -12,8 +12,6 @@ Documents
 
 {{- if ne .chezmoi.os "linux" }}
 .chezmoiscripts/linux/**
-.config/Code
-.config/powershell
 {{- end }}
 
 {{- if not .wsl }}
@@ -23,6 +21,11 @@ Documents
 {{- if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**
 Library
+{{- end }}
+
+{{- if and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin") }}
+.config/Code
+.config/powershell
 {{- end }}
 
 {{- if and (ne .chezmoi.os "android") (and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin")) }}
