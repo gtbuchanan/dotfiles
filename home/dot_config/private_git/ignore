@@ -1,0 +1,18 @@
+# Backup Files
+*.bak
+
+# KDiff3
+*.orig
+
+# Log Files
+*.log
+
+# macOS
+.DS_Store
+
+# Vim
+*.swp
+
+# Windows
+Thumbs.db
+
