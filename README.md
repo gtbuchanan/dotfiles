@@ -8,6 +8,11 @@ A [dotfiles] configuration using [chezmoi].
 
   * Android uses [Termux], for [reasons](https://wiki.termux.com/wiki/Getting_started)
 
+* A _mostly_ consistent cross-platform terminal multiplexer using [Wezterm] with
+  [tmux bindings][wez-tmux] 
+
+  * Android and non-GUI Linux must use tmux directly
+
 * A consistent nerd font, [Caskaydia Cove]
 
 * A consistent cross-shell prompt using [Starship]
@@ -57,4 +62,5 @@ A [dotfiles] configuration using [chezmoi].
 [PSReadLine]: https://github.com/PowerShell/PSReadLine/
 [Starship]: https://starship.rs/
 [Termux]: https://termux.dev/en/
+[wez-tmux]: https://github.com/sei40kr/wez-tmux/
 [Wezterm]: https://wezterm.org/

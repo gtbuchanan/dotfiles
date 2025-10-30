@@ -11,7 +11,10 @@ config.font = wezterm.font 'CaskaydiaCove NF'
 -- The default font size is huge on Windows
 config.font_size = 10
 {{- end }}
+config.leader = { key = "Space", mods = "CTRL" }
 config.unicode_version = 14
 config.window_background_opacity = 0.9
+
+require("plugins.wez-tmux.plugin").apply_to_config(config)
 
 return config
