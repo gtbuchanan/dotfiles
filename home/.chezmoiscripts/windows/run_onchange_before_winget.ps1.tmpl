@@ -11,7 +11,7 @@ winget configure -f $ConfigFilePath --suppress-initial-details --accept-configur
 
 # Purge Desktop Shortcuts
 Join-Path $env:USERPROFILE "Desktop" "*.lnk" | Remove-Item
-Remove-Item "C:\Users\Public\Desktop\*.lnk"
+sudo pwsh { Remove-Item "C:\Users\Public\Desktop\*.lnk" }
 
 # TODO: Download
 # * ADOM: https://www.adom.de/home/downloads.html
