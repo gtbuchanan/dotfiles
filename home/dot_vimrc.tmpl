@@ -4,7 +4,12 @@ let data_dir = '~/vimfiles'
 let data_dir = '~/.vim'
 {{- end }}
 
-" Install plugins
+" Install missing plugins
+autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
+  \| PlugInstall --sync | source $MYVIMRC
+\| endif
+
+" Define Plugins
 call plug#begin(data_dir . '/bundle')
 
 " Sensible defaults
