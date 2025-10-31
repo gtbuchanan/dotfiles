@@ -7,3 +7,12 @@
   # HACK: Using my fork due to a bug with SHIFT keys
   # https://github.com/sei40kr/wez-tmux/issues/8
   url: https://github.com/gtbuchanan/wez-tmux/archive/main.tar.gz
+
+{{- if eq .chezmoi.os "windows" }}
+'vimfiles/autoload/plug.vim':
+{{- else }}
+'.vim/autoload/plug.vim':
+{{- end }}
+  refreshPeriod: 168h
+  type: file
+  url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim

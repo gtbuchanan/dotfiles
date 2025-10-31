@@ -1,13 +1,8 @@
-" Install vim-plug if not found
-let data_dir = '~/.vim'
-if empty(glob(data_dir . '/autoload/plug.vim'))
 {{- if eq .chezmoi.os "windows" }}
-  silent execute '!pwsh -Command "& { Invoke-WebRequest -useb https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim | New-Item ' . data_dir . '/autoload/plug.vim -Force }"'
+let data_dir = '~/vimfiles'
 {{- else }}
-  silent execute '!curl -fLo ' . data_dir . '/autoload/plug.vim --create-dirs  https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+let data_dir = '~/.vim'
 {{- end }}
-  autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
-endif
 
 " Install plugins
 call plug#begin(data_dir . '/bundle')
