@@ -4,7 +4,10 @@ let data_dir = '~/vimfiles'
 let data_dir = '~/.vim'
 {{- end }}
 
-" Install missing plugins
+" Install built-in plugins
+packadd! editorconfig
+
+" Install missing vim-plug plugins
 autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
   \| PlugInstall --sync | source $MYVIMRC
 \| endif
