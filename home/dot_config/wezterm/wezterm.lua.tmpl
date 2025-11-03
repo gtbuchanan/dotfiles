@@ -15,6 +15,27 @@ config.leader = { key = "Space", mods = "CTRL" }
 config.unicode_version = 14
 config.window_background_opacity = 0.9
 
+config.keys = {
+  -- Quick open URL
+  {
+    key = 'o',
+    mods = 'LEADER',
+    action = wezterm.action.QuickSelectArgs {
+      label = 'open url',
+      patterns = {
+        [[https?://[^\s"')\],]+]]
+      },
+      -- TODO: Enable when released
+      --skip_action_on_paste = true,
+      action = wezterm.action_callback(function(window, pane)
+        local url = window:get_selection_text_for_pane(pane)
+        wezterm.log_info('opening: ' .. url)
+        wezterm.open_with(url)
+      end),
+    },
+  },
+}
+
 require("plugins.wez-tmux.plugin").apply_to_config(config)
 
 return config
