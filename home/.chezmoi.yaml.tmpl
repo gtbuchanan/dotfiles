@@ -11,6 +11,8 @@ data:
 {{- else if eq $hostType "ewn" }}
   email: "taylor.buchanan@ewn.com"
 {{- end }}
+  font: CaskaydiaCove NF
+  fontpack: CascadiaCode
   hosttype: {{ $hostType | quote }}
   # https://www.chezmoi.io/user-guide/machines/linux/
   osid: {{ $osid | quote }}

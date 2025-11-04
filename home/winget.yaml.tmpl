@@ -395,23 +395,23 @@ properties:
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [nerdFonts]
       directives:
-        description: Install Caskaydia Cove Font
+        description: Install Nerd Font
       id: caskaydiaCoveFont
       settings:
         GetScript: |
           Add-Type -AssemblyName System.Drawing
           $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
-            Where-Object Name -Like "CaskaydiaCove*" | `
+            Where-Object Name -Like "{{ .font }}" | `
             Select-Object -ExpandProperty Name
           ${ Result = $Fonts }
         TestScript: |
           Add-Type -AssemblyName System.Drawing
           $Fonts = (New-Object System.Drawing.Text.InstalledFontCollection).Families | `
             Select-Object -ExpandProperty Name
-          $Fonts.Contains("CaskaydiaCove NFM")
+          $Fonts.Contains("{{ .font }}")
         SetScript: |
           Import-Module -Name NerdFonts
-          Install-NerdFont -Name 'CascadiaCove'
+          Install-NerdFont -Name '{{ .fontpack }}'
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NextCloud Desktop
