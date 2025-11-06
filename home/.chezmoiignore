@@ -23,6 +23,15 @@ Documents
 Library
 {{- end }}
 
+{{- if and (ne .chezmoi.os "android") (ne .chezmoi.os "linux") }}
+.tmux
+.tmux.conf
+{{- end }}
+
+{{- if and (ne .chezmoi.os "darwin") (ne .chezmoi.os "windows") }}
+.config/wezterm
+{{- end }}
+
 {{- if and (ne .chezmoi.os "linux") (ne .chezmoi.os "darwin") }}
 .config/Code
 .config/powershell

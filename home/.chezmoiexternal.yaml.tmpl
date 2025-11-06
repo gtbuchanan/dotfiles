@@ -1,10 +1,19 @@
 ---
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "windows") }}
 '.config/wezterm/plugins/wez-tmux':
   exact: true
-  refreshPeriod: 168h
   stripComponents: 1
   type: archive
   url: https://github.com/sei40kr/wez-tmux/archive/d53fb08b8212d82c34abacfce167bfa79919bb41.tar.gz
+{{- end }}
+
+{{- if eq .chezmoi.os "android" }}
+'.tmux/plugins/tpm-redux':
+  exact: true
+  stripComponents: 1
+  type: archive
+  url: https://github.com/RyanMacG/tpm-redux/archive/refs/tags/v1.0.0.tar.gz
+{{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
 'vimfiles/autoload/plug.vim':
@@ -14,3 +23,4 @@
   refreshPeriod: 168h
   type: file
   url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+

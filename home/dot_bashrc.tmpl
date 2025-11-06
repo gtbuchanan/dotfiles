@@ -4,6 +4,18 @@ case $- in
     *) return;;
 esac
 
+{{- if not .wsl }}
+# Launch directly into tmux when WezTerm isn't available
+if ! command -v wezterm &> /dev/null && \
+   command -v tmux &> /dev/null && \
+   [[ ! "$TERM" =~ screen ]] && \
+   [[ ! "$TERM" =~ tmux ]] && \
+   [ -z "$TMUX" ]
+then
+  exec tmux new-session -As main
+fi
+{{- end }}
+
 {{- if eq .chezmoi.os "android" }}
 # BUG: USER isn't defined in Termux, so we define it to silence ble.sh
 # https://github.com/akinomyoga/ble.sh/issues/596#issuecomment-2992320082
