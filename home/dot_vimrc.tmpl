@@ -32,6 +32,11 @@ Plug 'easymotion/vim-easymotion'
 " tmux-aware Navigation
 Plug 'christoomey/vim-tmux-navigator'
 
+{{- if eq .chezmoi.os "android" }}
+" Clipboard polyfill
+Plug 'Jorenar/fauxClip'
+{{- end }}
+
 " Fuzzy Finder
 Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'junegunn/fzf.vim'
@@ -100,6 +105,15 @@ map <Leader>h <Plug>(easymotion-linebackward)
 map <Leader>j <Plug>(easymotion-j)
 map <Leader>k <Plug>(easymotion-k)
 map <Leader>l <Plug>(easymotion-lineforward)
+
+{{- if eq .chezmoi.os "android" }}
+let g:fauxClip_regcmds = {
+\   '+': {
+\     'yank':  'termux-clipboard-set',
+\     'paste': 'termux-clipboard-get',
+\   }
+\ }
+{{- end }}
 
 " Vue Language Tools support
 " https://github.com/mattn/vim-lsp-settings#volar-vue-language-tools
