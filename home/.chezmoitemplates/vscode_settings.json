@@ -34,6 +34,8 @@
 {{- get $json $key | default list | toPrettyJson | indent 1 | trim | comment " " }},
 {{- end }}
   "mssql.enableRichExperiences": true,
+  "vim.easymotion": true,
+  "vim.leader": "<Space>",
   "workbench.colorTheme": "Default Dark+",
   "workbench.startupEditor": "none"
 }
