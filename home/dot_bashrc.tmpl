@@ -42,6 +42,11 @@ BASH_COMP_PATH="/usr/share/bash-completion/bash_completion"
 # Enable Starship
 eval "$(starship init bash)"
 
+{{- if ne .chezmoi.os "android" }}
+# Enable WezTerm shell integration
+. "$HOME/.config/wezterm/wezterm.sh"
+{{- end }}
+
 # Add aliases
 . "$HOME/.bash_aliases"
 

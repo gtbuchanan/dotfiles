@@ -18,10 +18,10 @@ local function conditionalActivatePane(window, pane, pane_direction, vim_directi
     local before = pane:get_cursor_position()
 		-- This should match the keybinds you set in Vim
     -- Use the raw bindings instead of vim-tmux-navigator since Ctrl+h/l have conflicts
-    local action = wezterm.action.Multiple(
+    local action = wezterm.action.Multiple {
       wezterm.action.SendKey({ key = "w", mods = 'CTRL' }),
-      wezterm.action.SendKey({ key = vim_direction },
-    )
+      wezterm.action.SendKey({ key = vim_direction }),
+    }
     window:perform_action(action, pane)
     wezterm.sleep_ms(50)
     local after = pane:get_cursor_position()
@@ -70,6 +70,8 @@ config.keys = {
 	{ key = 'j', mods = 'CTRL', action = wezterm.action.EmitEvent('ActivatePaneDirection-down') },
 	{ key = 'k', mods = 'CTRL', action = wezterm.action.EmitEvent('ActivatePaneDirection-up') },
 	{ key = 'l', mods = 'CTRL', action = wezterm.action.EmitEvent('ActivatePaneDirection-right') },
+  -- Forward Ctrl+l to clear shell
+  { key = 'l', mods = 'LEADER|CTRL', action = wezterm.action.SendKey({ key = 'l', mods = 'CTRL' }) },
   -- Quick open URL
   {
     key = 'o',
