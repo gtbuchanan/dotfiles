@@ -634,6 +634,14 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install Quick Share
+      id: quickShare
+      settings:
+        id: Google.QuickShare
+        source: winget
+        useLatest: true
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install Raspberry Pi Imager
       id: raspiImager
       settings:
