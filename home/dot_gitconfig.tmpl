@@ -68,8 +68,11 @@
 [core]
 {{- if eq .chezmoi.os "windows" }}
 	autocrlf = true
-{{- end }}
+	# Git Bash comes with its own version of Vim, but we want the Windows version
+	editor = 'C:\\Program Files\\Vim\\vim91\\vim.exe'
+{{- else }}
 	editor = vim
+{{- end }}
 {{- if eq .chezmoi.os "windows" }}
 	# Fix WezTerm unable to resolve %SYSTEMROOT% environment variable in default path
 	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
