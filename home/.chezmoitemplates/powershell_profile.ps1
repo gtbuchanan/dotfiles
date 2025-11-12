@@ -5,7 +5,6 @@ Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
 Set-Alias -Name htop -Value ntop
 Remove-Alias -Name ls -ErrorAction SilentlyContinue
-Set-Alias -Name ls -Value eza
 Set-Alias -Name pn -Value pnpm
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 Set-Alias -Name tg -Value TortoiseGitProc
@@ -18,6 +17,8 @@ $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
 {{- if eq .chezmoi.os "windows" }}
+Function ls { eza --icons @args }
+
 Function su { sudo pwsh -NoLogo }
 
 Function Update-SessionEnvironment {
