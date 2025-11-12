@@ -234,6 +234,16 @@ properties:
         id: Exercism.CLI
         source: winget
         useLatest: true
+{{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install eza
+      id: eza
+      settings:
+        id: eza-community.eza
+        source: winget
+        useLatest: true
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Feather Wallet

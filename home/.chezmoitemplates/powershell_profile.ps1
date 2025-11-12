@@ -4,6 +4,8 @@ Set-Alias -Name cm -Value chezmoi
 Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
 Set-Alias -Name htop -Value ntop
+Remove-Alias -Name ls -ErrorAction SilentlyContinue
+Set-Alias -Name ls -Value eza
 Set-Alias -Name pn -Value pnpm
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 Set-Alias -Name tg -Value TortoiseGitProc
@@ -15,23 +17,7 @@ $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
-# Sane ls formatting
-Remove-Alias ls -ErrorAction SilentlyContinue
 {{- if eq .chezmoi.os "windows" }}
-Function ls {
-  $NewArgs = New-Object System.Collections.Generic.List[object]
-  foreach ($Arg in $Args) {
-    $Uri = $null
-    $Arg = $Arg.Replace("~", $env:USERPROFILE)
-    if ([Uri]::TryCreate($Arg, [UriKind]::RelativeOrAbsolute, [ref]$Uri) -and $Uri.Scheme -eq "file") {
-      $Arg = $(wsl wslpath $Arg.Replace("\", "/"))
-    }
-    $NewArgs.Add($Arg)
-  }
-  $NewArgs = $NewArgs.Count -gt 0 ? $NewArgs -join " " : "."
-  wsl ls --color=auto -hF $NewArgs
-}
-
 Function su { sudo pwsh -NoLogo }
 
 Function Update-SessionEnvironment {
