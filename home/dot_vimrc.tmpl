@@ -80,6 +80,11 @@ set number
 set textwidth=100
 set colorcolumn=+1
 
+" Define glyphs for non-visible characters
+set showbreak=↪\ 
+set listchars=tab:⟶\ ,trail:·,extends:>,precedes:<,space:·
+set list
+
 " Sane leader key
 nnoremap <SPACE> <Nop>
 let g:mapleader=" "
@@ -141,3 +146,5 @@ let g:airline_theme='base16_helios'
 let g:airline_powerline_fonts = 1
 let g:airline#extensions#tabline#enabled = 1
 
+highlight NonText ctermfg=232
+highlight SpecialKey ctermfg=232
