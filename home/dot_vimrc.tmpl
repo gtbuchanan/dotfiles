@@ -55,6 +55,10 @@ Plug 'OmniSharp/omnisharp-vim'
 " Git
 Plug 'tpope/vim-fugitive'
 
+" Theme
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
+
 call plug#end()
 
 {{- if eq .chezmoi.os "windows" }}
@@ -131,4 +135,9 @@ inoremap <expr> <cr>    pumvisible() ? asyncomplete#close_popup() : "\<cr>"
 
 " Copy to clipboard in Visual/Select mode
 vnoremap <C-c> "+y
+
+" Theme
+let g:airline_theme='base16_helios'
+let g:airline_powerline_fonts = 1
+let g:airline#extensions#tabline#enabled = 1
 
