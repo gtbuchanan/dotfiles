@@ -47,6 +47,9 @@ eval "$(starship init bash)"
 . "$HOME/.config/wezterm/wezterm.sh"
 {{- end }}
 
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --bash)"
+
 # Add aliases
 . "$HOME/.bash_aliases"
 

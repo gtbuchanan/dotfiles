@@ -279,6 +279,22 @@ properties:
         useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install fzf
+      id: fzf
+      settings:
+        id: junegunn.fzf
+        source: winget
+        useLatest: true
+    - resource: PowerShellGet/PSModule
+      dependsOn: [fzf, pwsh]
+      directives:
+        description: Install PSFzf
+      id: psFzf
+      settings:
+        Name: PSFzf
+        InstallationPolicy: Trusted
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install Git
       id: git
       settings:
