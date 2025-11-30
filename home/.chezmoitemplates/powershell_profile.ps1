@@ -65,11 +65,13 @@ Set-PSReadLineOption -EditMode Vi -ViModeIndicator Script -ViModeChangeHandler {
 Import-Module PowerShellGet
 
 # Configure PSFzf
-Set-PsFzfOption `
-  -PSReadlineChordProvider 'Ctrl+t' `
-  -PSReadlineChordReverseHistory 'Ctrl+r'
 Set-PSReadLineKeyHandler -Key Tab -ScriptBlock { Invoke-FzfTabCompletion }
 Import-Module PSFzf
+Set-PsFzfOption `
+  -PSReadlineChordProvider 'Ctrl+t' `
+  -PSReadlineChordReverseHistory 'Ctrl+r' `
+  -PSReadlineChordReverseHistoryArgs 'Alt+a' `
+  -PSReadlineChordSetLocation 'Alt+c'
 
 # Configure posh-git
 Import-Module posh-git
