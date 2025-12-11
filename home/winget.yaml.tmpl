@@ -453,11 +453,7 @@ properties:
       settings:
         id: OpenJS.NodeJS.LTS
         source: winget
-{{- if eq .hosttype "ewn" }}
-        version: 20.19.1
-{{- else }}
         useLatest: true
-{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install npiperelay
