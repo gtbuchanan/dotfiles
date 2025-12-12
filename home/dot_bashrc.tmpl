@@ -50,6 +50,11 @@ eval "$(starship init bash)"
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
 
+{{- if eq .chezmoi "android" }}
+# Enable git-delta completion
+eval "$(delta --generate-completion bash)"
+{{- end }}
+
 # Add aliases
 . "$HOME/.bash_aliases"
 
