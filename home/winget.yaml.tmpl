@@ -843,12 +843,12 @@ properties:
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: visualStudio
       directives:
-        description: Install Visual Studio 2022
+        description: Install Visual Studio
       settings:
 {{- if eq .hosttype "ewn" }}
-        id: Microsoft.VisualStudio.2022.Professional
+        id: Microsoft.VisualStudio.Professional
 {{- else }}
-        id: Microsoft.VisualStudio.2022.Community
+        id: Microsoft.VisualStudio.Community
 {{- end }}
         source: winget
         # It's better to use Visual Studio Installer
@@ -856,7 +856,7 @@ properties:
     - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [visualStudio]
       directives:
-        description: Add Visual Studio 2022 to PATH
+        description: Add Visual Studio 2026 to PATH
         securityContext: elevated
       id: visualStudioPath
       settings:
@@ -864,9 +864,9 @@ properties:
         Path: true
         Target: [Machine]
 {{- if eq .hosttype "ewn" }}
-        Value: '%PROGRAMFILES%\Microsoft Visual Studio\2022\Professional\Common7\IDE'
+        Value: '%PROGRAMFILES%\Microsoft Visual Studio\18\Professional\Common7\IDE'
 {{- else }}
-        Value: '%PROGRAMFILES%\Microsoft Visual Studio\2022\Community\Common7\IDE'
+        Value: '%PROGRAMFILES%\Microsoft Visual Studio\18\Community\Common7\IDE'
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
