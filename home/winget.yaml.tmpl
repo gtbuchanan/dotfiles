@@ -185,6 +185,13 @@ properties:
       settings:
         id: Microsoft.DebugDiag
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Delta
+      id: delta
+      settings:
+        id: dandavison.delta
+        source: winget
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -344,6 +351,13 @@ properties:
       settings:
         # TODO: Pass CLI options when supported
         id: KDE.KDiff3
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install less
+      id: less
+      settings:
+        id: jftuga.less
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:

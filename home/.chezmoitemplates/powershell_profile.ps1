@@ -103,6 +103,12 @@ Set-PsFzfOption `
 # Configure posh-git
 Import-Module posh-git
 
+{{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}
+{{- if ne .osid "ubuntu" }}
+# Enable delta autocomplete
+delta --generate-completion powershell | Out-String | Invoke-Expression
+{{- end }}
+
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Configure PSRSA module
 Import-Module -Name $env:USERPROFILE/Code/PSRSA/src/PSRSA.psm1

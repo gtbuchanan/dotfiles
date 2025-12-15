@@ -50,11 +50,11 @@ eval "$(starship init bash)"
 # Set up fzf key bindings and fuzzy completion
 eval "$(fzf --bash)"
 
-{{- if eq .chezmoi "android" }}
+{{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}
+{{- if ne .osid "ubuntu" }}
 # Enable git-delta completion
 eval "$(delta --generate-completion bash)"
 {{- end }}
 
 # Add aliases
 . "$HOME/.bash_aliases"
-

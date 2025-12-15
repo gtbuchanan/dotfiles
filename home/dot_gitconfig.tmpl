@@ -64,7 +64,6 @@
 [commit]
 	gpgsign = true
 
-
 [core]
 {{- if eq .chezmoi.os "windows" }}
 	autocrlf = true
@@ -73,9 +72,7 @@
 {{- else }}
 	editor = vim
 {{- end }}
-{{- if eq .chezmoi.os "android" }}
 	pager = delta
-{{- end }}
 {{- if eq .chezmoi.os "windows" }}
 	# Fix WezTerm unable to resolve %SYSTEMROOT% environment variable in default path
 	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
@@ -109,15 +106,11 @@
 [init]
 	defaultBranch = main
 
-{{- if eq .chezmoi.os "android" }}
 [interactive]
 	diffFilter = delta --color-only
-{{- end }}
 
 [merge]
-{{- if eq .chezmoi.os "android" }}
 	conflictStyle = zdiff3
-{{- end }}
 	tool = kdiff3
 
 {{- if eq .chezmoi.os "windows" }}
