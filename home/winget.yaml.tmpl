@@ -63,7 +63,6 @@ properties:
       settings:
         id: 7zip.7zip
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Adobe Reader
@@ -71,7 +70,6 @@ properties:
       settings:
         id: Adobe.Acrobat.Reader.64-bit
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -80,7 +78,6 @@ properties:
       settings:
         id: Famatech.AdvancedIPScanner
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -100,7 +97,6 @@ properties:
       settings:
         id: Audacity.Audacity
         source: winget
-        useLatest: true
 {{- end }}
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -110,7 +106,6 @@ properties:
       settings:
         id: Microsoft.AzureCLI
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Azure Storage Explorer
@@ -118,7 +113,6 @@ properties:
       settings:
         id: Microsoft.Azure.StorageExplorer
         source: winget
-        useLatest: true
 {{- end }}
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -128,7 +122,6 @@ properties:
       settings:
         id: Bitwarden.Bitwarden
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Blender
@@ -136,7 +129,6 @@ properties:
       settings:
         id: BlenderFoundation.Blender
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -145,7 +137,6 @@ properties:
       settings:
         id: Brave.Brave
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -154,7 +145,6 @@ properties:
       settings:
         id: calibre.calibre
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       dependsOn: [chromeExe]
@@ -164,7 +154,6 @@ properties:
       settings:
         id: Google.Chrome
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Remove Chrome.EXE
@@ -181,7 +170,6 @@ properties:
       settings:
         id: gchudov.CUETools
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install DB Browser for SQLite
@@ -189,7 +177,6 @@ properties:
       settings:
         id: DBBrowserForSQLite.DBBrowserForSQLite
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -198,7 +185,6 @@ properties:
       settings:
         id: Microsoft.DebugDiag
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -207,7 +193,6 @@ properties:
       settings:
         id: DelugeTeam.Deluge
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -216,7 +201,6 @@ properties:
       settings:
         id: Docker.DockerDesktop
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -225,7 +209,6 @@ properties:
       settings:
         id: Balena.Etcher
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Exercism CLI
@@ -233,7 +216,6 @@ properties:
       settings:
         id: Exercism.CLI
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -242,7 +224,6 @@ properties:
       settings:
         id: eza-community.eza
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -251,7 +232,6 @@ properties:
       settings:
         id: FeatherWallet.Feather
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -260,7 +240,6 @@ properties:
       settings:
         id: Gyan.FFmpeg
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Firefox
@@ -268,7 +247,6 @@ properties:
       settings:
         id: Mozilla.Firefox
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Free Download Manager
@@ -276,7 +254,6 @@ properties:
       settings:
         id: SoftDeluxe.FreeDownloadManager
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install fzf
@@ -284,7 +261,6 @@ properties:
       settings:
         id: junegunn.fzf
         source: winget
-        useLatest: true
     - resource: PowerShellGet/PSModule
       dependsOn: [fzf, pwsh]
       directives:
@@ -300,7 +276,6 @@ properties:
       settings:
         id: Git.Git
         source: winget
-        useLatest: true
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [git]
       directives:
@@ -332,7 +307,6 @@ properties:
       settings:
         id: GitHub.cli
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Gpg4win
@@ -340,7 +314,6 @@ properties:
       settings:
         id: GnuPG.Gpg4win
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Grammarly
@@ -348,7 +321,6 @@ properties:
       settings:
         id: Grammarly.Grammarly
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Handbrake
@@ -356,7 +328,6 @@ properties:
       settings:
         id: HandBrake.HandBrake
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -365,7 +336,6 @@ properties:
       settings:
         id: LIGHTNINGUK.ImgBurn
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -375,7 +345,6 @@ properties:
         # TODO: Pass CLI options when supported
         id: KDE.KDiff3
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Logitech LogiTune
@@ -383,7 +352,6 @@ properties:
       settings:
         id: Logitech.LogiTune
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -392,7 +360,6 @@ properties:
       settings:
         id: Mojang.MinecraftLauncher
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Mp3Tag
@@ -400,7 +367,6 @@ properties:
       settings:
         id: FlorianHeidenreich.Mp3tag
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -409,7 +375,6 @@ properties:
       settings:
         id: mRemoteNG.mRemoteNG
         source: winget
-        useLatest: true
     - resource: PowerShellGet/PSModule
       dependsOn: [pwsh]
       directives:
@@ -445,7 +410,6 @@ properties:
       settings:
         id: Nextcloud.NextcloudDesktop
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NodeJS
@@ -453,7 +417,6 @@ properties:
       settings:
         id: OpenJS.NodeJS.LTS
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install npiperelay
@@ -461,7 +424,6 @@ properties:
       settings:
         id: albertony.npiperelay
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NTop
@@ -469,7 +431,6 @@ properties:
       settings:
         id: gsass1.NTop
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install NuGet
@@ -477,7 +438,6 @@ properties:
       settings:
         id: Microsoft.NuGet
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -486,7 +446,6 @@ properties:
       settings:
         id: OBSProject.OBSStudio
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Olive Tree Bible
@@ -494,7 +453,6 @@ properties:
       settings:
         id: 9NRSP6BRXBZQ
         source: msstore
-        useLatest: true
 {{- end }}
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [sudo]
@@ -543,7 +501,6 @@ properties:
       settings:
         id: FireDaemon.OpenSSL
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install pnpm
@@ -551,7 +508,6 @@ properties:
       settings:
         id: pnpm.pnpm
         source: winget
-        useLatest: true
     - resource: PowerShellGet/PSModule
       dependsOn: [pwsh]
       directives:
@@ -567,7 +523,6 @@ properties:
       settings:
         id: Postman.Postman
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install PowerShell
@@ -575,7 +530,6 @@ properties:
       settings:
         id: Microsoft.PowerShell
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       id: powerToys
       directives:
@@ -584,7 +538,6 @@ properties:
       settings:
         id: Microsoft.PowerToys
         source: winget
-        useLatest: true
     - resource: Microsoft.PowerToys.Configure/PowerToysConfigure
       dependsOn: [powerToys]
       directives:
@@ -619,7 +572,6 @@ properties:
       settings:
         id: PuTTY.PuTTY
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -628,7 +580,6 @@ properties:
       settings:
         id: Python.Launcher
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Python
@@ -636,7 +587,6 @@ properties:
       settings:
         id: Python.Python.3.13
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -645,7 +595,6 @@ properties:
       settings:
         id: QMK.QMKToolbox
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install QOwnNotes
@@ -653,7 +602,6 @@ properties:
       settings:
         id: pbek.QOwnNotes
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Quick Share
@@ -661,7 +609,6 @@ properties:
       settings:
         id: Google.QuickShare
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Raspberry Pi Imager
@@ -669,7 +616,6 @@ properties:
       settings:
         id: RaspberryPiFoundation.RaspberryPiImager
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -678,7 +624,6 @@ properties:
       settings:
         id: BurntSushi.ripgrep.MSVC
         source: winget
-        useLatest: true
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -687,7 +632,6 @@ properties:
       settings:
         id: ETHZurich.SafeExamBrowser
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Service Bus Explorer
@@ -695,7 +639,6 @@ properties:
       settings:
         id: paolosalvatori.ServiceBusExplorer
         source: winget
-        useLatest: true
 {{- end }}
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -705,7 +648,6 @@ properties:
       settings:
         id: SlackTechnologies.Slack
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -714,7 +656,6 @@ properties:
       settings:
         id: Microsoft.SQLServerManagementStudio.21
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Starship
@@ -722,7 +663,6 @@ properties:
       settings:
         id: Starship.Starship
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -731,7 +671,6 @@ properties:
       settings:
         id: Valve.Steam
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -740,7 +679,6 @@ properties:
       settings:
         id: Microsoft.Sysinternals.Suite
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Terraform
@@ -748,7 +686,6 @@ properties:
       settings:
         id: Hashicorp.Terraform
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install TFLint
@@ -756,7 +693,6 @@ properties:
       settings:
         id: TerraformLinters.tflint
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -765,7 +701,6 @@ properties:
       settings:
         id: Mozilla.Thunderbird
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Tor Browser
@@ -773,7 +708,6 @@ properties:
       settings:
         id: TorProject.TorBrowser
         source: winget
-        useLatest: true
 {{- end }}
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -783,7 +717,6 @@ properties:
       settings:
         id: TortoiseGit.TortoiseGit
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install TortoiseSVN
@@ -791,7 +724,6 @@ properties:
       settings:
         id: TortoiseSVN.TortoiseSVN
         source: winget
-        useLatest: true
 {{- end }}
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -801,7 +733,6 @@ properties:
       settings:
         id: SatoshiLabs.trezor-suite
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -810,7 +741,6 @@ properties:
       settings:
         id: Canonical.Ubuntu
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -819,7 +749,6 @@ properties:
       settings:
         id: IDRIX.VeraCrypt
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -828,7 +757,6 @@ properties:
       settings:
         id: vim.vim
         source: winget
-        useLatest: true
     - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [vim]
       directives:
@@ -852,7 +780,6 @@ properties:
 {{- end }}
         source: winget
         # It's better to use Visual Studio Installer
-        useLatest: false
     - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [visualStudio]
       directives:
@@ -875,7 +802,6 @@ properties:
       settings:
         id: Microsoft.VisualStudioCode
         source: winget
-        useLatest: true
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       dependsOn: [vsCode]
       directives:
@@ -1099,7 +1025,6 @@ properties:
       settings:
         id: VideoLAN.VLC
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install WezTerm
@@ -1107,7 +1032,6 @@ properties:
       settings:
         id: wez.wezterm
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install WinDirStat
@@ -1115,7 +1039,6 @@ properties:
       settings:
         id: WinDirStat.WinDirStat
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Windows Terminal
@@ -1123,7 +1046,6 @@ properties:
       settings:
         id: Microsoft.WindowsTerminal
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -1132,7 +1054,6 @@ properties:
       settings:
         id: WireGuard.WireGuard
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -1141,7 +1062,6 @@ properties:
       settings:
         id: WiresharkFoundation.Wireshark
         source: winget
-        useLatest: true
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -1150,7 +1070,6 @@ properties:
       settings:
         id: yt-dlp.yt-dlp
         source: winget
-        useLatest: true
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -1159,7 +1078,6 @@ properties:
       settings:
         id: Yubico.Authenticator
         source: winget
-        useLatest: true
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Zoom
@@ -1167,4 +1085,3 @@ properties:
       settings:
         id: Zoom.Zoom.EXE
         source: winget
-        useLatest: true

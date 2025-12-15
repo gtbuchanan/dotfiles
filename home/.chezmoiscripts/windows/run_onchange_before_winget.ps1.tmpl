@@ -9,6 +9,8 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
   Out-File -FilePath $ConfigFilePath
 winget configure -f $ConfigFilePath --suppress-initial-details --accept-configuration-agreements
 
+winget upgrade --all --accept-package-agreements --silent
+
 # Purge Desktop Shortcuts
 Join-Path $env:USERPROFILE "Desktop" "*.lnk" | Remove-Item
 sudo pwsh { Remove-Item "C:\Users\Public\Desktop\*.lnk" }
