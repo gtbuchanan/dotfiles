@@ -69,6 +69,10 @@ call plug#end()
 "set shellcmdflag=-Command
 "set shellquote=\"
 "set shellxquote=
+
+" FZF
+" Workaround for bug that cuts off popup window content
+let g:fzf_layout = { 'window': { 'width': 1, 'height': 1 } }
 {{- end }}
 
 " Fix Chezmoi file type race condition
