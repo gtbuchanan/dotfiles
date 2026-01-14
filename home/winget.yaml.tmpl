@@ -1039,11 +1039,28 @@ properties:
       settings:
         id: VideoLAN.VLC
         source: winget
+    - resource: xPSDesiredStateConfiguration/xPackage
+      dependsOn: [wezTerm]
+      directives:
+        description: Install WezTerm Nightly
+        securityContext: elevated
+      id: wezTermNightly
+      settings:
+        Arguments: /SILENT /NORESTART
+        CreateCheckRegValue: true
+        IgnoreReboot: true
+        InstalledCheckRegKey: 'SOFTWARE\gtbuchanan\WezTerm Nightly'
+        InstalledCheckRegValueName: 'InstalledOn'
+        InstalledCheckRegValueData: '{{ now.Format "2006-01-02" }}'
+        Name: ''
+        Path: 'https://github.com/wezterm/wezterm/releases/download/nightly/WezTerm-nightly-setup.exe'
+        ProductId: ''
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install WezTerm
+        description: Remove WezTerm
       id: wezTerm
       settings:
+        ensure: absent
         id: wez.wezterm
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
