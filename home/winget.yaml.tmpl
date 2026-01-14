@@ -663,13 +663,14 @@ properties:
         id: SlackTechnologies.Slack
         source: winget
 {{- end }}
-    - resource: Microsoft.WinGet.DSC/WinGetPackage
-      directives:
-        description: Install SSMS
-      id: ssms
-      settings:
-        id: Microsoft.SQLServerManagementStudio.21
-        source: winget
+# BUG: This always fails when it's already installed...
+#    - resource: Microsoft.WinGet.DSC/WinGetPackage
+#      directives:
+#        description: Install SSMS
+#      id: ssms
+#      settings:
+#        id: Microsoft.SQLServerManagementStudio.21
+#        source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Starship
