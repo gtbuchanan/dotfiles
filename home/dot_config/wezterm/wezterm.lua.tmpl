@@ -60,6 +60,15 @@ config.font = wezterm.font '{{ .font }}'
 -- The default font size is huge on Windows
 config.font_size = 10
 {{- end }}
+-- Fix transparency issue on monitor disconnect
+-- https://github.com/wezterm/wezterm/issues/6359#issuecomment-3749928356
+for _, gpu in ipairs(wezterm.gui.enumerate_gpus()) do
+  if gpu.backend == 'Vulkan' and gpu.device_type == 'IntegratedGpu' then
+    config.front_end = 'WebGpu'
+    config.webgpu_preferred_adapter = gpu
+    break
+  end
+end
 config.leader = { key = "Space", mods = "CTRL" }
 config.tab_bar_at_bottom = true
 config.unicode_version = 14
