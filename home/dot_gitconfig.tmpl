@@ -98,9 +98,9 @@
 
 [gpg]
 {{- if eq .chezmoi.os "windows" }}
-	program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+	program = C:\\Program Files\\GnuPG\\bin\\gpg.exe
 {{- else if .wsl }}
-	program = /mnt/c/Program Files (x86)/GnuPG/bin/gpg.exe
+	program = /mnt/c/Program Files/GnuPG/bin/gpg.exe
 {{- end }}
 
 [init]
