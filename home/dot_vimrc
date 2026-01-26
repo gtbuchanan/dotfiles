@@ -1,0 +1,9 @@
+" Add consistent, cross-platform runtime path to avoid conditional directory name logic in Chezmoi
+" Windows uses ~/vimfiles by default, which is still in runtime path, but I remove the directory
+let g:data_dir = '~/.vim'
+let &runtimepath = g:data_dir . ',' . &runtimepath
+let &runtimepath .= ',' . g:data_dir . '/after'
+
+source ~/.vim/config/packages.vim
+source ~/.vim/config/plug.vim
+source ~/.vim/config/shared.vim

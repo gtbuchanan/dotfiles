@@ -1,0 +1,20 @@
+{{- if eq .chezmoi.os "windows" }}
+" Use PowerShell
+" TODO: This appears to break vim-plug
+"set shell=pwsh
+"set shellcmdflag=-NoLogo -Command
+"set shellquote=\"
+"set shellxquote=
+{{- end }}
+
+" Show length guide at textwidth+1
+set colorcolumn=+1
+
+" Show glyphs for non-visible characters
+set showbreak=↪
+set listchars=tab:⟶\ ,trail:·,extends:>,precedes:<,space:·
+set list
+
+" Theme
+highlight NonText ctermfg=232
+highlight SpecialKey ctermfg=232

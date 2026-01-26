@@ -1,5 +1,2 @@
-{{- if eq .chezmoi.os "windows" }}
 # Vim defaults to `vimfiles` instead of .vim on Windows
-.vim
-{{- end }}
-
+vimfiles

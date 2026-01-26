@@ -1,0 +1,8 @@
+{{- if eq .chezmoi.os "android" }}
+let g:fauxClip_regcmds = {
+\   '+': {
+\     'yank':  'termux-clipboard-set',
+\     'paste': 'termux-clipboard-get',
+\   }
+\ }
+{{- end }}

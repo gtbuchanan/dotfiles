@@ -1,0 +1,54 @@
+" Install missing plugins on Vim open
+autocmd VimEnter * if len(filter(values(g:plugs), '!isdirectory(v:val.dir)'))
+  \| PlugInstall --sync | source $MYVIMRC
+\| endif
+
+" Define Plugins
+call plug#begin(g:data_dir . '/bundle')
+
+" Sensible defaults
+Plug 'tpope/vim-sensible'
+Plug 'tpope/vim-vinegar'
+
+" Chezmoi Templates
+Plug 'alker0/chezmoi.vim'
+
+" Toggle line number modes automatically
+Plug 'jeffkreeftmeijer/vim-numbertoggle'
+
+" Advanced Motions
+Plug 'tpope/vim-repeat' " Used by easymotion
+Plug 'chaoren/vim-wordmotion'
+Plug 'easymotion/vim-easymotion'
+
+" tmux-aware Navigation
+Plug 'christoomey/vim-tmux-navigator'
+
+{{- if eq .chezmoi.os "android" }}
+" Clipboard polyfill
+Plug 'Jorenar/fauxClip'
+{{- end }}
+
+" Fuzzy Finder
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
+Plug 'junegunn/fzf.vim'
+
+" Language Server
+Plug 'dense-analysis/ale'
+Plug 'prabirshrestha/vim-lsp'
+Plug 'mattn/vim-lsp-settings'
+Plug 'rhysd/vim-lsp-ale'
+
+" Autocomplete
+Plug 'prabirshrestha/asyncomplete.vim'
+Plug 'prabirshrestha/asyncomplete-lsp.vim'
+Plug 'OmniSharp/omnisharp-vim'
+
+" Git
+Plug 'tpope/vim-fugitive'
+
+" Theme
+Plug 'vim-airline/vim-airline'
+Plug 'vim-airline/vim-airline-themes'
+
+call plug#end()
