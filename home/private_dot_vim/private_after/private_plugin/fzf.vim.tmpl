@@ -1,0 +1,4 @@
+{{- if eq .chezmoi.os "windows" }}
+" Workaround for bug that cuts off popup window content
+let g:fzf_layout = { 'window': { 'width': 1, 'height': 1 } }
+{{- end }}

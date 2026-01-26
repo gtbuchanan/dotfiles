@@ -23,12 +23,7 @@
   url: https://raw.githubusercontent.com/wezterm/wezterm/refs/heads/main/assets/shell-integration/wezterm.sh
 {{- end }}
 
-{{- if eq .chezmoi.os "windows" }}
-'vimfiles/autoload/plug.vim':
-{{- else }}
 '.vim/autoload/plug.vim':
-{{- end }}
   refreshPeriod: 168h
   type: file
   url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-
