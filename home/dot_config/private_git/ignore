@@ -11,8 +11,8 @@
 .DS_Store
 
 # Vim
+*.swo
 *.swp
 
 # Windows
 Thumbs.db
-
