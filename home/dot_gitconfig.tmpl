@@ -96,7 +96,7 @@
 
 [gpg]
 {{- if eq .chezmoi.os "windows" }}
-	program = C:\\Program Files\\GnuPG\\bin\\gpg.exe
+	program = {{ .chezmoi.homeDir }}/.config/git/gpg-wrapper.bat
 {{- else if .wsl }}
 	program = /mnt/c/Program Files/GnuPG/bin/gpg.exe
 {{- end }}

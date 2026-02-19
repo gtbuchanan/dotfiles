@@ -61,6 +61,12 @@ Set-PSReadLineOption -EditMode Vi -ViModeIndicator Script -ViModeChangeHandler {
   [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()
 }
 
+# Configure GPG_TTY for terminal pinentry
+if ([Environment]::UserInteractive -and $Host.UI.RawUI) {
+  # The value is arbitrary; the wrapper script only checks if the variable is set
+  $env:GPG_TTY = "CON"
+}
+
 # Configure PowerShellGet
 Import-Module PowerShellGet
 
