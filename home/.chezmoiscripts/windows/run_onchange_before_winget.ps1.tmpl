@@ -9,7 +9,8 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
   Out-File -FilePath $ConfigFilePath
 winget configure -f $ConfigFilePath --suppress-initial-details --accept-configuration-agreements
 
-winget upgrade --all --accept-package-agreements --silent
+# TODO: SOOO slow... Need to do this after applying config changes instead of before
+#winget upgrade --all --accept-package-agreements --silent
 
 # Purge Desktop Shortcuts
 Join-Path $env:USERPROFILE "Desktop" "*.lnk" | Remove-Item
