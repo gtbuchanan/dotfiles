@@ -11,6 +11,14 @@ set textwidth=100
 nnoremap <SPACE> <Nop>
 let g:mapleader=" "
 
+" Split below instead of above
+set splitbelow
+let g:netrw_alto=1
+
+" Split right instead of left
+set splitright
+let g:netrw_altv=1
+
 " Yank to clipboard
 vnoremap <C-c> "+y
 nnoremap <leader>y "+y
