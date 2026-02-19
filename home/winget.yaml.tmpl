@@ -314,6 +314,15 @@ properties:
       settings:
         id: GitHub.cli
         source: winget
+{{- if eq .hosttype "ewn" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install GitHub Desktop
+      id: githubDesktop
+      settings:
+        id: GitHub.GitHubDesktop
+        source: winget
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Gpg4win
