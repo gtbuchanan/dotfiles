@@ -74,10 +74,7 @@
 	editor = vim
 {{- end }}
 	pager = delta
-{{- if eq .chezmoi.os "windows" }}
-	# Fix WezTerm unable to resolve %SYSTEMROOT% environment variable in default path
-	sshCommand = C:/Windows/System32/OpenSSH/ssh.exe
-{{- else if eq .chezmoi.os "android" }}
+{{- if eq .chezmoi.os "android" }}
 	# Termux has a special command for ssh to ensure ssh-agent is running
 	sshCommand = ssha
 {{- end }}

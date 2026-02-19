@@ -468,11 +468,19 @@ properties:
         id: 9NRSP6BRXBZQ
         source: msstore
 {{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      dependsOn: [opensshFeature]
+      directives:
+        description: Install OpenSSH
+      id: openssh
+      settings:
+        id: Microsoft.OpenSSH.Preview
+        source: winget
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [sudo]
       directives:
-        description: Install OpenSSH Client
-      id: openssh
+        description: Remove OpenSSH Client Feature
+      id: opensshFeature
       settings:
         GetScript: |
           $Command = "(Get-WindowsCapability -Online | Where-Object Name -Like 'OpenSSH.Client*').State"
@@ -483,9 +491,9 @@ properties:
           $Command = "(Get-WindowsCapability -Online | Where-Object Name -Like 'OpenSSH.Client*').State"
           $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
           $State = (sudo --disable-input powershell -EncodedCommand $EncodedCommand)
-          $State -Eq 'Installed'
+          $State -Ne 'Installed'
         SetScript: |
-          $Command = "Add-WindowsCapability -Online -Name 'OpenSSH.Client~~~~0.0.1.0'"
+          $Command = "Remove-WindowsCapability -Online -Name 'OpenSSH.Client~~~~0.0.1.0'"
           $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
           sudo --disable-input powershell -EncodedCommand $EncodedCommand
     - resource: xPSDesiredStateConfiguration/xService
@@ -507,7 +515,7 @@ properties:
       settings:
         Name: GIT_SSH
         Target: [Machine]
-        Value: '%SYSTEMROOT%\System32\OpenSSH\ssh.exe'
+        Value: 'C:\Program Files\OpenSSH\ssh.exe'
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install OpenSSL
