@@ -70,6 +70,8 @@ for _, gpu in ipairs(wezterm.gui.enumerate_gpus()) do
   end
 end
 config.leader = { key = "Space", mods = "CTRL" }
+-- Use native SSH on all platforms
+config.mux_enable_ssh_agent = false
 config.tab_bar_at_bottom = true
 config.unicode_version = 14
 config.window_background_opacity = 0.9
