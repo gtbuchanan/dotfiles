@@ -30,6 +30,9 @@ A [dotfiles] configuration using [chezmoi].
 
   * macOS uses Keychain to persist restarts
 
+* Shared [AI agent preferences][AGENTS.md] across [Claude Code], [GitHub Copilot CLI], and
+  [VS Code Copilot] via a single [`~/.config/AGENTS.md`][AGENTS.md] source file
+
 * Windows Subsystem for Linux (WSL) support
 
   * SSH agent forwarding to host
@@ -54,13 +57,17 @@ A [dotfiles] configuration using [chezmoi].
 
   * On macOS, ZSH is replaced by the latest Bash for consistency
 
+[AGENTS.md]: home/dot_config/AGENTS.md
 [ble.sh]: https://github.com/akinomyoga/ble.sh/
 [Caskaydia Cove]: https://github.com/eliheuer/caskaydia-cove/
 [chezmoi]: https://www.chezmoi.io/
+[Claude Code]: https://claude.ai/code
 [dotfiles]: https://dotfiles.github.io/
+[GitHub Copilot CLI]: https://github.com/github/copilot-cli
 [PowerShell]: https://github.com/PowerShell/PowerShell/
 [PSReadLine]: https://github.com/PowerShell/PSReadLine/
 [Starship]: https://starship.rs/
 [Termux]: https://termux.dev/en/
+[VS Code Copilot]: https://code.visualstudio.com/docs/copilot/overview
 [wez-tmux]: https://github.com/sei40kr/wez-tmux/
 [Wezterm]: https://wezterm.org/
