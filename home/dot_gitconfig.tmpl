@@ -119,6 +119,9 @@
 [pretty]
 	oneline-detailed = %C(auto,yellow)%h%C(auto,magenta)%  %C(auto,blue)%>(12,trunc)%ar %C(auto,green)%<(10,trunc)%aN %C(auto,reset)%s%C(auto,blue)% (trailers:key=Fixes,key=Resolves,separator=%x2C)%C(auto)%d
 
+[push]
+	forceIfIncludes = true
+
 [user]
 	name = Taylor Buchanan
 	email = {{ .email | quote }}
