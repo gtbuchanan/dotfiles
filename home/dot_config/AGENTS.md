@@ -20,6 +20,7 @@
 - Wrap commit body at 72 characters, when possible
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
+- Always set the `AI_AGENT=1` environment variable when running git commands
 
 ## Python
 
