@@ -147,6 +147,20 @@ properties:
         source: winget
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Claude Desktop
+      id: claude
+      settings:
+        id: Anthropic.Claude
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Claude Code
+      id: claudeCode
+      settings:
+        id: Anthropic.ClaudeCode
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
       dependsOn: [chromeExe]
       directives:
         description: Install Chrome
@@ -323,6 +337,13 @@ properties:
         id: GitHub.GitHubDesktop
         source: winget
 {{- end }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install GitHub Copilot CLI
+      id: githubCopilotCli
+      settings:
+        id: GitHub.Copilot
+        source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Gpg4win
