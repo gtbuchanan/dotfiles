@@ -61,7 +61,7 @@ home/
 │   ├── AGENTS.md                # User-level agent preferences (source of truth)
 │   ├── wezterm/                 # WezTerm config (Lua)
 │   ├── powershell/              # PowerShell profile
-│   ├── private_git/             # Global gitignore + GPG wrapper
+│   ├── private_git/             # Git config: global ignore (`ignore`) + GPG wrapper
 │   └── private_starship.toml    # Starship prompt
 ├── dot_claude/CLAUDE.md         # References dot_config/AGENTS.md
 ├── dot_copilot/                 # GitHub Copilot instructions (references AGENTS.md)

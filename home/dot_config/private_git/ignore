@@ -1,6 +1,9 @@
 # Backup Files
 *.bak
 
+# Claude Code
+.claude/worktrees/
+
 # KDiff3
 *.orig
 
