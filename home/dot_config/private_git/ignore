@@ -1,6 +1,9 @@
 # Backup Files
 *.bak
 
+# Clean Safe Alias
+.cleanignore.local
+
 # Claude Code
 .claude/worktrees/
 
