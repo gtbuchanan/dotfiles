@@ -63,6 +63,12 @@
 	unpicked = !pwsh -File "~/Code/git-unpicked/git-unpicked.ps1" -Format "oneline-detailed"
 {{- end }}
 	unsynced = l --branches --not --remotes --no-walk --decorate --format=oneline-detailed
+	wt = worktree
+	wta = wt add
+	wtl = wt list
+	wtp = wt prune
+	wtr = wt remove
+	wtrf = wtr -f
 
 [commit]
 	gpgsign = true
