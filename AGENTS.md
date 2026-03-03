@@ -51,12 +51,15 @@ home/
 ├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply
 ├── .chezmoiignore               # Platform-conditional file exclusions
 ├── .chezmoiremove               # Files to remove from target
-├── .chezmoitemplates/           # Reusable Go templates (PowerShell profile, VS Code settings)
+├── .chezmoitemplates/
+│   ├── powershell_profile.ps1   # PowerShell profile (aliases, functions, shell config)
+│   └── ...                      # Other reusable Go templates (VS Code settings, etc.)
 ├── .chezmoiscripts/
 │   ├── windows/                 # PowerShell scripts (run on Windows)
 │   ├── linux/                   # Shell scripts (run on Linux/WSL)
 │   ├── darwin/                  # Shell scripts (run on macOS)
 │   └── android/                 # Shell scripts (run on Termux)
+├── dot_gitconfig.tmpl            # Git config (aliases, core, delta, merge, push, etc.)
 ├── dot_config/
 │   ├── AGENTS.md                # User-level agent preferences (source of truth)
 │   ├── wezterm/                 # WezTerm config (Lua)

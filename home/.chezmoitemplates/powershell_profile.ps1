@@ -1,5 +1,6 @@
 # Configure aliases
 Set-Alias -Name c -Value clear
+Set-Alias -Name cc -Value claude
 Set-Alias -Name cm -Value chezmoi
 Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
