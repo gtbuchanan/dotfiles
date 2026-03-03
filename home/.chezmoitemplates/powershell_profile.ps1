@@ -15,6 +15,7 @@ Set-Alias -Name v -Value vim
 
 $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 
+Function ccc { clear; claude @args }
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
 {{- if eq .chezmoi.os "windows" }}
