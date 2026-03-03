@@ -22,6 +22,10 @@
 - Always use `--force-with-lease` to force push, when necessary
 - Always set the `AI_AGENT=1` environment variable when running git commands
 
+## Testing
+
+- Always use Playwright CLI to verify website changes
+
 ## Python
 
 - Always use `py.exe` on Windows instead of `python.exe` or `python3.exe` directly

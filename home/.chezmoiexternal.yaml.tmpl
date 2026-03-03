@@ -8,6 +8,13 @@
   url: https://github.com/peetzweg/acli-skill/archive/719c3120f8d3dbfa45a91d90272f5286e9039cde.tar.gz
 {{- end }}
 
+'.config/skills/playwright-cli':
+  exact: true
+  type: archive
+  stripComponents: 3
+  include: ["*/skills/playwright-cli/**"]
+  url: https://github.com/microsoft/playwright-cli/archive/refs/tags/v0.1.1.tar.gz
+
 {{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "windows") }}
 '.config/wezterm/plugins/wez-tmux':
   exact: true
