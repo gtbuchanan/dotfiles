@@ -101,6 +101,13 @@ properties:
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install Atlassian CLI
+      id: atlassianCli
+      settings:
+        id: Atlassian.AtlassianCLI
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install Azure CLI
       id: azureCli
       settings:

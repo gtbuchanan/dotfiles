@@ -3,6 +3,11 @@
 AppData
 Documents
 **/*.bat*
+{{- else }}
+# On Windows, symlink_ creates file symlinks; use a script for directory symlinks
+.claude/skills
+.copilot/skills
+.agents/skills
 {{- end }}
 
 {{- if ne .chezmoi.os "android" }}
@@ -42,6 +47,10 @@ Library
 .bash*
 .blerc
 .profile
+{{- end }}
+
+{{- if ne .hosttype "ewn" }}
+.config/skills/atlassian-cli
 {{- end }}
 
 **/*.cmm

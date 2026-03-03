@@ -62,12 +62,19 @@ home/
 ├── dot_gitconfig.tmpl            # Git config (aliases, core, delta, merge, push, etc.)
 ├── dot_config/
 │   ├── AGENTS.md                # User-level agent preferences (source of truth)
+│   ├── skills/                  # Canonical agent skills directory (Agent Skills standard)
+│   │   └── atlassian-cli/       # Jira/Confluence CLI skill (ewn only)
 │   ├── wezterm/                 # WezTerm config (Lua)
 │   ├── powershell/              # PowerShell profile
 │   ├── private_git/             # Git config: global ignore (`ignore`) + GPG wrapper
 │   └── private_starship.toml    # Starship prompt
-├── dot_claude/CLAUDE.md         # References dot_config/AGENTS.md
+├── dot_claude/
+│   ├── CLAUDE.md                # References dot_config/AGENTS.md
+│   └── symlink_skills           # → ../.config/skills
 ├── dot_copilot/                 # GitHub Copilot instructions (references AGENTS.md)
+│   └── symlink_skills           # → ../.config/skills
+├── dot_agents/
+│   └── symlink_skills           # → ../.config/skills
 ├── private_dot_vim/             # Vim config, plugins, after-plugin overrides
 ├── private_dot_ssh/             # SSH config
 ├── winget.yaml.tmpl             # Windows package/config manifest (DSC)
@@ -96,6 +103,25 @@ GPG signing is enabled for all commits. The GPG wrapper at
 - Otherwise with `GPG_TTY` set: adds `--pinentry-mode loopback` for terminal pinentry.
 
 Always set `AI_AGENT=1` when running git commands as an agent.
+
+## Agent Skills
+
+Skills follow the [Agent Skills](https://agentskills.io) standard. The canonical source
+lives at `~/.config/skills/` (managed by `home/dot_config/skills/`). Each tool discovers
+skills via a `skills/` symlink in its config directory:
+
+```
+~/.config/skills/              ← canonical source (real files)
+    atlassian-cli/SKILL.md
+
+~/.claude/skills  → ../.config/skills   (symlink)
+~/.copilot/skills → ../.config/skills   (symlink)
+~/.agents/skills  → ../.config/skills   (symlink)
+```
+
+To add a new skill, create a directory under `home/dot_config/skills/` with a `SKILL.md`.
+All tools pick it up automatically. Use `.chezmoiignore` to gate host-specific skills
+(e.g., `atlassian-cli` is ewn-only).
 
 ## User-Level Agent Preferences
 
