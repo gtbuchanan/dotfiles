@@ -1,4 +1,13 @@
 ---
+{{- if eq .hosttype "ewn" }}
+'.config/skills/atlassian-cli':
+  exact: true
+  type: archive
+  stripComponents: 2
+  include: ["*/skill/**"]
+  url: https://github.com/peetzweg/acli-skill/archive/719c3120f8d3dbfa45a91d90272f5286e9039cde.tar.gz
+{{- end }}
+
 {{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "windows") }}
 '.config/wezterm/plugins/wez-tmux':
   exact: true
@@ -7,20 +16,20 @@
   url: https://github.com/sei40kr/wez-tmux/archive/d53fb08b8212d82c34abacfce167bfa79919bb41.tar.gz
 {{- end }}
 
-{{- if eq .chezmoi.os "android" }}
-'.tmux/plugins/tpm-redux':
-  exact: true
-  stripComponents: 1
-  type: archive
-  url: https://github.com/RyanMacG/tpm-redux/archive/refs/tags/v1.0.0.tar.gz
-{{- end }}
-
 {{- if ne .chezmoi.os "windows" }}
 # https://wezterm.org/shell-integration.html
 '.config/wezterm/wezterm.sh':
   refreshPeriod: 128h
   type: file
   url: https://raw.githubusercontent.com/wezterm/wezterm/refs/heads/main/assets/shell-integration/wezterm.sh
+{{- end }}
+
+{{- if eq .chezmoi.os "android" }}
+'.tmux/plugins/tpm-redux':
+  exact: true
+  stripComponents: 1
+  type: archive
+  url: https://github.com/RyanMacG/tpm-redux/archive/refs/tags/v1.0.0.tar.gz
 {{- end }}
 
 '.vim/autoload/plug.vim':

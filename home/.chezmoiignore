@@ -49,10 +49,6 @@ Library
 .profile
 {{- end }}
 
-{{- if ne .hosttype "ewn" }}
-.config/skills/atlassian-cli
-{{- end }}
-
 **/*.cmm
 **/*.orig
 **/*.src.ini

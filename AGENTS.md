@@ -63,7 +63,6 @@ home/
 ├── dot_config/
 │   ├── AGENTS.md                # User-level agent preferences (source of truth)
 │   ├── skills/                  # Canonical agent skills directory (Agent Skills standard)
-│   │   └── atlassian-cli/       # Jira/Confluence CLI skill (ewn only)
 │   ├── wezterm/                 # WezTerm config (Lua)
 │   ├── powershell/              # PowerShell profile
 │   ├── private_git/             # Git config: global ignore (`ignore`) + GPG wrapper
