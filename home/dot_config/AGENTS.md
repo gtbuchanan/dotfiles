@@ -26,6 +26,14 @@
 
 - Always use Playwright CLI to verify website changes
 
+## Shell
+
+- NEVER use `cd` to change to the current working directory before running a command.
+  The working directory is already set — just run the command directly.
+  IMPORTANT: On Windows with Git Bash, `/c/Users/...` and `C:\Users\...` are the SAME path.
+  Do NOT do `cd /c/Users/.../project && command` if the cwd is
+  `C:\Users\...\project`. They are equivalent — skip the `cd`.
+
 ## Python
 
 - Always use `py.exe` on Windows instead of `python.exe` or `python3.exe` directly
