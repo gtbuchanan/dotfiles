@@ -101,8 +101,6 @@ GPG signing is enabled for all commits. The GPG wrapper at
   so non-interactive signing works.
 - Otherwise with `GPG_TTY` set: adds `--pinentry-mode loopback` for terminal pinentry.
 
-Always set `AI_AGENT=1` when running git commands as an agent.
-
 ## Agent Skills
 
 Skills follow the [Agent Skills](https://agentskills.io) standard. The canonical source
