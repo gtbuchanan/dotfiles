@@ -29,11 +29,10 @@
 	f = fetch
 	fp = f --prune
 {{- if eq .hosttype "ewn" }}
-	jira = !pwsh -File "~/Desktop/git-jira.ps1"
-	j = jira
-	jc = j comment
-	jl = j link
-	jm = j move
+	j = !bash ~/.config/git/jira
+	jc = j comment list
+	jl = j link list
+	jt = j transition
 	jv = j view
 {{- end }}
 	l = log

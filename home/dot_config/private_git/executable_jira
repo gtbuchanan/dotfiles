@@ -1,0 +1,28 @@
+#!/bin/bash
+# git-jira: resolve the JIRA issue key from the current branch (jira/<key>)
+# and forward commands to acli jira workitem.
+# Usage: git j <command> [args...]
+
+issue=$(git branch --show-current | sed -n 's|^jira/||p')
+
+if [ -z "$issue" ]; then
+  echo 'Unable to determine JIRA issue from current branch name.' >&2
+  exit 1
+fi
+
+if [ $# -eq 0 ]; then
+  exec acli jira workitem
+fi
+
+# Commands that accept positional key args
+positional="view"
+
+cmd="$1"; shift
+case " $positional " in
+  *" $cmd "*)
+    exec acli jira workitem "$cmd" "$issue" "$@"
+    ;;
+  *)
+    exec acli jira workitem "$cmd" "$@" --key "$issue"
+    ;;
+esac
