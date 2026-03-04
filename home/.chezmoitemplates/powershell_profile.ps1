@@ -123,4 +123,7 @@ Import-Module -Name $env:USERPROFILE/Code/PSRSA/src/PSRSA.psm1
 
 # Configure JIRA CLI
 $env:JIRA_API_TOKEN = {{ (index (dashlanePassword "JIRA API Token") 0).password | quote }}
+
+# Configure Cloudflare CLI
+$env:CF_API_TOKEN = {{ (index (dashlanePassword "Cloudflare API Token") 0).password | quote }}
 {{- end }}
