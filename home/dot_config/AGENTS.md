@@ -24,6 +24,7 @@
 - When squash-merging a PR, always provide your own summarized commit message
   that includes the PR reference suffix (e.g., ` (#1234)`).
   Do not accept the default squash message (concatenated individual commits).
+- When creating a PR, always ask whether to open it as a draft or ready for review.
 
 ## Testing
 
