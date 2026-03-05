@@ -21,6 +21,9 @@
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
 - Always set `AI_AGENT=1` when running git commands that trigger GPG signing (e.g., commit, tag)
+- When squash-merging a PR, always provide your own summarized commit message
+  that includes the PR reference suffix (e.g., ` (#1234)`).
+  Do not accept the default squash message (concatenated individual commits).
 
 ## Testing
 
