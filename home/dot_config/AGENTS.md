@@ -25,6 +25,7 @@
   that includes the PR reference suffix (e.g., ` (#1234)`).
   Do not accept the default squash message (concatenated individual commits).
 - When creating a PR, always ask whether to open it as a draft or ready for review.
+- Never push to a remote unless explicitly told to.
 
 ## Testing
 
