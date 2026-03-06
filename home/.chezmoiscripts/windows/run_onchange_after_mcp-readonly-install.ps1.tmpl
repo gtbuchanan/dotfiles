@@ -1,10 +1,10 @@
-# package.json hash: {{ include "dot_local/lib/mcp-readonly/package.json" | sha256sum }}
-# index.mjs hash: {{ include "dot_local/lib/mcp-readonly/index.mjs" | sha256sum }}
+{{- $root := .chezmoi.workingTree | replace "\\" "/" -}}
+# package.json hash: {{ output "git" "hash-object" (joinPath $root "mcp-readonly/package.json") | trim }}
 $ErrorActionPreference = 'Stop'
-$McpDir = Join-Path $env:USERPROFILE ".local" "lib" "mcp-readonly"
+$McpDir = '{{ $root }}/mcp-readonly'
 Set-Location $McpDir
 pnpm install --prod
 
-$IndexMjs = Join-Path $McpDir "index.mjs" | ForEach-Object { $_ -replace '\\', '/' }
+$IndexMjs = "$McpDir/index.mjs"
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- node $IndexMjs

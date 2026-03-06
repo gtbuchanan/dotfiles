@@ -33,7 +33,7 @@
     "servers": {
       "readonly": {
         "command": "node",
-        "args": ["{{ .chezmoi.homeDir | replace "\\" "/" }}/.local/lib/mcp-readonly/index.mjs"]
+        "args": ["{{ .chezmoi.workingTree | replace "\\" "/" }}/mcp-readonly/index.mjs"]
       }
     }
   },

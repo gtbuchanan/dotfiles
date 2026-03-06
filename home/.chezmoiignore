@@ -53,5 +53,4 @@ Library
 **/*.cmm
 **/*.orig
 **/*.src.ini
-**/node_modules
 winget.yaml
