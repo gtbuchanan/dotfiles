@@ -12,9 +12,16 @@
  *   even when args contain untrusted input. On Windows, a `bash -c 'exec "$@"'`
  *   wrapper preserves this guarantee for shell utilities.
  * - --registry blocked: prevents SSRF / data exfiltration to attacker-controlled registries.
- * - --ignore-scripts injected: defense-in-depth for npm/pnpm to prevent lifecycle scripts.
+ * - --ignore-scripts injected: defense-in-depth for npm to prevent lifecycle scripts.
+ *   Not needed for pnpm: its allowed subcommands are inherently read-only and reject the flag.
  * - Resource limits (timeout, maxBuffer): prevent runaway commands from consuming
  *   excessive CPU/memory on expensive operations (e.g., recursive ls).
+ *
+ * Auto-allow implications:
+ * - These tools are auto-allowed in Claude settings (no user confirmation prompt).
+ *   The allowlist/blocklist logic is the sole security boundary against prompt
+ *   injection. Any command reachable through the allowlists can be invoked by
+ *   an attacker who compromises the agent's context.
  *
  * Excluded by design:
  * - `chezmoi data`: leaks template variables that may contain secrets.
@@ -135,6 +142,18 @@ const SHELL_COMMANDS = new Set([
   "readlink", "realpath", "stat", "wc", "which", "whoami",
 ]);
 
+// jq: block file-path arguments to prevent reading arbitrary files.
+// Allow only flags (-r, -e, -S, --arg, etc.) and filter expressions.
+// Flags that read files — block entirely (data exfiltration via --slurpfile/--rawfile,
+// arbitrary filter loading via --from-file/-f, library path probing via -L)
+const JQ_FILE_FLAGS = new Set([
+  "--slurpfile", "--rawfile", "--from-file", "-f", "-L", "--library-path",
+]);
+// Flags that take two following arguments (name + value)
+const JQ_PAIR_FLAGS = new Set(["--arg", "--argjson"]);
+// Flags that take one following argument
+const JQ_VALUE_FLAGS = new Set(["--indent"]);
+
 const SHELL_BLOCKED_FLAGS = {};
 
 // --- Server ---
@@ -158,7 +177,7 @@ server.tool(
       const blocked = args.slice(1).find((a) => GIT_BRANCH_BLOCKED.has(a));
       if (blocked) return fail(`Flag not allowed for git branch: ${blocked}`);
     }
-    return exec("git", args);
+    return exec("git", ["--no-pager", ...args]);
   },
 );
 
@@ -217,7 +236,7 @@ server.tool(
       return rejectSubcommand(args, 2, PNPM_SUBCOMMANDS);
     const blocked = args.slice(1).find((a) => PNPM_BLOCKED_FLAGS.has(a) || a.startsWith("--registry="));
     if (blocked) return fail(`Flag not allowed: ${blocked}`);
-    return exec("pnpm", ["--ignore-scripts", ...args]);
+    return exec("pnpm", args);
   },
 );
 
@@ -235,6 +254,23 @@ server.tool(
     if (blocked) {
       const flag = args.find((a) => blocked.has(a) || [...blocked].some((f) => a.startsWith(f + "=")));
       if (flag) return fail(`Flag not allowed for ${command}: ${flag}`);
+    }
+    if (command === "jq") {
+      for (let i = 0; i < args.length; i++) {
+        if (JQ_FILE_FLAGS.has(args[i])) return fail(`Flag not allowed for jq: ${args[i]}`);
+        if (JQ_PAIR_FLAGS.has(args[i])) { i += 2; continue; }
+        if (JQ_VALUE_FLAGS.has(args[i])) { i++; continue; }
+        if (args[i].startsWith("-")) continue;
+        // First non-flag arg is the filter expression; rest are file paths
+        for (let j = i + 1; j < args.length; j++) {
+          if (JQ_FILE_FLAGS.has(args[j])) return fail(`Flag not allowed for jq: ${args[j]}`);
+          if (JQ_PAIR_FLAGS.has(args[j])) { j += 2; continue; }
+          if (JQ_VALUE_FLAGS.has(args[j])) { j++; continue; }
+          if (args[j].startsWith("-")) continue;
+          return fail(`File arguments not allowed for jq (use stdin via piping). Got: ${args[j]}`);
+        }
+        break;
+      }
     }
     return execShell(command, args);
   },

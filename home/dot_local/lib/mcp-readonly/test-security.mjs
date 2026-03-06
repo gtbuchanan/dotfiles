@@ -345,6 +345,51 @@ assertNotBlocked(pnpmLicenses, "pnpm licenses list should be allowed");
 const pnpmStoreStatus = await server.callTool("pnpm", { args: ["store", "status"] });
 assertNotBlocked(pnpmStoreStatus, "pnpm store status should be allowed");
 
+console.log("\n=== jq file argument blocking ===");
+
+// jq with filter only (no file) should be allowed
+const jqFilter = await server.callTool("shell", { command: "jq", args: ["-n", "empty"] });
+assertNotBlocked(jqFilter, "jq -n empty (no file) should be allowed");
+
+// jq with file argument should be blocked
+const jqFile = await server.callTool("shell", { command: "jq", args: [".", "/etc/passwd"] });
+assertBlocked(jqFile, "jq . /etc/passwd should be blocked");
+
+const jqFileHome = await server.callTool("shell", { command: "jq", args: [".", canaryFile] });
+assertBlocked(jqFileHome, "jq . <canary> should be blocked");
+
+// jq with --arg (pair flag: name + value) followed by filter + file should still block the file
+const jqArgFile = await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", ".", canaryFile] });
+assertBlocked(jqArgFile, "jq --arg k v . <file> should be blocked");
+
+// jq with --arg (pair flag) followed by filter only should be allowed
+const jqArgNoFile = await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", "-n", ".foo"] });
+assertNotBlocked(jqArgNoFile, "jq --arg k v -n .foo (no file) should be allowed");
+
+// jq with --argjson (pair flag) followed by filter only should be allowed
+const jqArgJson = await server.callTool("shell", { command: "jq", args: ["--argjson", "k", "123", "-n", "$k"] });
+assertNotBlocked(jqArgJson, "jq --argjson k 123 -n $k (no file) should be allowed");
+
+// jq file-reading flags should be blocked entirely
+for (const flag of ["--slurpfile", "--rawfile", "--from-file", "-f"]) {
+  const r = await server.callTool("shell", { command: "jq", args: [flag, "x", canaryFile] });
+  assertBlocked(r, `jq ${flag} should be blocked (reads files)`);
+}
+
+// jq -L (library path) should be blocked
+const jqLibPath = await server.callTool("shell", { command: "jq", args: ["-L", "/tmp", "-n", "empty"] });
+assertBlocked(jqLibPath, "jq -L should be blocked");
+
+// jq with only flags and filter should be allowed
+const jqFlagsOnly = await server.callTool("shell", { command: "jq", args: ["-r", "-n", ".foo"] });
+assertNotBlocked(jqFlagsOnly, "jq -r -n .foo (no file) should be allowed");
+
+console.log("\n=== git --no-pager injection ===");
+
+// Verify git commands don't hang on pager (--no-pager is injected)
+const gitLogPager = await server.callTool("git", { args: ["log", "--oneline", "-1"] });
+assertNotBlocked(gitLogPager, "git log with injected --no-pager should work");
+
 console.log("\n=== Edge cases ===");
 
 // Empty args
