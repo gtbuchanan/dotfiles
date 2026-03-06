@@ -42,6 +42,7 @@
 
 ## Testing
 
+- Prefer TDD (red/green): write a failing test first, then make it pass
 - Always use Playwright CLI to verify website changes
 
 ## Shell
