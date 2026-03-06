@@ -108,9 +108,8 @@ if [ -n "$BRANCH" ]; then
     elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
         SYNC="⇣${BEHIND}"
     fi
-    [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
-
     GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
+    [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
     GIT_ICON="${ICON_BRANCH} "
     [ -n "$WORKTREE_NAME" ] && GIT_ICON="🌳"
     LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
