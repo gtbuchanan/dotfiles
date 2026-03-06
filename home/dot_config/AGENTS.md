@@ -9,6 +9,11 @@
 
 - I'm a senior engineer - don't explain basics
 
+## Markdown
+
+- Only use numbered lists for sequential steps. Use `1.` for every item.
+- Use unordered lists for non-sequential items
+
 ## Configuration
 
 - Always update user-level configuration in Chezmoi directory and run `chezmoi apply`

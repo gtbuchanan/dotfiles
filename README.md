@@ -61,13 +61,57 @@ A [dotfiles] configuration using [chezmoi].
 
   * On macOS, ZSH is replaced by the latest Bash for consistency
 
+## Getting Started
+
+### Prerequisites
+
+* [Chezmoi][chezmoi]
+  * Windows: `winget install -e --id twpayne.chezmoi`
+  * macOS: `brew install chezmoi`
+  * Ubuntu/Snap: `snap install --classic chezmoi`
+* [Chezmoi Modify Manager]: Unzip [release][Chezmoi Modify Manager Release] and add to PATH
+  * macOS: `xattr -d com.apple.quarantine "$HOME/bin/chezmoi_modify_manager"`
+* [PowerShell] (Windows only): `winget install -e --id Microsoft.PowerShell`
+* [Dashlane CLI] (Work only): Unzip [release][Dashlane CLI Release] and add to PATH
+
+### Install
+
+1. Reset WinGet if needed (Windows only, see [workaround][WinGet Reset]):
+
+   `Reset-AppxPackage -Package 'Microsoft.DesktopAppInstaller_1.26.430.0_x64__8wekyb3d8bbwe'`
+
+1. Restart shell or reload environment variables
+1. `dcli sync` (Work only)
+1. `chezmoi init --apply gtbuchanan`
+
+### Troubleshooting
+
+#### WinGet Errors
+
+WinGet intermittently fails with RPC errors. To retry from the repo root
+(`cmcd`):
+
+```
+winget configure -f dist/winget.yaml --suppress-initial-details --accept-configuration-agreements
+```
+
+Alternatively, clear the script cache and re-run `chezmoi apply`:
+
+```
+chezmoi state delete-bucket --bucket=scriptState
+```
+
 [AGENTS.md]: home/dot_config/AGENTS.md
 [Agent Skills]: https://agentskills.io/
 [ble.sh]: https://github.com/akinomyoga/ble.sh/
 [Caskaydia Cove]: https://github.com/eliheuer/caskaydia-cove/
+[Chezmoi Modify Manager]: https://github.com/VorpalBlade/chezmoi_modify_manager
+[Chezmoi Modify Manager Release]: https://github.com/VorpalBlade/chezmoi_modify_manager/releases
 [chezmoi]: https://www.chezmoi.io/
 [Claude Code]: https://claude.ai/code
 [Codex CLI]: https://github.com/openai/codex
+[Dashlane CLI]: https://github.com/Dashlane/dashlane-cli
+[Dashlane CLI Release]: https://github.com/Dashlane/dashlane-cli/releases
 [dotfiles]: https://dotfiles.github.io/
 [GitHub Copilot CLI]: https://github.com/github/copilot-cli
 [PowerShell]: https://github.com/PowerShell/PowerShell/
@@ -76,4 +120,5 @@ A [dotfiles] configuration using [chezmoi].
 [Termux]: https://termux.dev/en/
 [VS Code Copilot]: https://code.visualstudio.com/docs/copilot/overview
 [wez-tmux]: https://github.com/sei40kr/wez-tmux/
+[WinGet Reset]: https://github.com/microsoft/winget-cli/issues/5626#issuecomment-3264037684
 [Wezterm]: https://wezterm.org/
