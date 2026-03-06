@@ -100,13 +100,15 @@ if [ -n "$BRANCH" ]; then
     # Staged group: check-in-box then count
     [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS}${ICON_STAGED} ${STAGED} "
     # Sync status: ahead/behind/diverged
+    SYNC=""
     if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
-        GIT_STATUS="${GIT_STATUS}⇕${AHEAD}/${BEHIND}"
+        SYNC="⇕${AHEAD}/${BEHIND}"
     elif [ "$AHEAD" -gt 0 ] 2>/dev/null; then
-        GIT_STATUS="${GIT_STATUS}⇡${AHEAD}"
+        SYNC="⇡${AHEAD}"
     elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
-        GIT_STATUS="${GIT_STATUS}⇣${BEHIND}"
+        SYNC="⇣${BEHIND}"
     fi
+    [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
 
     GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
     GIT_ICON="${ICON_BRANCH} "
