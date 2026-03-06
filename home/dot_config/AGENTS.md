@@ -30,6 +30,15 @@
 - Only force push when changing history of pushed commits.
 - When creating issues or PRs, always use the repository's issue/PR templates if available.
 - Always delete local and remote PR branch after merging a PR.
+{{- if eq .hosttype "ewn" }}
+- When a GitHub org is ambiguous or unspecified, infer `energyworldnet`
+{{- end }}
+- When creating a new repo, always ask where to create it (org/account).
+{{- if eq .hosttype "ewn" }}
+  Default suggestion: `energyworldnet`
+{{- else }}
+  Default suggestion: personal account
+{{- end }}
 
 ## Testing
 
