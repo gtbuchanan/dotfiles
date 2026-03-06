@@ -1,0 +1,13 @@
+{
+  "name": "mcp-readonly",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node test-security.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.0",
+    "zod": "^3.24.0"
+  }
+}

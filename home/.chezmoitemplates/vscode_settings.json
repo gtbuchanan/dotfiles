@@ -29,6 +29,14 @@
   },
   "githubPullRequests.pullBranch": "never",
   "markdown-preview-enhanced.previewTheme": "github-dark.css",
+  "mcp": {
+    "servers": {
+      "readonly": {
+        "command": "node",
+        "args": ["{{ .chezmoi.homeDir | replace "\\" "/" }}/.local/lib/mcp-readonly/index.mjs"]
+      }
+    }
+  },
 {{- range $key := list "mssql.connections" "mssql.connectionGroups" }}
   "{{ $key }}":
 {{- get $json $key | default list | toPrettyJson | indent 1 | trim | comment " " }},

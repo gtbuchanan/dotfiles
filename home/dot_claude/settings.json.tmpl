@@ -1,0 +1,21 @@
+{{- /*
+  Only auto-allow MCP readonly tools here. Built-in tools (Read, Glob,
+  Grep, Agent) are intentionally excluded: they have no path restrictions,
+  so auto-allowing them would widen the blast radius of prompt injection.
+*/ -}}
+{
+  "permissions": {
+    "allow": [
+      "mcp__readonly__acli",
+      "mcp__readonly__chezmoi",
+      "mcp__readonly__gh",
+      "mcp__readonly__git",
+      "mcp__readonly__shell"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline",
+    "padding": 0
+  }
+}

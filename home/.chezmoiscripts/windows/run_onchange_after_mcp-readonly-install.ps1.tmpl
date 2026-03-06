@@ -1,0 +1,10 @@
+# package.json hash: {{ include "dot_local/lib/mcp-readonly/package.json" | sha256sum }}
+# index.mjs hash: {{ include "dot_local/lib/mcp-readonly/index.mjs" | sha256sum }}
+$ErrorActionPreference = 'Stop'
+$McpDir = Join-Path $env:USERPROFILE ".local" "lib" "mcp-readonly"
+Set-Location $McpDir
+pnpm install --prod
+
+$IndexMjs = Join-Path $McpDir "index.mjs" | ForEach-Object { $_ -replace '\\', '/' }
+claude mcp remove readonly --scope user 2>$null
+claude mcp add --scope user readonly -- node $IndexMjs

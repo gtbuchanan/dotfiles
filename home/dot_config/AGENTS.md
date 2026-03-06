@@ -43,6 +43,16 @@
   Do NOT do `cd /c/Users/.../project && command` if the cwd is
   `C:\Users\...\project`. They are equivalent — skip the `cd`.
 
+## MCP Readonly Tools
+
+- Prefer MCP readonly tools over Bash for read-only operations:
+  - `mcp__readonly__git` for: status, diff, log, branch, show, rev-parse
+  - `mcp__readonly__shell` for: ls, jq, stat, file, wc, eza, which, etc.
+  - `mcp__readonly__gh` for: issue/pr/repo/run viewing
+  - `mcp__readonly__chezmoi` for read-only chezmoi commands
+  - `mcp__readonly__acli` for read-only Jira commands
+- Only fall back to Bash when a command isn't supported by the MCP server
+
 ## Python
 
 - Always use `py.exe` on Windows instead of `python.exe` or `python3.exe` directly
