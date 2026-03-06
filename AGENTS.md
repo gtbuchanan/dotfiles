@@ -72,7 +72,7 @@ home/
 │   ├── settings.json.tmpl       # Auto-allow permissions + status line
 │   └── symlink_skills           # → ../.config/skills
 ├── dot_local/lib/
-│   └── mcp-readonly/            # Read-only MCP server (git, gh, chezmoi, acli, shell)
+│   └── mcp-readonly/            # Read-only MCP server (git, gh, chezmoi, acli, npm, pnpm, shell)
 ├── dot_copilot/                 # GitHub Copilot instructions (references AGENTS.md)
 │   └── symlink_skills           # → ../.config/skills
 ├── dot_agents/
@@ -126,8 +126,8 @@ All tools pick it up automatically. Use `.chezmoiignore` to gate host-specific s
 ## MCP Readonly Server
 
 A custom MCP server at `home/dot_local/lib/mcp-readonly/` provides read-only tool access
-for AI agents. It exposes allowlisted subsets of `git`, `gh`, `chezmoi`, `acli`, and common
-shell utilities (ls, jq, stat, wc, etc.) — blocking any mutating operations.
+for AI agents. It exposes allowlisted subsets of `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`, and
+common shell utilities (ls, jq, stat, wc, etc.) — blocking any mutating operations.
 
 Configuration targets:
 - **Claude Code**: Registered via `claude mcp add --scope user` (in the install script), auto-allow permissions in `home/dot_claude/settings.json.tmpl`
@@ -137,8 +137,14 @@ Dependencies are installed and the server is registered via
 `home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`,
 which reruns when `package.json` or `index.mjs` changes.
 
-After any change to the MCP server, always run the security tests:
-`chezmoi apply && cd ~/.local/lib/mcp-readonly && pnpm test`
+After any change to the MCP server, run security tests **in the source directory before deploying**:
+`cd home/dot_local/lib/mcp-readonly && pnpm install && pnpm test`
+
+Then deploy: `chezmoi apply`
+
+`node_modules` and `test-security.mjs` are excluded from deployment via `.chezmoiignore`
+(root-level and mcp-readonly-level respectively), so `pnpm install` in the source dir is
+safe — chezmoi will never copy `node_modules` to the target.
 
 Security design rationale is documented in the `index.mjs` header comment and
 `test-security.mjs`. Auto-allow decisions are in `home/dot_claude/settings.json.tmpl`.

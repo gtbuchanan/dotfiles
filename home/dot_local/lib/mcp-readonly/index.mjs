@@ -11,6 +11,8 @@
  * - execFile (no shell): prevents shell metacharacter injection (;, &&, |, $(), ``)
  *   even when args contain untrusted input. On Windows, a `bash -c 'exec "$@"'`
  *   wrapper preserves this guarantee for shell utilities.
+ * - --registry blocked: prevents SSRF / data exfiltration to attacker-controlled registries.
+ * - --ignore-scripts injected: defense-in-depth for npm/pnpm to prevent lifecycle scripts.
  * - Resource limits (timeout, maxBuffer): prevent runaway commands from consuming
  *   excessive CPU/memory on expensive operations (e.g., recursive ls).
  *
@@ -112,6 +114,22 @@ const ACLI_SUBCOMMANDS = new Set([
   "jira workitem view",
 ]);
 
+const NPM_SUBCOMMANDS = new Set([
+  "audit", "bin", "explain", "fund", "ls", "outdated", "root", "search", "view",
+]);
+
+// --fix: npm audit fix attempts to update packages
+// --registry: prevents SSRF / data exfiltration via attacker-controlled registries
+const NPM_BLOCKED_FLAGS = new Set(["--fix", "--registry"]);
+
+const PNPM_SUBCOMMANDS = new Set([
+  "audit", "bin", "licenses list", "list", "outdated", "root", "search", "store status", "why",
+]);
+
+// --fix: pnpm audit --fix attempts to update packages
+// --registry: prevents SSRF / data exfiltration via attacker-controlled registries
+const PNPM_BLOCKED_FLAGS = new Set(["--fix", "--registry"]);
+
 const SHELL_COMMANDS = new Set([
   "basename", "date", "dirname", "eza", "file", "jq", "ls", "pwd",
   "readlink", "realpath", "stat", "wc", "which", "whoami",
@@ -174,6 +192,32 @@ server.tool(
     if (!matchesAllowlist(args, ACLI_SUBCOMMANDS, 4))
       return rejectSubcommand(args, 4, ACLI_SUBCOMMANDS);
     return exec("acli", args);
+  },
+);
+
+server.tool(
+  "npm",
+  "Run read-only npm commands (audit, bin, explain, fund, ls, outdated, root, search, view)",
+  ArgsSchema,
+  async ({ args }) => {
+    if (!matchesAllowlist(args, NPM_SUBCOMMANDS, 1))
+      return rejectSubcommand(args, 1, NPM_SUBCOMMANDS);
+    const blocked = args.slice(1).find((a) => NPM_BLOCKED_FLAGS.has(a) || a.startsWith("--registry="));
+    if (blocked) return fail(`Flag not allowed: ${blocked}`);
+    return execShell("npm", ["--ignore-scripts", ...args]);
+  },
+);
+
+server.tool(
+  "pnpm",
+  "Run read-only pnpm commands (audit, bin, licenses list, list, outdated, root, search, store status, why)",
+  ArgsSchema,
+  async ({ args }) => {
+    if (!matchesAllowlist(args, PNPM_SUBCOMMANDS, 2))
+      return rejectSubcommand(args, 2, PNPM_SUBCOMMANDS);
+    const blocked = args.slice(1).find((a) => PNPM_BLOCKED_FLAGS.has(a) || a.startsWith("--registry="));
+    if (blocked) return fail(`Flag not allowed: ${blocked}`);
+    return exec("pnpm", ["--ignore-scripts", ...args]);
   },
 );
 
