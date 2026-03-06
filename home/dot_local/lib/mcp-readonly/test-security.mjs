@@ -252,10 +252,11 @@ for (const args of [
 
 console.log("\n=== Chezmoi tool tests ===");
 
-// data: excluded because it leaks template variables that may contain secrets
+// data: leaks template variables that may contain secrets
+// state dump: unbounded output with no filtering options
 for (const args of [
   ["apply"], ["add"], ["data"], ["edit"], ["forget"], ["init"],
-  ["remove"], ["re-add"], ["update"], ["destroy"],
+  ["remove"], ["re-add"], ["update"], ["destroy"], ["state", "dump"],
 ]) {
   const r = await server.callTool("chezmoi", { args });
   assertBlocked(r, `chezmoi ${args.join(" ")} should be blocked`);

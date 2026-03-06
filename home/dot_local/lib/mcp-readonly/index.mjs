@@ -99,7 +99,7 @@ const GIT_BRANCH_BLOCKED = new Set([
 
 const CHEZMOI_SUBCOMMANDS = new Set([
   "cat-config", "diff", "doctor", "managed",
-  "source-path", "state dump", "status", "target-path", "verify",
+  "source-path", "status", "target-path", "verify",
 ]);
 
 const GH_SUBCOMMANDS = new Set([
@@ -183,7 +183,7 @@ server.tool(
 
 server.tool(
   "chezmoi",
-  "Run read-only chezmoi commands (cat-config, diff, doctor, managed, source-path, state dump, status, target-path, verify)",
+  "Run read-only chezmoi commands (cat-config, diff, doctor, managed, source-path, status, target-path, verify)",
   ArgsSchema,
   async ({ args }) => {
     if (!matchesAllowlist(args, CHEZMOI_SUBCOMMANDS, 2))
