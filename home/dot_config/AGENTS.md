@@ -51,6 +51,10 @@
   IMPORTANT: On Windows with Git Bash, `/c/Users/...` and `C:\Users\...` are the SAME path.
   Do NOT do `cd /c/Users/.../project && command` if the cwd is
   `C:\Users\...\project`. They are equivalent — skip the `cd`.
+- When a temporary directory change is needed, use
+  `pushd dir && command; rc=$?; popd; exit $rc` instead of `cd dir && command`.
+  This ensures the working directory is always restored and the command's exit
+  code is preserved.
 
 ## MCP Readonly Tools
 
