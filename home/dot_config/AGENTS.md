@@ -26,6 +26,8 @@
   Do not accept the default squash message (concatenated individual commits).
 - When creating a PR, always ask whether to open it as a draft or ready for review.
 - Never push to a remote unless explicitly told to.
+- Never force push to main/master.
+- Only force push when changing history of pushed commits.
 - When creating issues or PRs, always use the repository's issue/PR templates if available.
 
 ## Testing
