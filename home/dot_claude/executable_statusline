@@ -73,13 +73,21 @@ if cache_is_stale; then
         STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
         MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
         UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}" > "$CACHE_FILE"
+        UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+        if [ -n "$UPSTREAM" ]; then
+            AHEAD=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
+            BEHIND=$(git rev-list --count 'HEAD..@{upstream}' 2>/dev/null || echo 0)
+        else
+            AHEAD=0
+            BEHIND=0
+        fi
+        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}" > "$CACHE_FILE"
     else
-        echo "|||" > "$CACHE_FILE"
+        echo "|||||" > "$CACHE_FILE"
     fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND < "$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
 
 if [ -n "$BRANCH" ]; then
@@ -91,6 +99,14 @@ if [ -n "$BRANCH" ]; then
     [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED}"
     # Staged group: check-in-box then count
     [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS}${ICON_STAGED} ${STAGED} "
+    # Sync status: ahead/behind/diverged
+    if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+        GIT_STATUS="${GIT_STATUS}⇕${AHEAD}/${BEHIND}"
+    elif [ "$AHEAD" -gt 0 ] 2>/dev/null; then
+        GIT_STATUS="${GIT_STATUS}⇡${AHEAD}"
+    elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+        GIT_STATUS="${GIT_STATUS}⇣${BEHIND}"
+    fi
 
     GIT_ICON="${ICON_BRANCH} "
     [ -n "$WORKTREE_NAME" ] && GIT_ICON="🌳"
