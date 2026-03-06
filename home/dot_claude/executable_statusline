@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+input=$(cat)
+
+MODEL=$(echo "$input" | jq -r '.model.display_name')
+DIR=$(echo "$input" | jq -r '(.worktree.original_cwd // .workspace.project_dir) | split("/|\\\\"; "g") | last')
+PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
+WORKTREE_NAME=$(echo "$input" | jq -r '.worktree.name // empty')
+WORKTREE_BRANCH=$(echo "$input" | jq -r '.worktree.branch // empty')
+
+# Palette matching starship config
+ENV_BG='\033[48;2;58;58;58m'
+DIR_BG='\033[46m'
+GIT_BG='\033[48;2;111;66;193m'
+CTX_BG_GREEN='\033[42m'
+CTX_BG_YELLOW='\033[43m'
+CTX_BG_RED='\033[41m'
+LIGHT_FG='\033[97m'
+DARK_FG='\033[30m'
+
+WT_BG='\033[48;2;249;108;42m'
+
+ENV_FG='\033[38;2;58;58;58m'
+DIR_FG='\033[36m'
+WT_FG='\033[38;2;249;108;42m'
+GIT_FG='\033[38;2;111;66;193m'
+CTX_FG_GREEN='\033[32m'
+CTX_FG_YELLOW='\033[33m'
+CTX_FG_RED='\033[31m'
+
+RESET='\033[0m'
+
+# Nerd font glyphs (printf to get actual UTF-8 bytes)
+SEP=$(printf '\xee\x82\xb0')         # \ue0b0 powerline right arrow
+SEP_ROUND_L=$(printf '\xee\x82\xb6') # \ue0b6 powerline left round
+SEP_ROUND_R=$(printf '\xee\x82\xb4') # \ue0b4 powerline right round
+ICON_DIR=$(printf '\xef\x90\x88')    # \uf408 nf-oct-file_directory_fill
+ICON_BRANCH=$(printf '\xef\x90\x98') # \uf418 nf-oct-git_branch
+ICON_STAGED=$(printf '\xef\x81\x86') # \uf046 nf-fa-check_square_o
+ICON_MODIFIED=$(printf '\xef\x81\x84') # \uf044 nf-fa-pencil_square_o
+ICON_ROBOT=$(printf '\xf3\xb0\x9a\xa9') # \uf06a9 nf-md-robot
+
+# --- Model segment (env_bg) ---
+LINE="${ENV_FG}${SEP_ROUND_L}${RESET}${ENV_BG}${LIGHT_FG} ${ICON_ROBOT} ${MODEL} ${RESET}"
+PREV_BG_FG="${ENV_FG}"
+
+# --- Directory segment (dir_bg) ---
+LINE="${LINE}${DIR_BG}${PREV_BG_FG}${SEP}${RESET}${DIR_BG}${DARK_FG} ${ICON_DIR} ${DIR} ${RESET}"
+PREV_BG_FG="${DIR_FG}"
+
+# --- Worktree segment (wt_bg, only when name differs from branch) ---
+if [ -n "$WORKTREE_NAME" ]; then
+    WT_BRANCH_STRIPPED="${WORKTREE_BRANCH#worktree-}"
+    if [ "$WORKTREE_NAME" != "$WT_BRANCH_STRIPPED" ]; then
+        LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
+        PREV_BG_FG="${WT_FG}"
+    fi
+fi
+
+# --- Git segment (git_bg) ---
+CWD=$(echo "$input" | jq -r '.cwd')
+CACHE_DIR_HASH=$(printf '%s' "$CWD" | md5sum | cut -d' ' -f1)
+CACHE_FILE="/tmp/claude-statusline-git-cache-${CACHE_DIR_HASH}"
+CACHE_MAX_AGE=5
+
+cache_is_stale() {
+    [ ! -f "$CACHE_FILE" ] || \
+    [ $(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
+}
+
+if cache_is_stale; then
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        BRANCH=$(git branch --show-current 2>/dev/null)
+        STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
+        MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
+        UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}" > "$CACHE_FILE"
+    else
+        echo "|||" > "$CACHE_FILE"
+    fi
+fi
+
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED < "$CACHE_FILE"
+BRANCH_STRIPPED="${BRANCH#worktree-}"
+
+if [ -n "$BRANCH" ]; then
+    GIT_STATUS=""
+    # Unstaged group: pencil-in-box then individual indicators
+    UNSTAGED=""
+    [ "$UNTRACKED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}?${UNTRACKED} "
+    [ "$MODIFIED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}~${MODIFIED} "
+    [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED}"
+    # Staged group: check-in-box then count
+    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS}${ICON_STAGED} ${STAGED} "
+
+    GIT_ICON="${ICON_BRANCH} "
+    [ -n "$WORKTREE_NAME" ] && GIT_ICON="🌳"
+    LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
+    PREV_BG_FG="${GIT_FG}"
+fi
+
+# --- Context segment ---
+if [ "$PCT" -ge 90 ]; then
+    CTX_BG="$CTX_BG_RED"; CTX_FG_OUT="$CTX_FG_RED"
+elif [ "$PCT" -ge 70 ]; then
+    CTX_BG="$CTX_BG_YELLOW"; CTX_FG_OUT="$CTX_FG_YELLOW"
+else
+    CTX_BG="$CTX_BG_GREEN"; CTX_FG_OUT="$CTX_FG_GREEN"
+fi
+
+LINE="${LINE}${CTX_BG}${PREV_BG_FG}${SEP}${RESET}${CTX_BG}${DARK_FG} ${PCT}% ${RESET}${CTX_FG_OUT}${SEP_ROUND_R}${RESET}"
+
+printf '%b\n' "$LINE"
