@@ -63,3 +63,13 @@ export NVM_DIR="$HOME/.nvm"
 
 # Add aliases
 . "$HOME/.bash_aliases"
+
+{{- if eq .chezmoi.os "android" }}
+
+# pnpm
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+{{- end }}
