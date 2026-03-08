@@ -59,7 +59,8 @@ fi
 # --- Git segment (git_bg) ---
 CWD=$(echo "$input" | jq -r '.cwd')
 CACHE_DIR_HASH=$(printf '%s' "$CWD" | md5sum | cut -d' ' -f1)
-CACHE_FILE="/tmp/claude-statusline-git-cache-${CACHE_DIR_HASH}"
+CACHE_BASE="${TMPDIR:-/tmp}"
+CACHE_FILE="${CACHE_BASE}/claude-statusline-git-cache-${CACHE_DIR_HASH}"
 CACHE_MAX_AGE=5
 
 cache_is_stale() {
