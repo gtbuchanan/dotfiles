@@ -1,0 +1,7 @@
+{{- if not .wsl }}
+ssh-agent-pipe
+{{- end }}
+
+{{- if ne .chezmoi.os "android" }}
+android-patch-claude-code-tmpdir
+{{- end }}

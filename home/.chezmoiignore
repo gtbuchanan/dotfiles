@@ -20,9 +20,6 @@ Documents
 .chezmoiscripts/linux/**
 {{- end }}
 
-{{- if not .wsl }}
-.local/bin
-{{- end }}
 
 {{- if ne .chezmoi.os "darwin" }}
 .chezmoiscripts/darwin/**

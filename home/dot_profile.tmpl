@@ -1,3 +1,8 @@
+{{- if eq .chezmoi.os "android" }}
+# Use Termux writable tmp since /tmp is owned by shell:shell (0771)
+export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
+{{ end -}}
+
 # Add user's private bin to PATH
 [ -d "$HOME/bin" ] && PATH="$HOME/bin:$PATH"
 [ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH"

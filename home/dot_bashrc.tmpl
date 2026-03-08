@@ -72,4 +72,8 @@ case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
+
+# Patch Claude Code for Termux compatibility
+# https://github.com/anthropics/claude-code/issues/15637
+. "$HOME/.local/bin/android-patch-claude-code-tmpdir"
 {{- end }}
