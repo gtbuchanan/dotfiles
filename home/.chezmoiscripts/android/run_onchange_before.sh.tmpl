@@ -36,5 +36,14 @@ pnpm i -g @bitwarden/cli
 {{- end }}
 
 # Install Nerd Font
-curl -fsSL https://raw.githubusercontent.com/arnavgr/termux-nf/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i "{{ .fontpack }}"
+# Apply Mono Regular variant as Termux font
+mkdir -p "$HOME/.termux"
+font_dir="$HOME/.local/share/fonts/{{ .fontpack }}"
+font_file=$(find "$font_dir" -name '*NerdFontMono-Regular.ttf' | head -1)
+[ -z "$font_file" ] && font_file=$(find "$font_dir" -name '*Regular.ttf' | head -1)
+if [ -n "$font_file" ]; then
+  cp "$font_file" "$HOME/.termux/font.ttf"
+  am broadcast --user 0 -a com.termux.app.reload_style com.termux > /dev/null 2>&1 || true
+fi
