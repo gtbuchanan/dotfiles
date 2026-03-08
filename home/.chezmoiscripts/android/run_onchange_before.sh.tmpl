@@ -25,8 +25,15 @@ curl -L https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-night
 bash "$TMPDIR/ble-nightly/ble.sh" --install "$HOME/.local/share"
 rm -Rf "$TMPDIR/ble-nightly"
 
-# Imstall pnpm
+# Install pnpm
 npm i -g pnpm
+
+# Install Claude Code
+pnpm i -g @anthropic-ai/claude-code
+{{- if eq .hosttype "personal" }}
+# Install Bitwarden CLI
+pnpm i -g @bitwarden/cli
+{{- end }}
 
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/arnavgr/termux-nf/main/install.sh | bash
