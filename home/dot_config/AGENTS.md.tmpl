@@ -72,13 +72,23 @@
 - Prefer MCP readonly tools over Bash for read-only operations:
   - `mcp__readonly__git` for: status, diff, log, branch, remote, show, rev-parse
   - `mcp__readonly__shell` for: ls, jq, stat, file, wc, eza, which, etc.
-  - `mcp__readonly__az` for: az devops project/team/extension/service-endpoint/wiki, az pipelines list/show/build/release/runs/pool/agent
+  - `mcp__readonly__az` for: az devops invoke (GET-only, build-debugging endpoints), devops project/team/extension/service-endpoint/wiki, pipelines list/show/build/release/runs/pool/agent
   - `mcp__readonly__gh` for: issue/pr/repo/run viewing
   - `mcp__readonly__chezmoi` for read-only chezmoi commands
   - `mcp__readonly__acli` for read-only Jira commands
   - `mcp__readonly__npm` for: audit, bin, explain, fund, ls, outdated, root, search, view
   - `mcp__readonly__pnpm` for: audit, bin, licenses list, list, outdated, root, search, store status, why
 - Only fall back to Bash when a command isn't supported by the MCP server
+
+{{- if eq .hosttype "ewn" }}
+
+## Azure DevOps
+
+- Default org: `https://dev.azure.com/energyworldnet`
+- Default project: `proddev`
+- For `devops invoke`, pass project via `--route-parameters project=proddev`
+  (`--project` is not supported by `az devops invoke`)
+{{- end }}
 
 ## Node.js
 
