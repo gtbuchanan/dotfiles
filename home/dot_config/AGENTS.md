@@ -22,6 +22,9 @@
 
 - Always keep commit subject 72 characters or less. Prefer 50 or less. Don't truncate blindly.
   Prefer semantic meaning over implementation details.
+- Include enough context in the commit subject for someone scanning `git log`
+  to understand the scope. Qualify ambiguous nouns with their parent system
+  (e.g., "Fix Claude statusline spacing" not "Fix statusline spacing").
 - Wrap commit body at 72 characters, when possible
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
