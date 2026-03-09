@@ -41,6 +41,42 @@ describe("git tool", () => {
     }
   });
 
+  describe("remote subcommand filtering", () => {
+    it("allows bare remote (list)", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote"] }));
+    });
+
+    it("allows remote -v", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote", "-v"] }));
+    });
+
+    it("allows remote --verbose", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote", "--verbose"] }));
+    });
+
+    it("allows remote get-url origin", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote", "get-url", "origin"] }));
+    });
+
+    it("allows remote get-url --push origin", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote", "get-url", "--push", "origin"] }));
+    });
+
+    it("allows remote get-url --all origin", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["remote", "get-url", "--all", "origin"] }));
+    });
+
+    for (const sub of ["show", "add", "remove", "rename", "set-url", "set-head", "prune", "update"]) {
+      it(`blocks remote ${sub}`, async () => {
+        assertBlocked(await server.callTool("git", { args: ["remote", sub, "origin"] }));
+      });
+    }
+
+    it("blocks unknown flags on remote", async () => {
+      assertBlocked(await server.callTool("git", { args: ["remote", "--unknown-flag"] }));
+    });
+  });
+
   describe("write-flag blocking", () => {
     for (const sub of ["log", "diff", "show"]) {
       it(`blocks ${sub} --output=<path>`, async () => {

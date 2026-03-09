@@ -2,7 +2,7 @@ import { exec, fail } from "../lib/exec.mjs";
 import { ArgsSchema, rejectSubcommand } from "../lib/allowlist.mjs";
 
 const SUBCOMMANDS = new Set([
-  "branch", "diff", "log", "rev-parse", "show", "status",
+  "branch", "diff", "log", "remote", "rev-parse", "show", "status",
 ]);
 
 // --no-index: reads arbitrary files outside the repo
@@ -15,10 +15,17 @@ const BRANCH_BLOCKED = new Set([
   "--set-upstream-to", "--unset-upstream", "--force",
 ]);
 
+// Only these sub-subcommands (or none) are allowed for `git remote`
+// `show` is excluded because it triggers network I/O to the remote
+const REMOTE_ALLOWED_SUBS = new Set(["get-url"]);
+
+// Only these flags are allowed for `git remote` (bare listing and get-url)
+const REMOTE_ALLOWED_FLAGS = new Set(["-v", "--verbose", "--push", "--all"]);
+
 export const register = (server) =>
   server.tool(
     "git",
-    "Run read-only git commands (branch, diff, log, rev-parse, show, status)",
+    "Run read-only git commands (branch, diff, log, remote, rev-parse, show, status)",
     ArgsSchema,
     async ({ args }) => {
       const sub = args[0];
@@ -28,6 +35,14 @@ export const register = (server) =>
       if (sub === "branch") {
         const blocked = args.slice(1).find((a) => BRANCH_BLOCKED.has(a));
         if (blocked) return fail(`Flag not allowed for git branch: ${blocked}`);
+      }
+      if (sub === "remote") {
+        const remoteArgs = args.slice(1);
+        const remoteSub = remoteArgs.find((a) => !a.startsWith("-"));
+        if (remoteSub && !REMOTE_ALLOWED_SUBS.has(remoteSub))
+          return fail(`Subcommand not allowed for git remote: ${remoteSub}. Allowed: (none), ${[...REMOTE_ALLOWED_SUBS].join(", ")}`);
+        const blockedFlag = remoteArgs.filter((a) => a.startsWith("-")).find((a) => !REMOTE_ALLOWED_FLAGS.has(a));
+        if (blockedFlag) return fail(`Flag not allowed for git remote: ${blockedFlag}`);
       }
       return exec("git", ["--no-pager", ...args]);
     },

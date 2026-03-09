@@ -65,7 +65,7 @@
 ## MCP Readonly Tools
 
 - Prefer MCP readonly tools over Bash for read-only operations:
-  - `mcp__readonly__git` for: status, diff, log, branch, show, rev-parse
+  - `mcp__readonly__git` for: status, diff, log, branch, remote, show, rev-parse
   - `mcp__readonly__shell` for: ls, jq, stat, file, wc, eza, which, etc.
   - `mcp__readonly__az` for: az devops project/team/extension/service-endpoint/wiki, az pipelines list/show/build/release/runs/pool/agent
   - `mcp__readonly__gh` for: issue/pr/repo/run viewing
