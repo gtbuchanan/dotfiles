@@ -3,9 +3,16 @@
 Cross-platform dotfiles managed with [chezmoi](https://www.chezmoi.io/) v2.62.2+.
 The chezmoi root is `home/`; see `.chezmoiroot`.
 
+## CRITICAL: All Changes Go Through Chezmoi
+
+**NEVER edit deployed files directly** (e.g., `~/.gitconfig`, `~/.config/AGENTS.md`,
+`~/.claude/settings.json`). Those files are managed by chezmoi and will be overwritten.
+Always edit the corresponding source in **this repo** under `home/`, then run
+`chezmoi apply` to deploy.
+
 ## Workflow
 
-- After modifying any file under `home/`, run `chezmoi apply` to deploy changes.
+- Edit files under `home/`, then run `chezmoi apply` to deploy changes.
 - After modifying `home/winget.yaml.tmpl`, the compiled output is regenerated automatically
   by the before-script on the next `chezmoi apply`. The `dist/winget.yaml` file is generated
   output — do not edit it directly.
@@ -129,8 +136,8 @@ All tools pick it up automatically. Use `.chezmoiignore` to gate host-specific s
 ## MCP Readonly Server
 
 A custom MCP server at `mcp-readonly/` (repo root) provides read-only tool access
-for AI agents. It exposes allowlisted subsets of `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`, and
-common shell utilities (ls, jq, stat, wc, etc.) — blocking any mutating operations.
+for AI agents. It exposes allowlisted subsets of `az`, `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`,
+and common shell utilities (ls, jq, stat, wc, etc.) — blocking any mutating operations.
 
 The server runs directly from the chezmoi repo — it is **not** deployed by chezmoi.
 Tools reference the repo path via `{{ .chezmoi.workingTree }}`.

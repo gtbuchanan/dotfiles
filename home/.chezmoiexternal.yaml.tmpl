@@ -6,6 +6,16 @@
   stripComponents: 2
   include: ["*/skill/**"]
   url: https://github.com/peetzweg/acli-skill/archive/719c3120f8d3dbfa45a91d90272f5286e9039cde.tar.gz
+
+{{- $msSkills := list "azure-devops" "azure-pipelines" }}
+{{- range $msSkills }}
+'.config/skills/{{ . }}':
+  exact: true
+  type: archive
+  stripComponents: 3
+  include: ["*/skills/{{ . }}/**"]
+  url: https://github.com/MicrosoftDocs/agent-skills/archive/9ba3edbfc25f805f621faa8ae4b0acf7ff9a4a46.tar.gz
+{{ end -}}
 {{- end }}
 
 '.config/skills/cloudflare':
