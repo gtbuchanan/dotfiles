@@ -99,7 +99,7 @@ if [ -n "$BRANCH" ]; then
     [ "$MODIFIED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}~${MODIFIED} "
     [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED}"
     # Staged group: check-in-box then count
-    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS}${ICON_STAGED} ${STAGED} "
+    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STAGED} ${STAGED} "
     # Sync status: ahead/behind/diverged
     SYNC=""
     if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
