@@ -1,4 +1,4 @@
-import { exec } from "../lib/exec.mjs";
+import { execShell } from "../lib/exec.mjs";
 import { ArgsSchema, matchesAllowlist, rejectSubcommand } from "../lib/allowlist.mjs";
 
 const SUBCOMMANDS = new Set([
@@ -34,6 +34,6 @@ export const register = (server) =>
     async ({ args }) => {
       if (!matchesAllowlist(args, SUBCOMMANDS))
         return rejectSubcommand(args, SUBCOMMANDS);
-      return exec("az", args);
+      return execShell("az", args);
     },
   );
