@@ -137,7 +137,7 @@ if [ -n "$BRANCH" ]; then
     # Sync status: ahead/behind/diverged
     SYNC=""
     if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
-        SYNC="⇕${AHEAD}/${BEHIND}"
+        SYNC="⇕"
     elif [ "$AHEAD" -gt 0 ] 2>/dev/null; then
         SYNC="⇡${AHEAD}"
     elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
