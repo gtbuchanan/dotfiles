@@ -2,7 +2,7 @@ import { exec, fail } from "../lib/exec.mjs";
 import { ArgsSchema, rejectSubcommand } from "../lib/allowlist.mjs";
 
 const SUBCOMMANDS = new Set([
-  "branch", "diff", "log", "remote", "rev-parse", "show", "status",
+  "branch", "diff", "log", "remote", "rev-parse", "show", "stash", "status",
 ]);
 
 // --no-index: reads arbitrary files outside the repo
@@ -15,6 +15,9 @@ const BRANCH_BLOCKED = new Set([
   "--set-upstream-to", "--unset-upstream", "--force",
 ]);
 
+// Only these sub-subcommands (or none) are allowed for `git stash`
+const STASH_ALLOWED_SUBS = new Set(["list", "show"]);
+
 // Only these sub-subcommands (or none) are allowed for `git remote`
 // `show` is excluded because it triggers network I/O to the remote
 const REMOTE_ALLOWED_SUBS = new Set(["get-url"]);
@@ -25,7 +28,7 @@ const REMOTE_ALLOWED_FLAGS = new Set(["-v", "--verbose", "--push", "--all"]);
 export const register = (server) =>
   server.tool(
     "git",
-    "Run read-only git commands (branch, diff, log, remote, rev-parse, show, status)",
+    "Run read-only git commands (branch, diff, log, remote, rev-parse, show, stash, status)",
     ArgsSchema,
     async ({ args }) => {
       const sub = args[0];
@@ -35,6 +38,11 @@ export const register = (server) =>
       if (sub === "branch") {
         const blocked = args.slice(1).find((a) => BRANCH_BLOCKED.has(a));
         if (blocked) return fail(`Flag not allowed for git branch: ${blocked}`);
+      }
+      if (sub === "stash") {
+        const stashSub = args.slice(1).find((a) => !a.startsWith("-"));
+        if (!stashSub || !STASH_ALLOWED_SUBS.has(stashSub))
+          return fail(`Subcommand not allowed for git stash: ${stashSub ?? "(none)"}. Allowed: ${[...STASH_ALLOWED_SUBS].join(", ")}`);
       }
       if (sub === "remote") {
         const remoteArgs = args.slice(1);

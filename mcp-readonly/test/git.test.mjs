@@ -8,7 +8,7 @@ describe("git tool", () => {
   after(() => server.close());
 
   describe("blocked subcommands", () => {
-    for (const sub of ["push", "pull", "fetch", "checkout", "reset", "rebase", "merge", "commit", "add", "rm", "clean", "stash"]) {
+    for (const sub of ["push", "pull", "fetch", "checkout", "reset", "rebase", "merge", "commit", "add", "rm", "clean"]) {
       it(`blocks ${sub}`, async () => {
         assertBlocked(await server.callTool("git", { args: [sub] }));
       });
@@ -75,6 +75,26 @@ describe("git tool", () => {
     it("blocks unknown flags on remote", async () => {
       assertBlocked(await server.callTool("git", { args: ["remote", "--unknown-flag"] }));
     });
+  });
+
+  describe("stash subcommand filtering", () => {
+    it("allows stash list", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["stash", "list"] }));
+    });
+
+    it("allows stash show", async () => {
+      assertNotBlocked(await server.callTool("git", { args: ["stash", "show"] }));
+    });
+
+    it("blocks bare stash (implicit push)", async () => {
+      assertBlocked(await server.callTool("git", { args: ["stash"] }));
+    });
+
+    for (const sub of ["push", "pop", "apply", "drop", "clear", "save", "create", "store"]) {
+      it(`blocks stash ${sub}`, async () => {
+        assertBlocked(await server.callTool("git", { args: ["stash", sub] }));
+      });
+    }
   });
 
   describe("write-flag blocking", () => {
