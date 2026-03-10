@@ -8,6 +8,11 @@ bind C-Space send-prefix
 # Support readline clear screen
 bind C-l send-keys 'C-l'
 
+# Highlight active window instead of asterisk
+set -g window-status-current-style 'bg=blue,fg=white,bold'
+set -g window-status-current-format ' #I:#W '
+set -g window-status-format ' #I:#W '
+
 # Define Plugins
 {{- if eq .chezmoi.os "windows" }}
 set -g @plugin 'psmux-plugins/ppm'
