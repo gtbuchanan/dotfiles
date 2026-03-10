@@ -8,7 +8,6 @@ import { spawn } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createInterface } from "node:readline";
-import { strict as assert } from "node:assert";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SERVER_PATH = join(__dirname, "..", "index.mjs");
@@ -73,11 +72,11 @@ export const startServer = () => {
   return { initialize, callTool, close };
 };
 
-export const assertBlocked = (result, message) => {
+export const assertBlocked = (expect, result, message) => {
   const txt = result?.content?.[0]?.text || "";
-  assert.ok(result?.isError || txt.includes("not allowed"), message);
+  expect(result?.isError || txt.includes("not allowed"), message).toBe(true);
 };
 
-export const assertNotBlocked = (result, message) => {
-  assert.ok(!result?.isError, message);
+export const assertNotBlocked = (expect, result, message) => {
+  expect(result?.isError, message).toBeFalsy();
 };

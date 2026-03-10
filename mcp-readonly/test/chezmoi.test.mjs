@@ -1,17 +1,17 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { startServer, assertBlocked } from "./helpers.mjs";
 
-describe("chezmoi tool", () => {
+describe.concurrent("chezmoi tool", () => {
   let server;
-  before(async () => { server = startServer(); await server.initialize(); });
-  after(() => server.close());
+  beforeAll(async () => { server = startServer(); await server.initialize(); });
+  afterAll(() => server.close());
 
-  for (const args of [
-    ["apply"], ["add"], ["data"], ["edit"], ["forget"], ["init"],
-    ["remove"], ["re-add"], ["update"], ["destroy"], ["state", "dump"],
-  ]) {
-    it(`blocks ${args.join(" ")}`, async () => {
-      assertBlocked(await server.callTool("chezmoi", { args }));
-    });
-  }
+  it.for(
+    [
+      ["apply"], ["add"], ["data"], ["edit"], ["forget"], ["init"],
+      ["remove"], ["re-add"], ["update"], ["destroy"], ["state", "dump"],
+    ].map(args => ({ name: args.join(" "), args }))
+  )("blocks $name", async ({ args }, { expect }) => {
+    assertBlocked(expect, await server.callTool("chezmoi", { args }));
+  });
 });

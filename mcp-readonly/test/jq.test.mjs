@@ -1,15 +1,15 @@
-import { describe, it, before, after } from "node:test";
-import { startServer, assertBlocked, assertNotBlocked } from "./helpers.mjs";
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { tmpdir } from "node:os";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
+import { startServer, assertBlocked, assertNotBlocked } from "./helpers.mjs";
 
-describe("jq file argument blocking", () => {
+describe.concurrent("jq file argument blocking", () => {
   let server;
   let tmpDir;
   let canaryFile;
 
-  before(async () => {
+  beforeAll(async () => {
     server = startServer();
     await server.initialize();
     tmpDir = await mkdtemp(join(tmpdir(), "mcp-test-"));
@@ -17,52 +17,52 @@ describe("jq file argument blocking", () => {
     await writeFile(canaryFile, "ORIGINAL", "utf8");
   });
 
-  after(async () => {
+  afterAll(async () => {
     server.close();
     await rm(tmpDir, { recursive: true });
   });
 
   describe("allowed (no file args)", () => {
-    it("allows -n empty", async () => {
-      assertNotBlocked(await server.callTool("shell", { command: "jq", args: ["-n", "empty"] }));
+    it("allows -n empty", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-n", "empty"] }));
     });
 
-    it("allows --arg with filter only", async () => {
-      assertNotBlocked(await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", "-n", ".foo"] }));
+    it("allows --arg with filter only", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", "-n", ".foo"] }));
     });
 
-    it("allows --argjson with filter only", async () => {
-      assertNotBlocked(await server.callTool("shell", { command: "jq", args: ["--argjson", "k", "123", "-n", "$k"] }));
+    it("allows --argjson with filter only", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--argjson", "k", "123", "-n", "$k"] }));
     });
 
-    it("allows -r -n with filter only", async () => {
-      assertNotBlocked(await server.callTool("shell", { command: "jq", args: ["-r", "-n", ".foo"] }));
+    it("allows -r -n with filter only", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-r", "-n", ".foo"] }));
     });
   });
 
   describe("blocked (file args)", () => {
-    it("blocks jq . /etc/passwd", async () => {
-      assertBlocked(await server.callTool("shell", { command: "jq", args: [".", "/etc/passwd"] }));
+    it("blocks jq . /etc/passwd", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: [".", "/etc/passwd"] }));
     });
 
-    it("blocks jq . <canary>", async () => {
-      assertBlocked(await server.callTool("shell", { command: "jq", args: [".", canaryFile] }));
+    it("blocks jq . <canary>", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: [".", canaryFile] }));
     });
 
-    it("blocks --arg k v . <file>", async () => {
-      assertBlocked(await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", ".", canaryFile] }));
+    it("blocks --arg k v . <file>", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--arg", "k", "v", ".", canaryFile] }));
     });
   });
 
   describe("blocked file-reading flags", () => {
-    for (const flag of ["--slurpfile", "--rawfile", "--from-file", "-f"]) {
-      it(`blocks ${flag}`, async () => {
-        assertBlocked(await server.callTool("shell", { command: "jq", args: [flag, "x", canaryFile] }));
-      });
-    }
+    it.for(["--slurpfile", "--rawfile", "--from-file", "-f"])(
+      "blocks %s", async (flag, { expect }) => {
+        assertBlocked(expect, await server.callTool("shell", { command: "jq", args: [flag, "x", canaryFile] }));
+      },
+    );
 
-    it("blocks -L (library path)", async () => {
-      assertBlocked(await server.callTool("shell", { command: "jq", args: ["-L", "/tmp", "-n", "empty"] }));
+    it("blocks -L (library path)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-L", "/tmp", "-n", "empty"] }));
     });
   });
 });

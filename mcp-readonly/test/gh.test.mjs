@@ -1,19 +1,19 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { startServer, assertBlocked } from "./helpers.mjs";
 
-describe("gh tool", () => {
+describe.concurrent("gh tool", () => {
   let server;
-  before(async () => { server = startServer(); await server.initialize(); });
-  after(() => server.close());
+  beforeAll(async () => { server = startServer(); await server.initialize(); });
+  afterAll(() => server.close());
 
-  for (const args of [
-    ["issue", "create"], ["issue", "close"], ["issue", "delete"], ["issue", "edit"],
-    ["pr", "create"], ["pr", "close"], ["pr", "merge"], ["pr", "edit"],
-    ["repo", "create"], ["repo", "delete"],
-    ["auth", "login"],
-  ]) {
-    it(`blocks ${args.join(" ")}`, async () => {
-      assertBlocked(await server.callTool("gh", { args }));
-    });
-  }
+  it.for(
+    [
+      ["issue", "create"], ["issue", "close"], ["issue", "delete"], ["issue", "edit"],
+      ["pr", "create"], ["pr", "close"], ["pr", "merge"], ["pr", "edit"],
+      ["repo", "create"], ["repo", "delete"],
+      ["auth", "login"],
+    ].map(args => ({ name: args.join(" "), args }))
+  )("blocks $name", async ({ args }, { expect }) => {
+    assertBlocked(expect, await server.callTool("gh", { args }));
+  });
 });

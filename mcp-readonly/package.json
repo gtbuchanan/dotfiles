@@ -4,10 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "node --experimental-test-module-mocks --test"
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.0",
     "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "vitest": "^4.0.18"
   }
 }

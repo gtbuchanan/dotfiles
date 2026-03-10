@@ -1,21 +1,21 @@
-import { describe, it, before, after } from "node:test";
+import { describe, it, beforeAll, afterAll } from "vitest";
 import { startServer, assertBlocked } from "./helpers.mjs";
 
-describe("acli tool", () => {
+describe.concurrent("acli tool", () => {
   let server;
-  before(async () => { server = startServer(); await server.initialize(); });
-  after(() => server.close());
+  beforeAll(async () => { server = startServer(); await server.initialize(); });
+  afterAll(() => server.close());
 
-  for (const args of [
-    ["jira", "workitem", "create"],
-    ["jira", "workitem", "edit"],
-    ["jira", "workitem", "delete"],
-    ["jira", "workitem", "assign"],
-    ["jira", "workitem", "transition"],
-    ["jira", "workitem", "comment", "create"],
-  ]) {
-    it(`blocks ${args.join(" ")}`, async () => {
-      assertBlocked(await server.callTool("acli", { args }));
-    });
-  }
+  it.for(
+    [
+      ["jira", "workitem", "create"],
+      ["jira", "workitem", "edit"],
+      ["jira", "workitem", "delete"],
+      ["jira", "workitem", "assign"],
+      ["jira", "workitem", "transition"],
+      ["jira", "workitem", "comment", "create"],
+    ].map(args => ({ name: args.join(" "), args }))
+  )("blocks $name", async ({ args }, { expect }) => {
+    assertBlocked(expect, await server.callTool("acli", { args }));
+  });
 });
