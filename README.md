@@ -8,10 +8,10 @@ A [dotfiles] configuration using [chezmoi].
 
   * Android uses [Termux], for [reasons](https://wiki.termux.com/wiki/Getting_started)
 
-* A _mostly_ consistent cross-platform terminal multiplexer using [Wezterm] with
-  [tmux bindings][wez-tmux] 
+* A _mostly_ consistent cross-platform terminal multiplexer using [tmux] and
+  [psmux] (Windows)
 
-  * Android and non-GUI Linux must use tmux directly
+  * Android and non-GUI Linux use tmux directly
 
 * A consistent nerd font, [Caskaydia Cove]
 
@@ -101,13 +101,13 @@ Alternatively, clear the script cache and re-run `chezmoi apply`:
 chezmoi state delete-bucket --bucket=scriptState
 ```
 
-[AGENTS.md]: home/dot_config/AGENTS.md
 [Agent Skills]: https://agentskills.io/
+[AGENTS.md]: home/dot_config/AGENTS.md
 [ble.sh]: https://github.com/akinomyoga/ble.sh/
 [Caskaydia Cove]: https://github.com/eliheuer/caskaydia-cove/
+[chezmoi]: https://www.chezmoi.io/
 [Chezmoi Modify Manager]: https://github.com/VorpalBlade/chezmoi_modify_manager
 [Chezmoi Modify Manager Release]: https://github.com/VorpalBlade/chezmoi_modify_manager/releases
-[chezmoi]: https://www.chezmoi.io/
 [Claude Code]: https://claude.ai/code
 [Codex CLI]: https://github.com/openai/codex
 [Dashlane CLI]: https://github.com/Dashlane/dashlane-cli
@@ -115,10 +115,11 @@ chezmoi state delete-bucket --bucket=scriptState
 [dotfiles]: https://dotfiles.github.io/
 [GitHub Copilot CLI]: https://github.com/github/copilot-cli
 [PowerShell]: https://github.com/PowerShell/PowerShell/
+[psmux]: https://github.com/marlocarlo/psmux
 [PSReadLine]: https://github.com/PowerShell/PSReadLine/
 [Starship]: https://starship.rs/
 [Termux]: https://termux.dev/en/
+[tmux]: https://github.com/tmux/tmux
 [VS Code Copilot]: https://code.visualstudio.com/docs/copilot/overview
-[wez-tmux]: https://github.com/sei40kr/wez-tmux/
-[WinGet Reset]: https://github.com/microsoft/winget-cli/issues/5626#issuecomment-3264037684
 [Wezterm]: https://wezterm.org/
+[WinGet Reset]: https://github.com/microsoft/winget-cli/issues/5626#issuecomment-3264037684

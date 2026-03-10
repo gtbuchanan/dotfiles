@@ -32,14 +32,6 @@
   include: ["*/skills/playwright-cli/**"]
   url: https://github.com/microsoft/playwright-cli/archive/refs/tags/v0.1.1.tar.gz
 
-{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.os "windows") }}
-'.config/wezterm/plugins/wez-tmux':
-  exact: true
-  stripComponents: 1
-  type: archive
-  url: https://github.com/sei40kr/wez-tmux/archive/d53fb08b8212d82c34abacfce167bfa79919bb41.tar.gz
-{{- end }}
-
 {{- if ne .chezmoi.os "windows" }}
 # https://wezterm.org/shell-integration.html
 '.config/wezterm/wezterm.sh':
@@ -48,7 +40,14 @@
   url: https://raw.githubusercontent.com/wezterm/wezterm/refs/heads/main/assets/shell-integration/wezterm.sh
 {{- end }}
 
-{{- if eq .chezmoi.os "android" }}
+{{- if eq .chezmoi.os "windows" }}
+'.psmux/plugins/ppm':
+  exact: true
+  type: archive
+  stripComponents: 2
+  include: ["*/ppm/**"]
+  url: https://github.com/marlocarlo/psmux-plugins/archive/refs/heads/main.tar.gz
+{{- else }}
 '.tmux/plugins/tpm-redux':
   exact: true
   stripComponents: 1

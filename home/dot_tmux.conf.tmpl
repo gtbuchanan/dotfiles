@@ -1,0 +1,38 @@
+{{- if ne .chezmoi.os "windows" }}
+# Sane leader key
+unbind C-b
+set -g prefix C-Space
+bind C-Space send-prefix
+{{- end }}
+
+# Support readline clear screen
+bind C-l send-keys 'C-l'
+
+# Define Plugins
+{{- if eq .chezmoi.os "windows" }}
+set -g @plugin 'psmux-plugins/ppm'
+set -g @plugin 'psmux-plugins/psmux-sensible'
+
+# Initialize PPM
+run '~/.psmux/plugins/ppm/ppm.ps1'
+
+# Pane navigation (no vim detection — psmux lacks #{m/r:} support)
+# https://github.com/marlocarlo/psmux/issues/30
+bind-key -n C-h select-pane -L
+bind-key -n C-j select-pane -D
+bind-key -n C-k select-pane -U
+bind-key -n C-l select-pane -R
+bind-key -n C-\\ select-pane -l
+
+bind-key -T copy-mode-vi C-h select-pane -L
+bind-key -T copy-mode-vi C-j select-pane -D
+bind-key -T copy-mode-vi C-k select-pane -U
+bind-key -T copy-mode-vi C-l select-pane -R
+bind-key -T copy-mode-vi C-\\ select-pane -l
+{{- else }}
+set -g @plugin 'tmux-plugins/tmux-sensible'
+set -g @plugin 'christoomey/vim-tmux-navigator'
+
+# Initialize TPM Redux
+run '~/.tmux/plugins/tpm-redux/tpm'
+{{- end }}

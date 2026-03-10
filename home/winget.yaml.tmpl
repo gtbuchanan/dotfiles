@@ -567,6 +567,13 @@ properties:
       settings:
         id: pnpm.pnpm
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install psmux
+      id: psmux
+      settings:
+        id: marlocarlo.psmux
+        source: winget
     - resource: PowerShellGet/PSModule
       dependsOn: [pwsh]
       directives:

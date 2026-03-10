@@ -27,9 +27,8 @@ Documents
 Library
 {{- end }}
 
-{{- if and (ne .chezmoi.os "android") (ne .chezmoi.os "linux") }}
+{{- if eq .chezmoi.os "windows" }}
 .tmux
-.tmux.conf
 {{- end }}
 
 {{- if and (ne .chezmoi.os "darwin") (ne .chezmoi.os "windows") }}

@@ -5,9 +5,8 @@ case $- in
 esac
 
 {{- if not .wsl }}
-# Launch directly into tmux when WezTerm isn't available
-if ! command -v wezterm &> /dev/null && \
-   command -v tmux &> /dev/null && \
+# Launch directly into tmux (psmux on Windows)
+if command -v tmux &> /dev/null && \
    [[ ! "$TERM" =~ screen ]] && \
    [[ ! "$TERM" =~ tmux ]] && \
    [ -z "$TMUX" ]
