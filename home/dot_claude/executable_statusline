@@ -38,6 +38,10 @@ ICON_BRANCH=$(printf '\xef\x90\x98') # \uf418 nf-oct-git_branch
 ICON_STAGED=$(printf '\xef\x81\x86') # \uf046 nf-fa-check_square_o
 ICON_MODIFIED=$(printf '\xef\x81\x84') # \uf044 nf-fa-pencil_square_o
 ICON_ROBOT=$(printf '\xf3\xb0\x9a\xa9') # \uf06a9 nf-md-robot
+ICON_REBASE=$(printf '\xee\x9c\xa8')   # \ue728 nf-dev-git_merge
+ICON_MERGE=$(printf '\xee\x9c\xa7')    # \ue727 nf-dev-git_compare
+ICON_REVERT=$(printf '\xef\x83\xa2')   # \uf0e2 nf-fa-undo
+ICON_CHERRY=$(printf '\xee\x8a\x9b')   # \ue29b nf-oct-ruby
 
 # --- Model segment (env_bg) ---
 LINE="${ENV_FG}${SEP_ROUND_L}${RESET}${ENV_BG}${LIGHT_FG} ${ICON_ROBOT} ${MODEL} ${RESET}"
@@ -69,8 +73,29 @@ cache_is_stale() {
 }
 
 if cache_is_stale; then
-    if git rev-parse --git-dir > /dev/null 2>&1; then
+    if GIT_DIR=$(git rev-parse --git-dir 2>/dev/null); then
         BRANCH=$(git branch --show-current 2>/dev/null)
+        # Detect rebase/merge/cherry-pick/revert state
+        STATE=""
+        STEP=""
+        TOTAL=""
+        if [ -d "${GIT_DIR}/rebase-merge" ]; then
+            STEP=$(cat "${GIT_DIR}/rebase-merge/msgnum" 2>/dev/null)
+            TOTAL=$(cat "${GIT_DIR}/rebase-merge/end" 2>/dev/null)
+            STATE="$ICON_REBASE"
+        elif [ -d "${GIT_DIR}/rebase-apply" ]; then
+            STEP=$(cat "${GIT_DIR}/rebase-apply/next" 2>/dev/null)
+            TOTAL=$(cat "${GIT_DIR}/rebase-apply/last" 2>/dev/null)
+            STATE="$ICON_REBASE"
+        elif [ -f "${GIT_DIR}/MERGE_HEAD" ]; then
+            STATE="$ICON_MERGE"
+        elif [ -f "${GIT_DIR}/CHERRY_PICK_HEAD" ]; then
+            STATE="$ICON_CHERRY"
+        elif [ -f "${GIT_DIR}/REVERT_HEAD" ]; then
+            STATE="$ICON_REVERT"
+        fi
+        # Fallback to detached HEAD
+        [ -z "$BRANCH" ] && BRANCH="HEAD"
         STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
         MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
         UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
@@ -82,13 +107,13 @@ if cache_is_stale; then
             AHEAD=0
             BEHIND=0
         fi
-        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}" > "$CACHE_FILE"
+        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}" > "$CACHE_FILE"
     else
-        echo "|||||" > "$CACHE_FILE"
+        echo "||||||||" > "$CACHE_FILE"
     fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL < "$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
 
 if [ -n "$BRANCH" ]; then
@@ -97,9 +122,18 @@ if [ -n "$BRANCH" ]; then
     UNSTAGED=""
     [ "$UNTRACKED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}?${UNTRACKED} "
     [ "$MODIFIED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}~${MODIFIED} "
-    [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED}"
+    [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED% }"
     # Staged group: check-in-box then count
-    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STAGED} ${STAGED} "
+    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STAGED} ${STAGED}"
+    # Rebase/merge/cherry-pick/revert state
+    if [ -n "$STATE" ]; then
+        GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}"
+        if [ -n "$STEP" ] && [ -n "$TOTAL" ]; then
+            GIT_STATUS="${GIT_STATUS} ${STATE} ${STEP}/${TOTAL}"
+        else
+            GIT_STATUS="${GIT_STATUS} ${STATE}"
+        fi
+    fi
     # Sync status: ahead/behind/diverged
     SYNC=""
     if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
