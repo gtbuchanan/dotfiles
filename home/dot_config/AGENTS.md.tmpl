@@ -37,7 +37,9 @@
 - When creating a PR, always ask whether to open it as a draft or ready for review.
 - Never push to a remote unless explicitly told to.
 - Never force push to main/master.
-- Only force push when changing history of pushed commits.
+- Only force push when rewriting commits that were already pushed to the
+  remote. A local-only amend does NOT require a force push — just push
+  normally. Check `git status` against the tracking branch before deciding.
 - When creating issues or PRs, always use the repository's issue/PR templates if available.
 - Always delete the local and remote PR branch atomically when merging
   (e.g., `gh pr merge --delete-branch`).
