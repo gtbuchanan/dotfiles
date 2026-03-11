@@ -11,12 +11,23 @@ bind C-l send-keys 'C-l'
 # Status line styling
 set -g status-style 'bg=#282828'
 set -g status-left-length 40
-set -g status-left '#[fg=#3A3A3A,bg=default]#[bg=#3A3A3A,fg=white]  tmux #[fg=#3A3A3A,bg=cyan]#[fg=#000000]  |#S #[fg=cyan,bg=#282828]'
+# psmux: bg=default resolves to terminal bg; tmux: bg=default inherits
+# from status-style, so bg=terminal is needed for visible semicircles.
+# psmux also renders nerd font icons narrower, needing an extra space.
+{{- if eq .chezmoi.os "windows" }}
+set -g status-left '#[fg=#3A3A3A,bg=default]#[bg=#3A3A3A,fg=white]  psmux #[fg=#3A3A3A,bg=cyan]#[fg=#000000]  |#S #[fg=cyan,bg=#282828]'
+{{- else }}
+set -g status-left '#[fg=#3A3A3A,bg=terminal]#[bg=#3A3A3A,fg=white] tmux #[fg=#3A3A3A,bg=cyan]#[fg=#000000]  |#S #[fg=cyan,bg=#282828]'
+{{- end }}
 set -g window-status-current-format '#[fg=#282828,bg=#6F42C1]#[fg=white] #I:#W #[fg=#6F42C1,bg=#282828]'
 set -g window-status-style 'fg=green'
 set -g window-status-separator ''
 set -g window-status-format ' #I:#W '
+{{- if eq .chezmoi.os "windows" }}
 set -g status-right '#[fg=#282828,bg=default]'
+{{- else }}
+set -g status-right '#[fg=#282828,bg=terminal]'
+{{- end }}
 
 # Define Plugins
 {{- if eq .chezmoi.os "windows" }}
