@@ -10,8 +10,9 @@ bind C-l send-keys 'C-l'
 
 # Status line styling
 set -g status-style 'bg=#282828'
-set -g status-left '#[fg=#3A3A3A,bg=default]#[bg=#3A3A3A,fg=white]  tmux #[fg=#3A3A3A,bg=cyan]#[fg=#000000,bold]  #S #[fg=cyan,bg=#282828]'
-set -g window-status-current-format '#[fg=#282828,bg=#6F42C1]#[fg=white,bold] #I:#W #[fg=#6F42C1,bg=#282828]'
+set -g status-left-length 40
+set -g status-left '#[fg=#3A3A3A,bg=default]#[bg=#3A3A3A,fg=white]  tmux #[fg=#3A3A3A,bg=cyan]#[fg=#000000]  |#S #[fg=cyan,bg=#282828]'
+set -g window-status-current-format '#[fg=#282828,bg=#6F42C1]#[fg=white] #I:#W #[fg=#6F42C1,bg=#282828]'
 set -g window-status-style 'fg=green'
 set -g window-status-separator ''
 set -g window-status-format ' #I:#W '
