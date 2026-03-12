@@ -8,6 +8,10 @@ bind C-Space send-prefix
 # Support readline clear screen
 bind C-l send-keys 'C-l'
 
+# Open new panes in the current directory
+bind '"' split-window -v -c "#{pane_current_path}"
+bind % split-window -h -c "#{pane_current_path}"
+
 # Status line styling
 set -g status-style 'bg=#282828'
 set -g status-left-length 40
