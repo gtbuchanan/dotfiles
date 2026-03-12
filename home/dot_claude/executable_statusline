@@ -42,6 +42,7 @@ ICON_REBASE=$(printf '\xee\x9c\xa8')   # \ue728 nf-dev-git_merge
 ICON_MERGE=$(printf '\xee\x9c\xa7')    # \ue727 nf-dev-git_compare
 ICON_REVERT=$(printf '\xef\x83\xa2')   # \uf0e2 nf-fa-undo
 ICON_CHERRY=$(printf '\xee\x8a\x9b')   # \ue29b nf-oct-ruby
+ICON_STASH=$(printf '\xef\x83\x87')    # \uf0c7 nf-fa-floppy_o
 
 # --- Model segment (env_bg) ---
 LINE="${ENV_FG}${SEP_ROUND_L}${RESET}${ENV_BG}${LIGHT_FG} ${ICON_ROBOT} ${MODEL} ${RESET}"
@@ -99,6 +100,7 @@ if cache_is_stale; then
         STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
         MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
         UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+        STASH=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
         UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
         if [ -n "$UPSTREAM" ]; then
             AHEAD=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
@@ -107,17 +109,19 @@ if cache_is_stale; then
             AHEAD=0
             BEHIND=0
         fi
-        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}" > "$CACHE_FILE"
+        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}|${STASH}" > "$CACHE_FILE"
     else
-        echo "||||||||" > "$CACHE_FILE"
+        echo "|||||||||" > "$CACHE_FILE"
     fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH < "$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
 
 if [ -n "$BRANCH" ]; then
     GIT_STATUS=""
+    # Stash count (first, matching starship ordering)
+    [ "$STASH" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STASH} ${STASH}"
     # Unstaged group: pencil-in-box then individual indicators
     UNSTAGED=""
     [ "$UNTRACKED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}?${UNTRACKED} "
