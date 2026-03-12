@@ -44,6 +44,11 @@
 - Always delete the local and remote PR branch atomically when merging
   (e.g., `gh pr merge --delete-branch`).
   Do not merge first and then delete the branch as a separate step.
+- When merging the current branch into another and you know you're in a
+  linked worktree (e.g., spawned via `isolation: "worktree"`), run
+  `git worktree list` to find the target branch. If it's in the main
+  working tree, merge from there without prompting. If it's in another
+  linked worktree, prompt before merging.
 {{- if eq .hosttype "ewn" }}
 - When a GitHub org is ambiguous or unspecified, infer `energyworldnet`
 {{- end }}
