@@ -1,7 +1,38 @@
-import { describe, it, beforeAll, afterAll } from "vitest";
+import { describe, it, beforeAll, afterAll, vi } from "vitest";
 import { startServer, assertBlocked, assertNotBlocked } from "./helpers.mjs";
 
-describe.concurrent("shell tool", () => {
+// --- Unit tests (mocked execShell) ---
+vi.mock("../lib/exec.mjs", () => ({
+  execShell: async (_cmd, args) => ({
+    content: [{ type: "text", text: JSON.stringify({ cmd: _cmd, args }) }],
+  }),
+  fail: (msg) => ({ content: [{ type: "text", text: msg }], isError: true }),
+}));
+
+const { register } = await import("../tools/shell.mjs");
+
+let handler;
+register({ tool: (_, __, ___, fn) => { handler = fn; } });
+
+const callMocked = (command, args = []) => handler({ command, args });
+
+const assertAllowed = (expect, result) => {
+  expect(result?.isError, `expected allowed, got: ${result?.content?.[0]?.text}`).toBeFalsy();
+};
+
+describe.concurrent("shell tool (unit)", () => {
+  describe("allowed commands", () => {
+    it.for([
+      "basename", "date", "dirname", "eza", "file", "jq", "ls", "pwd",
+      "readlink", "realpath", "stat", "wc", "which", "whoami",
+    ])("allows %s", async (cmd, { expect }) => {
+      assertAllowed(expect, await callMocked(cmd));
+    });
+  });
+});
+
+// --- Integration tests (real MCP server) ---
+describe.concurrent("shell tool (integration)", () => {
   let server;
   beforeAll(async () => { server = startServer(); await server.initialize(); });
   afterAll(() => server.close());

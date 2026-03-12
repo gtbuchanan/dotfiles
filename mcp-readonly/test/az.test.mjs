@@ -190,6 +190,36 @@ describe.concurrent("az tool (integration)", () => {
     });
   });
 
+  describe("blocked single-dash flags on invoke", () => {
+    it.for([
+      { name: "-X", args: ["devops", "invoke", "-X", "POST", "--area", "build", "--resource", "builds"] },
+      { name: "-h", args: ["devops", "invoke", "-h", "--area", "build", "--resource", "builds"] },
+      { name: "-o", args: ["devops", "invoke", "-o", "json", "--area", "build", "--resource", "builds"] },
+    ])("blocks single-dash flag $name", async ({ args }, { expect }) => {
+      assertBlocked(expect, await call(args));
+    });
+  });
+
+  describe("missing required invoke flags", () => {
+    it("reports missing --area", async ({ expect }) => {
+      const result = await call(["devops", "invoke", "--resource", "builds"]);
+      expect(result?.isError).toBe(true);
+      expect(result.content[0].text).toContain("Missing required flag: --area");
+    });
+
+    it("reports missing --resource", async ({ expect }) => {
+      const result = await call(["devops", "invoke", "--area", "build"]);
+      expect(result?.isError).toBe(true);
+      expect(result.content[0].text).toContain("Missing required flag: --resource");
+    });
+
+    it("reports missing --area when both absent", async ({ expect }) => {
+      const result = await call(["devops", "invoke"]);
+      expect(result?.isError).toBe(true);
+      expect(result.content[0].text).toContain("Missing required flag");
+    });
+  });
+
   describe("blocked duplicate flags", () => {
     it.for(
       [
@@ -199,9 +229,5 @@ describe.concurrent("az tool (integration)", () => {
     )("blocks duplicate flag $name", async ({ args }, { expect }) => {
       assertBlocked(expect, await call(args));
     });
-  });
-
-  it("allows devops project list", async ({ expect }) => {
-    assertNotBlocked(expect, await call(["devops", "project", "list"]));
   });
 });

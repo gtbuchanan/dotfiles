@@ -40,6 +40,20 @@ describe.concurrent("jq file argument blocking", () => {
     });
   });
 
+  describe("--args and --jsonargs handling", () => {
+    it("allows --args flag before filter", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--args", "-n", "$ARGS.positional"] }));
+    });
+
+    it("allows --jsonargs flag before filter", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--jsonargs", "-n", "$ARGS.positional"] }));
+    });
+
+    it("blocks positional args after filter even with --args (safe false positive)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-n", "$ARGS.positional", "--args", "foo", "bar"] }));
+    });
+  });
+
   describe("blocked (file args)", () => {
     it("blocks jq . /etc/passwd", async ({ expect }) => {
       assertBlocked(expect, await server.callTool("shell", { command: "jq", args: [".", "/etc/passwd"] }));
@@ -55,7 +69,7 @@ describe.concurrent("jq file argument blocking", () => {
   });
 
   describe("blocked file-reading flags", () => {
-    it.for(["--slurpfile", "--rawfile", "--from-file", "-f"])(
+    it.for(["--slurpfile", "--rawfile", "--from-file", "-f", "--library-path"])(
       "blocks %s", async (flag, { expect }) => {
         assertBlocked(expect, await server.callTool("shell", { command: "jq", args: [flag, "x", canaryFile] }));
       },
@@ -63,6 +77,32 @@ describe.concurrent("jq file argument blocking", () => {
 
     it("blocks -L (library path)", async ({ expect }) => {
       assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-L", "/tmp", "-n", "empty"] }));
+    });
+
+    it("blocks --from-file=path (equals form)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["--from-file=script.jq"] }));
+    });
+  });
+
+  describe("combined short flag bypass", () => {
+    it("blocks -rf (combined -r -f)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-rf", "/etc/passwd"] }));
+    });
+
+    it("blocks -nf (combined -n -f)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-nf", "/etc/passwd"] }));
+    });
+
+    it("blocks -Sf (combined -S -f)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-Sf", "/etc/passwd"] }));
+    });
+
+    it("blocks -L/path (concatenated library path)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-L/tmp/evil", "-n", "empty"] }));
+    });
+
+    it("allows -rn (no file chars)", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("shell", { command: "jq", args: ["-rn", "empty"] }));
     });
   });
 });

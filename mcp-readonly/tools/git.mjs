@@ -1,5 +1,5 @@
 import { exec, fail } from "../lib/exec.mjs";
-import { ArgsSchema, rejectSubcommand } from "../lib/allowlist.mjs";
+import { ArgsSchema, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
 
 const SUBCOMMANDS = new Set([
   "branch", "diff", "log", "remote", "rev-parse", "show", "stash", "status",
@@ -33,14 +33,26 @@ export const register = (server) =>
     async ({ args }) => {
       const sub = args[0];
       if (!SUBCOMMANDS.has(sub)) return rejectSubcommand(args, SUBCOMMANDS);
-      const globalBlocked = args.slice(1).find((a) => BLOCKED_FLAGS.has(a) || a.startsWith("--output=") || a.startsWith("-o"));
-      if (globalBlocked) return fail(`Flag not allowed: ${globalBlocked}`);
+      // Block -o short flag: standalone (-o), concatenated (-ofile.txt), or
+      // combined with other short flags (-ao, -abo/tmp/evil.txt)
+      const shortO = args.slice(1).find((a) =>
+        a.startsWith("-") && !a.startsWith("--") && a !== "-" &&
+        [...a.slice(1).split("=")[0]].includes("o"),
+      );
+      if (shortO) return fail(`Flag not allowed: ${shortO}`);
+      // Block --output and --no-index with prefix matching (defeats abbreviation)
+      const globalRejected = rejectBlockedFlags(args, BLOCKED_FLAGS);
+      if (globalRejected) return globalRejected;
       if (sub === "branch") {
-        const blocked = args.slice(1).find((a) => BRANCH_BLOCKED.has(a));
-        if (blocked) return fail(`Flag not allowed for git branch: ${blocked}`);
+        const rejected = rejectBlockedFlags(args, BRANCH_BLOCKED);
+        if (rejected) return rejected;
       }
       if (sub === "stash") {
-        const stashSub = args.slice(1).find((a) => !a.startsWith("-"));
+        let stashSub = null;
+        for (const a of args.slice(1)) {
+          if (a === "--") break;
+          if (!a.startsWith("-")) { stashSub = a; break; }
+        }
         if (!stashSub || !STASH_ALLOWED_SUBS.has(stashSub))
           return fail(`Subcommand not allowed for git stash: ${stashSub ?? "(none)"}. Allowed: ${[...STASH_ALLOWED_SUBS].join(", ")}`);
       }
@@ -52,6 +64,7 @@ export const register = (server) =>
         const blockedFlag = remoteArgs.filter((a) => a.startsWith("-")).find((a) => !REMOTE_ALLOWED_FLAGS.has(a));
         if (blockedFlag) return fail(`Flag not allowed for git remote: ${blockedFlag}`);
       }
+      // Inject --no-pager to prevent interactive pager from blocking the process
       return exec("git", ["--no-pager", ...args]);
     },
   );

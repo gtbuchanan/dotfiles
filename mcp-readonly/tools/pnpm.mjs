@@ -1,4 +1,7 @@
-import { exec } from "../lib/exec.mjs";
+// Uses execShell instead of exec for Windows compatibility: pnpm installed via
+// npm or corepack ships as a .cmd wrapper that execFile cannot invoke directly.
+// execShell is a no-op on non-Windows and wraps with bash on Windows.
+import { execShell } from "../lib/exec.mjs";
 import { ArgsSchema, matchesAllowlist, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
 
 const SUBCOMMANDS = new Set([
@@ -19,6 +22,6 @@ export const register = (server) =>
         return rejectSubcommand(args, SUBCOMMANDS);
       const rejected = rejectBlockedFlags(args, BLOCKED_FLAGS);
       if (rejected) return rejected;
-      return exec("pnpm", args);
+      return execShell("pnpm", args);
     },
   );

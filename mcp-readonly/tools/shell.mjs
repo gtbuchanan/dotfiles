@@ -18,15 +18,33 @@ const JQ_PAIR_FLAGS = new Set(["--arg", "--argjson"]);
 // Flags that take one following argument
 const JQ_VALUE_FLAGS = new Set(["--indent"]);
 
+// Single characters corresponding to file-reading short flags (-f, -L)
+const JQ_FILE_CHARS = "fL";
+
+const rejectFileFlag = (arg) => {
+  const base = arg.split("=")[0];
+  if (JQ_FILE_FLAGS.has(base)) return fail(`Flag not allowed for jq: ${base}`);
+  if (arg.startsWith("-") && !arg.startsWith("--")) {
+    const ch = [...arg.slice(1)].find((c) => JQ_FILE_CHARS.includes(c));
+    if (ch) return fail(`Flag not allowed for jq: -${ch}`);
+  }
+  return null;
+};
+
+// Two-phase scan: walks flags before the filter expression (skipping flag-value
+// pairs like --arg k v), then blocks any non-flag positional after the filter
+// as a file path.
 const validateJqArgs = (args) => {
   for (let i = 0; i < args.length; i++) {
-    if (JQ_FILE_FLAGS.has(args[i])) return fail(`Flag not allowed for jq: ${args[i]}`);
+    const blocked = rejectFileFlag(args[i]);
+    if (blocked) return blocked;
     if (JQ_PAIR_FLAGS.has(args[i])) { i += 2; continue; }
     if (JQ_VALUE_FLAGS.has(args[i])) { i++; continue; }
     if (args[i].startsWith("-")) continue;
     // First non-flag arg is the filter expression; rest are file paths
     for (let j = i + 1; j < args.length; j++) {
-      if (JQ_FILE_FLAGS.has(args[j])) return fail(`Flag not allowed for jq: ${args[j]}`);
+      const jblocked = rejectFileFlag(args[j]);
+      if (jblocked) return jblocked;
       if (JQ_PAIR_FLAGS.has(args[j])) { j += 2; continue; }
       if (JQ_VALUE_FLAGS.has(args[j])) { j++; continue; }
       if (args[j].startsWith("-")) continue;

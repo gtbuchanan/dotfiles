@@ -7,7 +7,8 @@ const SUBCOMMANDS = new Set([
 
 // --fix: npm audit fix attempts to update packages
 // --registry: prevents SSRF / data exfiltration via attacker-controlled registries
-const BLOCKED_FLAGS = new Set(["--fix", "--registry"]);
+// --no-ignore-scripts: overrides the injected --ignore-scripts (npm uses last-wins)
+const BLOCKED_FLAGS = new Set(["--fix", "--registry", "--no-ignore-scripts", "--ignore-scripts"]);
 
 export const register = (server) =>
   server.tool(

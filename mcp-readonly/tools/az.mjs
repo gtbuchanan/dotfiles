@@ -57,6 +57,10 @@ const flagValues = (args, flag) => {
 const rejectInvokeEndpoint = (args) => {
   const areas = flagValues(args, "--area");
   const resources = flagValues(args, "--resource");
+  if (areas.length === 0)
+    return fail("Missing required flag: --area");
+  if (resources.length === 0)
+    return fail("Missing required flag: --resource");
   if (areas.length > 1)
     return fail("Flag not allowed: duplicate --area");
   if (resources.length > 1)
@@ -76,7 +80,11 @@ export const register = (server) =>
       if (!matchesAllowlist(args, SUBCOMMANDS))
         return rejectSubcommand(args, SUBCOMMANDS);
       if (args[0] === "devops" && args[1] === "invoke") {
-        const unknownFlag = args.slice(2).find((a) => a.startsWith("--") && !INVOKE_ALLOWED_FLAGS.has(a.split("=")[0]));
+        // Reject any flag (single or double dash) not in the allowlist. This
+        // blocks unknown short flags (e.g., `-X`) that could bypass the `--`-only
+        // check. Flag values for known flags (e.g., `--area build`) are not
+        // checked here because they don't start with `-` in normal usage.
+        const unknownFlag = args.slice(2).find((a) => a.startsWith("-") && !INVOKE_ALLOWED_FLAGS.has(a.split("=")[0]));
         if (unknownFlag) return fail(`Flag not allowed: ${unknownFlag}`);
         const endpointRejection = rejectInvokeEndpoint(args);
         if (endpointRejection) return endpointRejection;
