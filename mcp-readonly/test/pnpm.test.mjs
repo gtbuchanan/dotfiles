@@ -21,6 +21,16 @@ const assertAllowed = (expect, result) => {
 };
 
 describe.concurrent("pnpm tool (unit)", () => {
+  describe("allowed global flags", () => {
+    it.for([
+      { name: "--version", args: ["--version"] },
+      { name: "--help", args: ["--help"] },
+      { name: "-h", args: ["-h"] },
+    ])("allows $name", async ({ args }, { expect }) => {
+      assertAllowed(expect, await callMocked(args));
+    });
+  });
+
   describe("allowed subcommands", () => {
     it.for([
       { name: "audit", args: ["audit"] },
@@ -43,6 +53,24 @@ describe.concurrent("pnpm tool (integration)", () => {
   let server;
   beforeAll(async () => { server = startServer(); await server.initialize(); });
   afterAll(() => server.close());
+
+  describe("allowed global flags", () => {
+    it.for([
+      { name: "--version", args: ["--version"] },
+      { name: "--help", args: ["--help"] },
+      { name: "-h", args: ["-h"] },
+    ])("allows $name", async ({ args }, { expect }) => {
+      assertNotBlocked(expect, await server.callTool("pnpm", { args }));
+    });
+
+    it("blocks --help with trailing args", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("pnpm", { args: ["--help", "install"] }));
+    });
+
+    it("blocks -v (not in global flags)", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("pnpm", { args: ["-v"] }));
+    });
+  });
 
   describe("blocked subcommands", () => {
     it.for(

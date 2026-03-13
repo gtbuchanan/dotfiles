@@ -83,6 +83,8 @@ Blocked flags: `--fix`, `--registry`, `--no-ignore-scripts`, `--ignore-scripts`.
 
 Read-only pnpm commands: `audit`, `bin`, `licenses list`, `list`, `outdated`, `root`, `search`, `store status`, `why`
 
+Also supports `--version`, `--help`, `-h` as standalone flags.
+
 Blocked flags: `--fix`, `--registry`
 
 **Schema:** `{ args: string[] }`
