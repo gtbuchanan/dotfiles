@@ -1,8 +1,24 @@
 import { z } from "zod";
 import { fail } from "./exec.mjs";
 
+// LLMs frequently serialize array parameters as JSON strings instead of native
+// arrays (e.g., '["status", "-sb"]' instead of ["status", "-sb"]). The MCP
+// Python SDK calls this out explicitly; the TypeScript SDK does not handle it.
+// Coerce stringified JSON arrays before Zod validation so callers recover
+// gracefully. Only arrays are accepted — stringified objects/primitives still
+// fail validation.
+const coerceArgs = (val) => {
+  if (typeof val !== "string") return val;
+  try {
+    const parsed = JSON.parse(val);
+    if (Array.isArray(parsed)) return parsed;
+  } catch {}
+  return val;
+};
+
 export const ArgsSchema = {
-  args: z.array(z.string()).default([]).describe("Command arguments"),
+  args: z.preprocess(coerceArgs, z.array(z.string()).default([]))
+    .describe("Command arguments"),
 };
 
 const maxDepthOf = (allowlist) => {

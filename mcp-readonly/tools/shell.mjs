@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { execShell, fail } from "../lib/exec.mjs";
+import { ArgsSchema } from "../lib/allowlist.mjs";
 
 const COMMANDS = new Set([
   "basename", "date", "dirname", "eza", "file", "jq", "ls", "pwd",
@@ -61,7 +62,7 @@ export const register = (server) =>
     "Run read-only shell utilities (basename, date, dirname, eza, file, jq, ls, pwd, readlink, realpath, stat, wc, which, whoami)",
     {
       command: z.string().describe("Command name from the allowlist"),
-      args: z.array(z.string()).default([]).describe("Command arguments"),
+      ...ArgsSchema,
     },
     async ({ command, args }) => {
       if (!COMMANDS.has(command))

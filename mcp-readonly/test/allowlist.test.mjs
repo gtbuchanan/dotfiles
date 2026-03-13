@@ -1,5 +1,34 @@
 import { describe, it } from "vitest";
-import { matchesAllowlist, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
+import { z } from "zod";
+import { ArgsSchema, matchesAllowlist, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
+
+describe("ArgsSchema coercion", () => {
+  const schema = z.object(ArgsSchema);
+
+  it("accepts a normal array", ({ expect }) => {
+    expect(schema.parse({ args: ["status", "-sb"] }).args).toEqual(["status", "-sb"]);
+  });
+
+  it("coerces a JSON-stringified array to an array", ({ expect }) => {
+    expect(schema.parse({ args: '["log", "--oneline"]' }).args).toEqual(["log", "--oneline"]);
+  });
+
+  it("uses default when args is omitted", ({ expect }) => {
+    expect(schema.parse({}).args).toEqual([]);
+  });
+
+  it("rejects a plain string that is not valid JSON array", ({ expect }) => {
+    expect(() => schema.parse({ args: "status -sb" })).toThrow();
+  });
+
+  it("rejects a JSON-stringified object", ({ expect }) => {
+    expect(() => schema.parse({ args: '{"key": "val"}' })).toThrow();
+  });
+
+  it("rejects a JSON-stringified number", ({ expect }) => {
+    expect(() => schema.parse({ args: "42" })).toThrow();
+  });
+});
 
 describe("matchesAllowlist", () => {
   const single = new Set(["audit", "bin", "ls"]);
