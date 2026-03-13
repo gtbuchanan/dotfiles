@@ -33,6 +33,7 @@ The goal is to make auto-allow safe for read-only tools. Without enforcement at 
 | `cat`, `head`, `tail`, `bat`, `diff`, `delta` | Redundant with host `Read` tool; path args duplicate file-read surface area |
 | `git diff --no-index` | Reads arbitrary files outside the repo |
 | `git --output` / `-o` | Writes command output to a file |
+| `gh variable get` | Returns plaintext values that may contain internal URLs, hostnames, or quasi-sensitive configuration |
 
 ## Tools
 
@@ -59,7 +60,9 @@ Additional restrictions:
 
 ### `gh`
 
-Read-only GitHub CLI commands: `issue list/view`, `pr checks/diff/list/status/view`, `repo view`, `run list/view`, `search code/commits/issues/prs/repos`
+Read-only GitHub CLI commands: `attestation verify`, `cache list`, `gist list/view`, `issue list/status/view`, `label list`, `pr checks/diff/list/status/view`, `project field-list/item-list/list/view`, `release list/view`, `repo list/view`, `ruleset check/list/view`, `run list/view`, `search code/commits/issues/prs/repos`, `secret list`, `status`, `variable list`, `workflow list/view`
+
+Also supports `--version`, `--help`, `-h` as standalone flags.
 
 **Schema:** `{ args: string[] }`
 
