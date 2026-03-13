@@ -383,6 +383,13 @@ properties:
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install jq
+      id: jq
+      settings:
+        id: jqlang.jq
+        source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install KDiff3
       id: kdiff3
       settings:
