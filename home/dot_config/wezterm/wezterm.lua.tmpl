@@ -4,7 +4,7 @@ local config = wezterm.config_builder()
 
 config.color_scheme = 'Helios (base16)'
 {{- if eq .osid "windows" }}
-config.default_prog = { 'psmux' }
+config.default_prog = { 'psmux', 'new', '-As', 'main' }
 {{- end }}
 config.font = wezterm.font '{{ .font }}'
 {{- if eq .osid "windows" }}
