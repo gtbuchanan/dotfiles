@@ -43,15 +43,6 @@ config.keys = {
     mods = 'CTRL|SHIFT',
     action = wezterm.action.EmitEvent('toggle-opacity'),
   },
-{{- if eq .osid "windows" }}
-  -- Map Ctrl+Space to psmux prefix (C-space is broken)
-  -- https://github.com/marlocarlo/psmux/issues/100
-  {
-    key = ' ',
-    mods = 'CTRL',
-    action = wezterm.action.SendKey { key = 'b', mods = 'CTRL' },
-  },
-{{- end }}
   -- Quick open URL
   {
     key = 'o',
