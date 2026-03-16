@@ -32,7 +32,7 @@ The goal is to make auto-allow safe for read-only tools. Without enforcement at 
 | `rg` | Redundant with host `Grep` tool; allows searching arbitrary paths |
 | `cat`, `head`, `tail`, `bat`, `diff`, `delta` | Redundant with host `Read` tool; path args duplicate file-read surface area |
 | `git diff --no-index` | Reads arbitrary files outside the repo |
-| `git --output` / `-o` | Writes command output to a file |
+| `git --output` / `diff -o` | Writes command output to a file |
 | `gh variable get` | Returns plaintext values that may contain internal URLs, hostnames, or quasi-sensitive configuration |
 
 ## Tools
@@ -47,13 +47,16 @@ Read-only shell utilities: `basename`, `date`, `dirname`, `eza`, `file`, `jq`, `
 
 ### `git`
 
-Read-only git commands: `branch`, `diff`, `log`, `remote`, `rev-parse`, `show`, `stash`, `status`
+Read-only git commands: `blame`, `branch`, `describe`, `diff`, `log`, `ls-files`, `ls-tree`, `merge-base`, `reflog`, `remote`, `rev-parse`, `shortlog`, `show`, `stash`, `status`, `worktree`
 
 Additional restrictions:
-- `--output` / `-o` blocked globally (prefix matching defeats abbreviation; combined short flags like `-ao` also caught)
+- `--output` blocked globally (prefix matching defeats abbreviation)
+- `-o` short flag blocked on `diff` only (other commands use `-o` for unrelated flags, e.g., `ls-files -o` = `--others`)
 - `--no-index` blocked globally (prefix matching)
 - `branch`: destructive flags blocked (`-D`, `-d`, `-m`, `--delete`, `--force`, etc.)
 - `stash`: only `list` and `show` sub-subcommands (`--` treated as terminator)
+- `worktree`: only `list` (mutating: `add`, `remove`, `move`, `prune`, etc.)
+- `reflog`: only `show`, `exists`, and bare invocation (destructive: `delete`, `expire`)
 - `remote`: only bare listing and `get-url` (no `show` — triggers network I/O)
 
 **Schema:** `{ args: string[] }`

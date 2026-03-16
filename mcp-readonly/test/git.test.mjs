@@ -36,7 +36,7 @@ describe.concurrent("git tool (unit)", () => {
   });
 
   describe("allowed subcommands", () => {
-    it.for(["branch", "diff", "log", "rev-parse", "show", "status"])(
+    it.for(["blame", "branch", "describe", "diff", "log", "ls-files", "ls-tree", "merge-base", "rev-parse", "shortlog", "show", "status"])(
       "allows %s", async (sub, { expect }) => {
         assertAllowed(expect, await callMocked([sub]));
       },
@@ -48,6 +48,18 @@ describe.concurrent("git tool (unit)", () => {
 
     it("allows stash list", async ({ expect }) => {
       assertAllowed(expect, await callMocked(["stash", "list"]));
+    });
+
+    it("allows worktree list", async ({ expect }) => {
+      assertAllowed(expect, await callMocked(["worktree", "list"]));
+    });
+
+    it("allows reflog show", async ({ expect }) => {
+      assertAllowed(expect, await callMocked(["reflog", "show"]));
+    });
+
+    it("allows bare reflog (= reflog show)", async ({ expect }) => {
+      assertAllowed(expect, await callMocked(["reflog"]));
     });
   });
 });
@@ -101,6 +113,52 @@ describe.concurrent("git tool (integration)", () => {
 
     it("allows rev-parse --git-dir", async ({ expect }) => {
       assertNotBlocked(expect, await server.callTool("git", { args: ["rev-parse", "--git-dir"] }));
+    });
+
+    it("allows blame HEAD -- README.md", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["blame", "HEAD", "--", "README.md"] }));
+    });
+
+    it("allows describe", async ({ expect }) => {
+      // May fail if no tags exist, but should not be blocked
+      const result = await server.callTool("git", { args: ["describe", "--tags"] });
+      expect(result?.isError).not.toBe(true);
+    });
+
+    it("allows merge-base HEAD HEAD", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["merge-base", "HEAD", "HEAD"] }));
+    });
+
+    it("allows shortlog -1 HEAD", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["shortlog", "-1", "HEAD"] }));
+    });
+
+    it("allows ls-files", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["ls-files"] }));
+    });
+
+    it("allows ls-files -o (--others)", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["ls-files", "-o"] }));
+    });
+
+    it("allows ls-tree HEAD", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["ls-tree", "HEAD"] }));
+    });
+
+    it("allows worktree list", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["worktree", "list"] }));
+    });
+
+    it("allows reflog show", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog", "show"] }));
+    });
+
+    it("allows bare reflog", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog"] }));
+    });
+
+    it("allows reflog exists HEAD", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog", "exists", "HEAD"] }));
     });
   });
 
@@ -185,6 +243,42 @@ describe.concurrent("git tool (integration)", () => {
     it.for(["push", "pop", "apply", "drop", "clear", "save", "create", "store"])(
       "blocks stash %s", async (sub, { expect }) => {
         assertBlocked(expect, await server.callTool("git", { args: ["stash", sub] }));
+      },
+    );
+  });
+
+  describe("worktree subcommand filtering", () => {
+    it("allows worktree list", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["worktree", "list"] }));
+    });
+
+    it("blocks bare worktree", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("git", { args: ["worktree"] }));
+    });
+
+    it.for(["add", "remove", "move", "prune", "lock", "unlock", "repair"])(
+      "blocks worktree %s", async (sub, { expect }) => {
+        assertBlocked(expect, await server.callTool("git", { args: ["worktree", sub] }));
+      },
+    );
+  });
+
+  describe("reflog subcommand filtering", () => {
+    it("allows bare reflog (= reflog show)", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog"] }));
+    });
+
+    it("allows reflog show", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog", "show"] }));
+    });
+
+    it("allows reflog exists HEAD", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["reflog", "exists", "HEAD"] }));
+    });
+
+    it.for(["delete", "expire"])(
+      "blocks reflog %s", async (sub, { expect }) => {
+        assertBlocked(expect, await server.callTool("git", { args: ["reflog", sub] }));
       },
     );
   });
