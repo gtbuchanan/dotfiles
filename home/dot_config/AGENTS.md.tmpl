@@ -44,6 +44,12 @@
 - Always delete the local and remote PR branch atomically when merging
   (e.g., `gh pr merge --delete-branch`).
   Do not merge first and then delete the branch as a separate step.
+- If `gh pr merge --delete-branch` succeeds but prints a git error like
+  `fatal: 'main' is already used by worktree at ...`, the PR merged and
+  the remote branch was deleted — only the local branch deletion failed
+  because the base branch is checked out in another worktree. This is
+  expected in linked worktrees. Do NOT re-run the merge command. The
+  local branch will be cleaned up when the worktree is removed.
 - When merging the current branch into another and you know you're in a
   linked worktree (e.g., spawned via `isolation: "worktree"`), run
   `git worktree list` to find the target branch. If it's in the main
