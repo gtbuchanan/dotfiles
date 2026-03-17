@@ -92,7 +92,10 @@ home/
 ├── private_dot_vim/             # Vim config, plugins, after-plugin overrides
 ├── private_dot_ssh/             # SSH config
 ├── winget.yaml.tmpl             # Windows package/config manifest (DSC)
-└── AppData/                     # Windows-specific app configs (Terminal, VS Code, KDiff3, GPG)
+└── AppData/                     # Windows-specific app configs
+    ├── Local/Packages/Microsoft.WindowsTerminal_*/LocalState/
+    │   └── settings.json.tmpl   # Windows Terminal settings
+    └── Roaming/                 # VS Code, KDiff3, GPG, etc.
 ```
 
 ## Platform-Specific Scripting
