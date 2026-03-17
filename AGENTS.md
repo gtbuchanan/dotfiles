@@ -153,7 +153,7 @@ Dependencies are installed and the server is registered via
 which reruns when `pnpm-lock.yaml` changes (hashed via `git hash-object`).
 
 After any change to the MCP server, run security tests before committing:
-`pushd mcp-readonly && pnpm install && pnpm test; rc=$?; popd; exit $rc`
+`pnpm -C mcp-readonly install && pnpm -C mcp-readonly test`
 
 Security design rationale is documented in the `index.mjs` header comment and
 `test/*.test.mjs`. Auto-allow decisions are in `home/dot_claude/settings.json.tmpl`.
