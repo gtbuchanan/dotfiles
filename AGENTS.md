@@ -75,14 +75,14 @@ home/
 │   └── android/                 # Shell scripts (run on Termux)
 ├── dot_gitconfig.tmpl            # Git config (aliases, core, delta, merge, push, etc.)
 ├── dot_config/
-│   ├── AGENTS.md                # User-level agent preferences (source of truth)
-│   ├── skills/                  # Canonical agent skills directory (Agent Skills standard)
+│   ├── AGENTS.md.tmpl            # User-level agent preferences (source of truth)
+│   ├── Code/                    # VS Code settings (Windows-only, modify script)
 │   ├── wezterm/                 # WezTerm config (Lua)
 │   ├── powershell/              # PowerShell profile
 │   ├── private_git/             # Git config: global ignore (`ignore`) + GPG wrapper
 │   └── private_starship.toml    # Starship prompt
 ├── dot_claude/
-│   ├── CLAUDE.md                # References dot_config/AGENTS.md
+│   ├── CLAUDE.md.tmpl            # References dot_config/AGENTS.md.tmpl
 │   ├── settings.json.tmpl       # Auto-allow permissions + status line
 │   └── symlink_skills           # → ../.config/skills
 ├── dot_copilot/                 # GitHub Copilot instructions (references AGENTS.md)
@@ -118,12 +118,12 @@ GPG signing is enabled for all commits. The GPG wrapper at
 
 ## Agent Skills
 
-Skills follow the [Agent Skills](https://agentskills.io) standard. The canonical source
-lives at `~/.config/skills/` (managed by `home/dot_config/skills/`). Each tool discovers
-skills via a `skills/` symlink in its config directory:
+Skills follow the [Agent Skills](https://agentskills.io) standard. Skills are fetched as
+external archives via `home/.chezmoiexternal.yaml.tmpl` and deployed to `~/.config/skills/`.
+Each tool discovers skills via a `skills/` symlink in its config directory:
 
 ```
-~/.config/skills/              ← canonical source (real files)
+~/.config/skills/              ← deployed by chezmoi externals
     atlassian-cli/SKILL.md
 
 ~/.claude/skills  → ../.config/skills   (symlink)
@@ -131,9 +131,9 @@ skills via a `skills/` symlink in its config directory:
 ~/.agents/skills  → ../.config/skills   (symlink)
 ```
 
-To add a new skill, create a directory under `home/dot_config/skills/` with a `SKILL.md`.
-All tools pick it up automatically. Use `.chezmoiignore` to gate host-specific skills
-(e.g., `atlassian-cli` is ewn-only).
+To add a new skill, add an entry in `.chezmoiexternal.yaml.tmpl` pointing to the skill's
+archive. All tools pick it up automatically. Use template conditionals to gate
+host-specific skills (e.g., `atlassian-cli` is ewn-only).
 
 ## MCP Readonly Server
 
@@ -150,7 +150,7 @@ Configuration targets:
 
 Dependencies are installed and the server is registered via
 `home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`,
-which reruns when `package.json` changes (hashed via `git hash-object`).
+which reruns when `pnpm-lock.yaml` changes (hashed via `git hash-object`).
 
 After any change to the MCP server, run security tests before committing:
 `pushd mcp-readonly && pnpm install && pnpm test; rc=$?; popd; exit $rc`
@@ -161,7 +161,7 @@ Security design rationale is documented in the `index.mjs` header comment and
 ## User-Level Agent Preferences
 
 Project-agnostic agent preferences (coding style, git conventions, etc.) live in
-`home/dot_config/AGENTS.md`. That file is the single source consumed by Claude Code
-(`dot_claude/CLAUDE.md`), GitHub Copilot (`dot_copilot/copilot-instructions.md.tmpl`),
-and VS Code (`AppData/.../personal.instructions.md.tmpl`).
+`home/dot_config/AGENTS.md.tmpl`. That file is the single source consumed by Claude Code
+(`dot_claude/CLAUDE.md.tmpl`), GitHub Copilot (`dot_copilot/copilot-instructions.md.tmpl`),
+and VS Code (`AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`).
 Do not duplicate those rules here.

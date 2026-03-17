@@ -84,16 +84,17 @@
 
 ## MCP Readonly Tools
 
-- Prefer MCP readonly tools over Bash for read-only operations:
-  - `mcp__readonly__git` for: blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree
-  - `mcp__readonly__shell` for: ls, jq, stat, file, wc, eza, which, etc.
-  - `mcp__readonly__az` for: az devops invoke (GET-only, build-debugging endpoints), devops project/team/extension/service-endpoint/wiki, pipelines list/show/build/release/runs/pool/agent
-  - `mcp__readonly__gh` for: issue/pr/repo/run viewing
-  - `mcp__readonly__chezmoi` for read-only chezmoi commands
-  - `mcp__readonly__acli` for read-only Jira commands
-  - `mcp__readonly__npm` for: audit, bin, explain, fund, ls, outdated, root, search, view
-  - `mcp__readonly__pnpm` for: audit, bin, licenses list, list, outdated, root, search, store status, why
-- Only fall back to Bash when a command isn't supported by the MCP server
+- Prefer MCP readonly tools over Bash for read-only operations. Each tool's
+  description lists its allowed subcommands — check before calling. Use Bash
+  for commands not covered (e.g., `gh api`, `git push`, `chezmoi apply`).
+  - `mcp__readonly__git` — read-only git subcommands (no checkout, push, reset, etc.)
+  - `mcp__readonly__shell` — allowlisted shell utilities (no cat, grep, find, etc.)
+  - `mcp__readonly__az` — Azure DevOps only (devops + pipelines queries; no `az resource`, `az vm`, etc.)
+  - `mcp__readonly__gh` — read-only GitHub CLI (no `api`, `auth`, create/edit/delete ops)
+  - `mcp__readonly__chezmoi` — read-only chezmoi (no apply, edit, add, etc.)
+  - `mcp__readonly__acli` — read-only Jira (list/view/search only)
+  - `mcp__readonly__npm` — read-only npm (no install, publish, run, etc.)
+  - `mcp__readonly__pnpm` — read-only pnpm (no install, publish, run, etc.)
 
 {{- if eq .hosttype "ewn" }}
 
