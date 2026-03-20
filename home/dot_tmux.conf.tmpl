@@ -42,10 +42,12 @@ set -g @continuum-restore 'on'
 # Initialize PPM
 run '~/.psmux/plugins/ppm/ppm.ps1'
 
-# Override resurrect bindings — pwsh -File doesn't expand ~
+# Override plugin commands — pwsh -File doesn't expand ~
 # https://github.com/psmux/psmux-plugins/issues/2
 bind-key C-s run-shell "pwsh -NoProfile -Command \"& '~/.psmux/plugins/psmux-resurrect/scripts/save.ps1'\""
 bind-key C-r run-shell "pwsh -NoProfile -Command \"& '~/.psmux/plugins/psmux-resurrect/scripts/restore.ps1'\""
+set-hook -g client-attached "run-shell \"pwsh -NoProfile -Command \\\"& '~/.psmux/plugins/psmux-continuum/scripts/auto_save.ps1' -IntervalMinutes 15\\\"\""
+set-hook -g after-new-session "run-shell \"pwsh -NoProfile -Command \\\"& '~/.psmux/plugins/psmux-continuum/scripts/auto_restore.ps1'\\\"\""
 
 # Pane navigation (no vim detection — psmux lacks #{m/r:} support)
 # https://github.com/marlocarlo/psmux/issues/30
