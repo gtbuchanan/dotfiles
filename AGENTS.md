@@ -12,12 +12,13 @@ Always edit the corresponding source in **this repo** under `home/`, then run
 
 ## Workflow
 
-- Edit files under `home/`, then run `chezmoi apply` to deploy changes.
+- Edit files under `home/`, then run `chezmoi apply <target>...` to deploy only the
+  affected targets (e.g., `chezmoi apply ~/.config/starship.toml ~/.gitconfig`).
+  Use bare `chezmoi apply` only when editing shared templates (e.g., `AGENTS.md.tmpl`,
+  files in `.chezmoitemplates/`).
 - After modifying `home/winget.yaml.tmpl`, the compiled output is regenerated automatically
   by the before-script on the next `chezmoi apply`. The `dist/winget.yaml` file is generated
   output — do not edit it directly.
-- After editing a shared template (e.g., `AGENTS.md`, files in `.chezmoitemplates/`),
-  run `chezmoi apply` with no args to update all targets that reference it.
 - To preview changes without applying: `chezmoi diff`.
 
 ## File Naming Conventions
