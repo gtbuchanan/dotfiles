@@ -53,7 +53,7 @@ Invoke-Expression (&starship init powershell)
 
 # Enable Vi mode
 $env:VI_MODE_PROMPT = "I "
-Set-PSReadLineOption -EditMode Vi -ViModeIndicator Script -ViModeChangeHandler {
+Set-PSReadLineOption -EditMode Vi -PredictionSource HistoryAndPlugin -ViModeIndicator Script -ViModeChangeHandler {
   switch ($args[0]) {
     'Command' { $env:VI_MODE_PROMPT = "N " }
     'Insert' { $env:VI_MODE_PROMPT = "I " }
