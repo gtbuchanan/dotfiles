@@ -581,6 +581,19 @@ properties:
       settings:
         id: marlocarlo.psmux
         source: winget
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [psmux]
+      directives:
+        allowPrerelease: true
+        description: Disable psmux warm panes
+      id: psmuxNoWarm
+      settings:
+        GetScript: |
+          @{ Result = [Environment]::GetEnvironmentVariable('PSMUX_NO_WARM', 'User') }
+        TestScript: |
+          [Environment]::GetEnvironmentVariable('PSMUX_NO_WARM', 'User') -eq '1'
+        SetScript: |
+          [Environment]::SetEnvironmentVariable('PSMUX_NO_WARM', '1', 'User')
     - resource: PowerShellGet/PSModule
       dependsOn: [pwsh]
       directives:
