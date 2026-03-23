@@ -39,6 +39,10 @@ set -g @plugin 'psmux-plugins/psmux-resurrect'
 set -g @plugin 'psmux-plugins/psmux-continuum'
 set -g @continuum-restore 'on'
 
+# Preserve user PredictionSource — replaces PowerShell.OnIdle workaround
+# https://github.com/psmux/psmux/issues/150
+set -g allow-predictions on
+
 # Initialize PPM
 run '~/.psmux/plugins/ppm/ppm.ps1'
 
