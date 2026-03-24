@@ -52,6 +52,12 @@
   because the base branch is checked out in another worktree. This is
   expected in linked worktrees. Do NOT re-run the merge command. The
   local branch will be cleaned up when the worktree is removed.
+- When checking out a `worktree-` branch, check if a remote tracking branch
+  exists without the prefix (e.g., `origin/foo` for `worktree-foo`). If so,
+  set it as upstream: `git branch --set-upstream-to=origin/foo worktree-foo`.
+- When pushing a branch that starts with `worktree-`, strip the prefix in the
+  remote refspec (e.g., `git push -u origin worktree-foo:foo`). This keeps
+  remote branch names clean while preserving the local worktree convention.
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
