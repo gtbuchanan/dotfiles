@@ -118,6 +118,17 @@
   - PR changed files: `gh pr diff {n}` or `gh pr view {n} --json files`
 - Only use `gh api` when the structured CLI genuinely doesn't expose the data
   (e.g., deployment statuses, specific check annotations, GraphQL queries).
+- `gh pr view --json comments` only returns issue/conversation comments, NOT
+  inline review comments. To read review comments, use:
+  `gh api repos/{owner}/{repo}/pulls/{n}/comments`
+- There is no `gh` subcommand for replying to review comment threads. Use `gh api`:
+  1. List review comments:
+     `gh api repos/{owner}/{repo}/pulls/{n}/comments --jq '.[] | "\(.id) \(.path):\(.line) \(.in_reply_to_id)"'`
+  1. Find the thread root — the comment where `in_reply_to_id` is null
+  1. Reply to the root:
+     `gh api repos/{owner}/{repo}/pulls/{n}/comments/{root_id}/replies -f body='...'`
+- Never use comment IDs from `--json comments` or `--json reviews` when calling
+  the review comments API — they are different ID spaces and will 404.
 
 {{- if eq .hosttype "ewn" }}
 
