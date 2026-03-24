@@ -101,6 +101,32 @@ home/
     └── Roaming/                 # VS Code, KDiff3, GPG, etc.
 ```
 
+## Platform-Conditional Targets
+
+Many source files are excluded on certain OSes via `.chezmoiignore`. Before running
+`chezmoi apply <target>`, verify the target is managed on the current platform —
+unmanaged targets will error. Use `chezmoi managed` or check `.chezmoiignore`.
+
+Key exclusions (see `.chezmoiignore` for the full set):
+
+| Files | Managed on | Excluded on |
+|---|---|---|
+| `.bash*`, `.blerc`, `.profile`, `*.sh*` | linux, darwin, android | windows |
+| `.config/powershell/` | linux, darwin | windows, android |
+| `.config/Code/` | linux, darwin | windows, android |
+| `.config/wezterm/` | darwin, windows | linux, android |
+| `.gnupg/` | linux, darwin, android | windows |
+| `.tmux*` | linux, darwin, android | windows |
+| `AppData/`, `Documents/`, `*.bat*` | windows | linux, darwin, android |
+| `Library/` | darwin | windows, linux, android |
+| `.termux/` | android | windows, linux, darwin |
+
+Shared templates (`.chezmoitemplates/`) are **not** deployed directly — they are
+included by platform-specific targets. For example, `powershell_profile.ps1` is
+consumed by both `dot_config/powershell/` (Linux/macOS) and
+`Documents/PowerShell/` (Windows). When editing a shared template, deploy the
+target(s) that exist on the current OS.
+
 ## Platform-Specific Scripting
 
 Scripts under `.chezmoiscripts/` are platform-gated via `.chezmoiignore`. Each platform
