@@ -8,3 +8,22 @@ alias g=git
 alias ls='eza --icons'
 alias pn=pnpm
 alias v=vim
+
+wtcd() {
+  local dir
+  if [[ -z "$1" ]]; then
+    dir=$(git worktree list --porcelain | sed -n '1s/^worktree //p')
+  else
+    dir=$(git worktree list --porcelain | awk -v name="$1" '
+      /^worktree /{ wt = substr($0, 10) }
+      /^branch /{ b = $2; sub(/.*\//, "", b)
+        if (b == name || b == "worktree-" name) print wt }
+    ' | head -1)
+  fi
+  if [[ -n "$dir" ]]; then
+    cd "$dir" || return
+  else
+    echo "worktree not found: $1" >&2
+    return 1
+  fi
+}

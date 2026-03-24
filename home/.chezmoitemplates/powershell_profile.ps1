@@ -17,6 +17,25 @@ $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 
 Function ccc { clear; claude @args }
 Function cmcd { Set-Location $ChezmoiSourcePath }
+Function wtcd {
+  param([string]$Name)
+  $lines = git worktree list --porcelain
+  if (-not $Name) {
+    $dir = ($lines | Select-String '^worktree (.+)' | Select-Object -First 1).Matches.Groups[1].Value
+  } else {
+    $dir = $null
+    $wt = $null
+    foreach ($line in $lines) {
+      if ($line -match '^worktree (.+)') { $wt = $Matches[1] }
+      elseif ($line -match '^branch refs/heads/(.+)') {
+        $b = $Matches[1]
+        if ($b -eq $Name -or $b -eq "worktree-$Name") { $dir = $wt; break }
+      }
+    }
+  }
+  if ($dir) { Set-Location $dir }
+  else { Write-Error "worktree not found: $Name" }
+}
 
 {{- if eq .chezmoi.os "windows" }}
 Function ls { eza --icons @args }
