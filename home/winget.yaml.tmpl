@@ -403,6 +403,23 @@ properties:
       settings:
         id: jftuga.less
         source: winget
+    - resource: xPSDesiredStateConfiguration/xScript
+      directives:
+        allowPrerelease: true
+        description: Add ~/.local/bin to user PATH
+      id: localBinPath
+      settings:
+        GetScript: |
+          @{ Result = [Environment]::GetEnvironmentVariable('Path', 'User') }
+        TestScript: |
+          $localBin = Join-Path $env:USERPROFILE '.local\bin'
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          ($userPath -split ';') -contains $localBin
+        SetScript: |
+          $localBin = Join-Path $env:USERPROFILE '.local\bin'
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          $newPath = (($userPath -split ';') + $localBin) -join ';'
+          [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Logitech LogiTune
