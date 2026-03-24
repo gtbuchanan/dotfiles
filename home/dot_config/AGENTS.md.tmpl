@@ -52,6 +52,9 @@
   because the base branch is checked out in another worktree. This is
   expected in linked worktrees. Do NOT re-run the merge command. The
   local branch will be cleaned up when the worktree is removed.
+- When running in a linked worktree, always search, read, and edit files
+  within the worktree directory. Never fall back to the base working tree
+  for file operations — the worktree has its own copy of the repo.
 - When merging the current branch into another and you know you're in a
   linked worktree (e.g., spawned via `isolation: "worktree"`), run
   `git worktree list` to find the target branch. If it's in the main
