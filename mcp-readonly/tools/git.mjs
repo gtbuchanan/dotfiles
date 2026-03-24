@@ -1,3 +1,6 @@
+import { execFileSync } from "node:child_process";
+import { resolve } from "node:path";
+import { z } from "zod";
 import { exec, fail } from "../lib/exec.mjs";
 import { ArgsSchema, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
 
@@ -33,12 +36,42 @@ const REMOTE_ALLOWED_SUBS = new Set(["get-url"]);
 // Only these flags are allowed for `git remote` (bare listing and get-url)
 const REMOTE_ALLOWED_FLAGS = new Set(["-v", "--verbose", "--push", "--all"]);
 
+const IS_WIN = process.platform === "win32";
+
+/** Return resolved paths for every worktree known to this repo. */
+const getWorktreePaths = () => {
+  try {
+    const out = execFileSync("git", ["worktree", "list", "--porcelain"], {
+      timeout: 5_000,
+    }).toString();
+    return out
+      .split("\n")
+      .filter((l) => l.startsWith("worktree "))
+      .map((l) => resolve(l.slice("worktree ".length).trim()));
+  } catch {
+    return [];
+  }
+};
+
+const isKnownWorktree = (dir) => {
+  const target = resolve(dir);
+  return getWorktreePaths().some((wt) =>
+    IS_WIN ? wt.toLowerCase() === target.toLowerCase() : wt === target,
+  );
+};
+
+const GitSchema = {
+  ...ArgsSchema,
+  cwd: z.string().min(1).optional()
+    .describe("Working directory (must be a git worktree of this repo). Pass when operating from a linked worktree."),
+};
+
 export const register = (server) =>
   server.tool(
     "git",
-    "Run read-only git commands (blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree)",
-    ArgsSchema,
-    async ({ args }) => {
+    "Run read-only git commands (blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree). Pass cwd when operating from a linked worktree.",
+    GitSchema,
+    async ({ args, cwd }) => {
       const sub = args[0];
       if (!SUBCOMMANDS.has(sub)) return rejectSubcommand(args, SUBCOMMANDS);
       // Block -o short flag on diff only: standalone (-o), concatenated (-ofile),
@@ -95,7 +128,14 @@ export const register = (server) =>
         const blockedFlag = remoteArgs.filter((a) => a.startsWith("-")).find((a) => !REMOTE_ALLOWED_FLAGS.has(a));
         if (blockedFlag) return fail(`Flag not allowed for git remote: ${blockedFlag}`);
       }
-      // Inject --no-pager to prevent interactive pager from blocking the process
-      return exec("git", ["--no-pager", ...args]);
+      // Inject --no-pager to prevent interactive pager from blocking the process.
+      // If a valid worktree cwd was given, inject -C <dir> to target that worktree.
+      const gitArgs = ["--no-pager"];
+      if (cwd) {
+        if (!isKnownWorktree(cwd)) return fail("cwd rejected: not a known git worktree");
+        gitArgs.push("-C", cwd);
+      }
+      gitArgs.push(...args);
+      return exec("git", gitArgs);
     },
   );

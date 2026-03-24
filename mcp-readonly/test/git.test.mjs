@@ -1,3 +1,6 @@
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { describe, it, beforeAll, afterAll, vi } from "vitest";
 import { startServer, assertBlocked, assertNotBlocked } from "./helpers.mjs";
 
@@ -14,7 +17,7 @@ const { register } = await import("../tools/git.mjs");
 let handler;
 register({ tool: (_, __, ___, fn) => { handler = fn; } });
 
-const callMocked = (args) => handler({ args });
+const callMocked = (args, cwd) => handler({ args, cwd });
 
 const assertAllowed = (expect, result) => {
   expect(result?.isError, `expected allowed, got: ${result?.content?.[0]?.text}`).toBeFalsy();
@@ -61,6 +64,74 @@ describe.concurrent("git tool (unit)", () => {
     it("allows bare reflog (= reflog show)", async ({ expect }) => {
       assertAllowed(expect, await callMocked(["reflog"]));
     });
+  });
+
+  describe("cwd parameter", () => {
+    const toplevel = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      timeout: 5_000,
+    }).toString().trim();
+
+    it("rejects cwd that is not a known worktree", async ({ expect }) => {
+      const result = await callMocked(["status"], "/tmp/not-a-worktree");
+      expect(result?.isError).toBe(true);
+      expect(result.content[0].text).toContain("cwd rejected");
+    });
+
+    it("prepends -C for valid worktree cwd", async ({ expect }) => {
+      const result = await callMocked(["status"], toplevel);
+      const { args } = JSON.parse(result.content[0].text);
+      expect(args[0]).toBe("--no-pager");
+      expect(args[1]).toBe("-C");
+      expect(args[2]).toBe(toplevel);
+      expect(args[3]).toBe("status");
+    });
+
+    it("omits -C when cwd is not provided", async ({ expect }) => {
+      const result = await callMocked(["status"]);
+      const { args } = JSON.parse(result.content[0].text);
+      expect(args).toEqual(["--no-pager", "status"]);
+    });
+
+    it("rejects path traversal from valid worktree", async ({ expect }) => {
+      const result = await callMocked(["status"], toplevel + "/../../../tmp");
+      expect(result?.isError).toBe(true);
+      expect(result.content[0].text).toContain("cwd rejected");
+    });
+
+    it("accepts trailing slash (resolve normalizes it)", async ({ expect }) => {
+      const result = await callMocked(["status"], toplevel + "/");
+      const { args } = JSON.parse(result.content[0].text);
+      expect(args[1]).toBe("-C");
+    });
+
+    it("treats empty string cwd as absent (no -C injected)", async ({ expect }) => {
+      // Zod .min(1) rejects "" at the schema layer; handler-level falsy check is backup
+      const result = await callMocked(["status"], "");
+      const { args } = JSON.parse(result.content[0].text);
+      expect(args).toEqual(["--no-pager", "status"]);
+    });
+
+    it.runIf(process.platform === "win32")(
+      "accepts case-variant cwd on Windows",
+      async ({ expect }) => {
+        const swapped =
+          toplevel[0] === toplevel[0].toUpperCase()
+            ? toplevel[0].toLowerCase() + toplevel.slice(1)
+            : toplevel[0].toUpperCase() + toplevel.slice(1);
+        const result = await callMocked(["status"], swapped);
+        const { args } = JSON.parse(result.content[0].text);
+        expect(args[1]).toBe("-C");
+      },
+    );
+
+    it.runIf(process.platform === "win32")(
+      "accepts forward-slash cwd on Windows",
+      async ({ expect }) => {
+        const result = await callMocked(["status"], toplevel.replace(/\\/g, "/"));
+        const { args } = JSON.parse(result.content[0].text);
+        expect(args[1]).toBe("-C");
+      },
+    );
   });
 });
 
@@ -321,15 +392,63 @@ describe.concurrent("git tool (integration)", () => {
     });
   });
 
+  describe("cwd parameter", () => {
+    it("rejects cwd that is not a known worktree", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("git", { args: ["status"], cwd: "/tmp/not-a-worktree" }));
+    });
+
+    it("accepts cwd that is the main worktree", async ({ expect }) => {
+      const topResult = await server.callTool("git", { args: ["rev-parse", "--show-toplevel"] });
+      const toplevel = topResult?.content?.[0]?.text?.trim();
+      assertNotBlocked(expect, await server.callTool("git", { args: ["status"], cwd: toplevel }));
+    });
+
+    it("rejects empty string cwd", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("git", { args: ["status"], cwd: "" }));
+    });
+
+    it("rejects path traversal from valid worktree", async ({ expect }) => {
+      const topResult = await server.callTool("git", { args: ["rev-parse", "--show-toplevel"] });
+      const toplevel = topResult?.content?.[0]?.text?.trim();
+      assertBlocked(expect, await server.callTool("git", { args: ["status"], cwd: toplevel + "/../../../tmp" }));
+    });
+
+    it("accepts cwd with trailing slash", async ({ expect }) => {
+      const topResult = await server.callTool("git", { args: ["rev-parse", "--show-toplevel"] });
+      const toplevel = topResult?.content?.[0]?.text?.trim();
+      assertNotBlocked(expect, await server.callTool("git", { args: ["status"], cwd: toplevel + "/" }));
+    });
+  });
+
+  describe("cwd with linked worktree", () => {
+    const worktreePath = join(tmpdir(), `mcp-test-wt-${process.pid}`);
+    const branchName = `test-cwd-wt-${process.pid}`;
+
+    beforeAll(() => {
+      execFileSync("git", ["worktree", "add", "-b", branchName, worktreePath], {
+        timeout: 10_000,
+      });
+    });
+
+    afterAll(() => {
+      try { execFileSync("git", ["worktree", "remove", "--force", worktreePath], { timeout: 10_000 }); } catch {}
+      try { execFileSync("git", ["branch", "-D", branchName], { timeout: 5_000 }); } catch {}
+    });
+
+    it("accepts linked worktree as cwd", async ({ expect }) => {
+      assertNotBlocked(expect, await server.callTool("git", { args: ["status"], cwd: worktreePath }));
+    });
+
+    it("resolves HEAD from linked worktree, not main", async ({ expect }) => {
+      const result = await server.callTool("git", { args: ["rev-parse", "--abbrev-ref", "HEAD"], cwd: worktreePath });
+      const branch = result?.content?.[0]?.text?.trim();
+      expect(branch).toBe(branchName);
+    });
+  });
+
   describe("edge cases", () => {
     it("blocks empty args", async ({ expect }) => {
       assertBlocked(expect, await server.callTool("git", { args: [] }));
-    });
-
-    it("ignores cwd parameter", async ({ expect }) => {
-      const result = await server.callTool("git", { args: ["status"], cwd: "/tmp" });
-      const txt = result?.content?.[0]?.text || "";
-      expect(txt).not.toContain("/tmp");
     });
   });
 });

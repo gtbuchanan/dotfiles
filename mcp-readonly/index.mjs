@@ -4,10 +4,18 @@
  * Security design:
  *
  * - Allowlists, not denylists: every command/subcommand must be explicitly permitted.
- * - No `cwd` parameter: commands run in the server's working directory only.
- *   Allowing callers to set `cwd` would let an agent (or prompt injection) read
- *   files in arbitrary directories. The host's `Read` tool already covers
- *   file-reading needs with its own permission prompts.
+ * - No generic `cwd` parameter: most commands run in the server's working
+ *   directory only. Allowing callers to set `cwd` would let an agent (or
+ *   prompt injection) read files in arbitrary directories. Exception: the git
+ *   tool accepts an optional `cwd` validated against `git worktree list`, so
+ *   agents in linked worktrees can resolve HEAD correctly without opening
+ *   arbitrary directory access.
+ * - cwd exception criteria: a tool may accept `cwd` only when (1) the set of
+ *   valid targets is enumerable at runtime from a trusted source (e.g.,
+ *   `git worktree list`), (2) the caller-supplied path is resolved and
+ *   compared exactly against that set (no prefix/substring matching), and
+ *   (3) the tool's existing allowlist/blocklist checks still apply to the
+ *   args. Generic user-supplied directory access is never permitted.
  * - execFile (no shell): prevents shell metacharacter injection (;, &&, |, $(), ``)
  *   even when args contain untrusted input. On Windows, a `bash -c 'exec "$@"'`
  *   wrapper preserves this guarantee for shell utilities.
