@@ -102,6 +102,17 @@
   - `mcp__readonly__pnpm` for: audit, bin, licenses list, list, outdated, root, search, store status, why
 - Only fall back to Bash when a command isn't supported by the MCP server
 
+## GitHub CLI
+
+- Prefer `gh` subcommands over `gh api` for read operations — they're covered
+  by the readonly MCP server and don't need Bash. Common replacements:
+  - PR comments/reviews: `gh pr view {n} --json comments,reviews`
+  - Issue comments: `gh issue view {n} --comments`
+  - Run logs: `gh run view {id} --log-failed`
+  - PR changed files: `gh pr diff {n}` or `gh pr view {n} --json files`
+- Only use `gh api` when the structured CLI genuinely doesn't expose the data
+  (e.g., deployment statuses, specific check annotations, GraphQL queries).
+
 {{- if eq .hosttype "ewn" }}
 
 ## Azure DevOps
