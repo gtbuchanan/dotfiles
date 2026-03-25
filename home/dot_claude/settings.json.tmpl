@@ -7,7 +7,12 @@
   "autoMemoryEnabled": false,
   "effortLevel": "high",
   "enabledPlugins": {
-    "coderabbit@claude-plugins-official": true
+    "coderabbit@claude-plugins-official": true,
+    "powershell-editor-services@claude-code-lsps": true,
+    {{/* disabled: routes .js/.mjs to eslint instead of vtsls — https://github.com/anthropics/claude-code/issues/32912 */}}
+    "vscode-langservers@claude-code-lsps": false,
+    "vtsls@claude-code-lsps": true,
+    "vue-volar@claude-code-lsps": true
   },
   "env": {
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
