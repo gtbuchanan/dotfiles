@@ -90,6 +90,8 @@
   `C:\Users\...\project`. They are equivalent — skip the `cd`.
 - When running a command in a different directory, prefer the tool's `-C` flag
   (e.g., `git -C dir`, `pnpm -C dir`) over changing directories.
+- `pnpm -C dir <cmd>` only works for built-in pnpm commands (install, test, run, etc.).
+  To run a local binary from a different directory, use `pnpm -C dir exec <tool>`.
 - When no `-C` flag is available, use
   `pushd dir && command; rc=$?; popd; exit $rc` instead of `cd dir && command`.
   This ensures the working directory is always restored and the command's exit
