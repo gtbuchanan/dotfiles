@@ -41,6 +41,13 @@
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
+'Documents/PowerShell/Modules/PowerShellEditorServices':
+  exact: true
+  type: archive
+  stripComponents: 1
+  include: ["PowerShellEditorServices/**"]
+  url: https://github.com/PowerShell/PowerShellEditorServices/releases/latest/download/PowerShellEditorServices.zip
+
 '.psmux/plugins/ppm':
   exact: true
   type: archive

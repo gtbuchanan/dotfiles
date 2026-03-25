@@ -11,13 +11,6 @@ foreach ($Name in $HttpServers.Keys) {
 
 # Install LSP language servers
 pnpm install -g @vtsls/language-server @vue/language-server@2 vscode-langservers-extracted 2>$null
-if (-not (Get-Module -ListAvailable PowerShellEditorServices)) {
-  $Zip = Join-Path $env:TEMP 'PowerShellEditorServices.zip'
-  $Dest = Join-Path ([Environment]::GetFolderPath('MyDocuments')) 'PowerShell/Modules'
-  gh release download --repo PowerShell/PowerShellEditorServices --pattern 'PowerShellEditorServices.zip' --dir $env:TEMP --clobber 2>$null
-  Expand-Archive -Path $Zip -DestinationPath $Dest -Force
-}
-
 # Install plugins (marketplace add is idempotent)
 claude plugin marketplace add Piebald-AI/claude-code-lsps 2>$null
 claude plugin install coderabbit 2>$null
@@ -43,18 +36,6 @@ foreach ($dir in $PluginDirs) {
       $json = $json -replace "`"command`":\s*`"$shim`"", "`"command`": `"$shim.cmd`""
     }
     Set-Content -Path $_.FullName -Value $json -NoNewline
-  }
-}
-
-# PSES: fix Unix paths and suppress session file in cwd
-foreach ($dir in $PluginDirs) {
-  $PsesConfig = Get-ChildItem -Path $dir -Filter '.lsp.json' -Recurse -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -like '*powershell-editor-services*' }
-  foreach ($cfg in $PsesConfig) {
-    $json = Get-Content $cfg.FullName -Raw
-    $json = $json -replace "-LogPath '/dev/null'", "-LogPath ([System.IO.Path]::Combine(`$env:TEMP, 'pses.log'))"
-    $json = $json -replace "-LogLevel 'None'", "-LogLevel 'None' -SessionDetailsPath ([System.IO.Path]::Combine(`$env:TEMP, 'pses-session.json'))"
-    Set-Content -Path $cfg.FullName -Value $json -NoNewline
   }
 }
 

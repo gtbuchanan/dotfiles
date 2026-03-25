@@ -13,6 +13,9 @@
 # Log Files
 *.log
 
+# PowerShell
+PowerShellEditorServices.json
+
 # macOS
 .DS_Store
 
