@@ -91,6 +91,166 @@ describe.concurrent("gh tool (unit)", () => {
       expect(result.isError).toBeTruthy();
     });
   });
+
+  describe("api endpoint handling", () => {
+    it.for([
+      ["api", "repos/o/r/pulls/1/comments"],
+      ["api", "repos/o/r/pulls/1/reviews"],
+      ["api", "repos/o/r/pulls/1/reviews/2/comments"],
+      ["api", "repos/o/r/deployments"],
+      ["api", "repos/o/r/deployments/1/statuses"],
+      ["api", "repos/o/r/check-runs/1/annotations"],
+      ["api", "repos/o/r/commits/abc/status"],
+      ["api", "repos/o/r/commits/abc/statuses"],
+      ["api", "repos/o/r/commits/abc/check-runs"],
+      ["api", "repos/o/r/commits/abc/check-suites"],
+      ["api", "repos/o/r/compare/main...feature"],
+      ["api", "repos/o/r/pulls/1/requested_reviewers"],
+      ["api", "repos/o/r/environments"],
+      ["api", "repos/o/r/contents/README.md"],
+      ["api", "repos/o/r/contents/src/main.js"],
+    ].map(args => ({ name: args[1], args })))(
+      "allows api $name", async ({ args }, { expect }) => {
+        assertAllowed(expect, await callMocked(args));
+      },
+    );
+
+    it("allows api endpoint with flags", async ({ expect }) => {
+      assertAllowed(expect, await callMocked([
+        "api", "repos/o/r/pulls/1/comments", "--jq", ".[].id",
+      ]));
+    });
+
+    it("strips leading slash from endpoint", async ({ expect }) => {
+      assertAllowed(expect, await callMocked([
+        "api", "/repos/o/r/pulls/1/comments",
+      ]));
+    });
+
+    it("strips query string from endpoint", async ({ expect }) => {
+      assertAllowed(expect, await callMocked([
+        "api", "repos/o/r/pulls/1/comments?per_page=100",
+      ]));
+    });
+
+    it("injects --method GET before user flags", async ({ expect }) => {
+      const result = await callMocked([
+        "api", "repos/o/r/pulls/1/comments", "--jq", ".[].id",
+      ]);
+      const args = JSON.parse(result.content[0].text);
+      const methodIdx = args.indexOf("--method");
+      const jqIdx = args.indexOf("--jq");
+      expect(methodIdx).toBeGreaterThan(-1);
+      expect(args[methodIdx + 1]).toBe("GET");
+      expect(methodIdx).toBeLessThan(jqIdx);
+    });
+
+    it("--method GET is not defeated by -- end-of-options", async ({ expect }) => {
+      const result = await callMocked([
+        "api", "repos/o/r/pulls/1/comments", "--",
+      ]);
+      const args = JSON.parse(result.content[0].text);
+      const methodIdx = args.indexOf("--method");
+      const dashDashIdx = args.indexOf("--");
+      expect(methodIdx).toBeGreaterThan(-1);
+      expect(methodIdx).toBeLessThan(dashDashIdx);
+    });
+
+    it("blocks disallowed endpoint", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/git/refs"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks bare api (no endpoint)", async ({ expect }) => {
+      const result = await callMocked(["api"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks api with flag-like endpoint", async ({ expect }) => {
+      const result = await callMocked(["api", "--jq", ".[].id"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --method flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--method", "POST"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -X flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-X", "POST"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -XPOST (concatenated short flag)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-XPOST"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --input flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--input", "file.json"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --hostname flag (SSRF)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--hostname", "evil.com"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -f flag (body field)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-f", "body=text"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -F flag (@file read)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-F", "body=@file.txt"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -Fbody=@file (concatenated -F)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-Fbody=@/etc/passwd"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --field flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--field", "body=text"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --raw-field flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--raw-field", "body=text"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --verbose flag (token leak)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--verbose"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -H flag (header injection)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-H", "Accept: text/plain"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks --header flag", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "--header", "X-Custom: val"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks -HAccept:text/plain (concatenated -H)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments", "-HAccept:text/plain"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks full URL", async ({ expect }) => {
+      const result = await callMocked(["api", "https://api.github.com/repos/o/r/pulls/1/comments"]);
+      expect(result.isError).toBeTruthy();
+    });
+
+    it("blocks contents without path (** requires trailing segment)", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/contents"]);
+      expect(result.isError).toBeTruthy();
+    });
+  });
 });
 
 // --- Integration tests (real MCP server) ---
@@ -117,5 +277,64 @@ describe.concurrent("gh tool (integration)", () => {
     ].map(args => ({ name: args.join(" "), args }))
   )("blocks $name", async ({ args }, { expect }) => {
     assertBlocked(expect, await server.callTool("gh", { args }));
+  });
+
+  describe("blocked api endpoints", () => {
+    it.for([
+      ["api", "repos/o/r/git/refs"],
+      ["api", "repos/o/r/pulls/1/merge"],
+      ["api", "gists"],
+      ["api", "user/repos"],
+      ["api", "graphql"],
+    ].map(args => ({ name: args[1], args })))(
+      "blocks api $name", async ({ args }, { expect }) => {
+        assertBlocked(expect, await server.callTool("gh", { args }));
+      },
+    );
+  });
+
+  describe("blocked api flags", () => {
+    it.for([
+      { name: "--method POST", args: ["api", "repos/o/r/pulls/1/comments", "--method", "POST"] },
+      { name: "--method=DELETE", args: ["api", "repos/o/r/pulls/1/comments", "--method=DELETE"] },
+      { name: "-X POST", args: ["api", "repos/o/r/pulls/1/comments", "-X", "POST"] },
+      { name: "-XPOST (concatenated)", args: ["api", "repos/o/r/pulls/1/comments", "-XPOST"] },
+      { name: "-XDELETE (concatenated)", args: ["api", "repos/o/r/pulls/1/comments", "-XDELETE"] },
+      { name: "--input", args: ["api", "repos/o/r/pulls/1/comments", "--input", "file.json"] },
+      { name: "--input=file", args: ["api", "repos/o/r/pulls/1/comments", "--input=file.json"] },
+      { name: "--meth (abbreviated)", args: ["api", "repos/o/r/pulls/1/comments", "--meth", "POST"] },
+      { name: "--hostname (SSRF)", args: ["api", "repos/o/r/pulls/1/comments", "--hostname", "evil.com"] },
+      { name: "--hostname=evil (SSRF)", args: ["api", "repos/o/r/pulls/1/comments", "--hostname=evil.com"] },
+      { name: "-f (body field)", args: ["api", "repos/o/r/pulls/1/comments", "-f", "body=text"] },
+      { name: "-fkey=val (concatenated)", args: ["api", "repos/o/r/pulls/1/comments", "-fkey=val"] },
+      { name: "-F (@file read)", args: ["api", "repos/o/r/pulls/1/comments", "-F", "x=@file"] },
+      { name: "-Fx=@file (concatenated)", args: ["api", "repos/o/r/pulls/1/comments", "-Fx=@/etc/passwd"] },
+      { name: "--field", args: ["api", "repos/o/r/pulls/1/comments", "--field", "body=text"] },
+      { name: "--raw-field", args: ["api", "repos/o/r/pulls/1/comments", "--raw-field", "body=text"] },
+      { name: "--verbose (token leak)", args: ["api", "repos/o/r/pulls/1/comments", "--verbose"] },
+      { name: "-H (header injection)", args: ["api", "repos/o/r/pulls/1/comments", "-H", "Accept: text/plain"] },
+      { name: "--header", args: ["api", "repos/o/r/pulls/1/comments", "--header", "X-Custom: val"] },
+      { name: "-HAccept:... (concatenated)", args: ["api", "repos/o/r/pulls/1/comments", "-HAccept:text/plain"] },
+    ])("blocks api $name", async ({ args }, { expect }) => {
+      assertBlocked(expect, await server.callTool("gh", { args }));
+    });
+  });
+
+  describe("blocked api full URLs", () => {
+    it("blocks https:// URL", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("gh", {
+        args: ["api", "https://api.github.com/repos/o/r/pulls/1/comments"],
+      }));
+    });
+
+    it("blocks http:// URL", async ({ expect }) => {
+      assertBlocked(expect, await server.callTool("gh", {
+        args: ["api", "http://api.github.com/repos/o/r/pulls/1/comments"],
+      }));
+    });
+  });
+
+  it("blocks bare api", async ({ expect }) => {
+    assertBlocked(expect, await server.callTool("gh", { args: ["api"] }));
   });
 });

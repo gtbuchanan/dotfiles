@@ -19,6 +19,18 @@
  * - execFile (no shell): prevents shell metacharacter injection (;, &&, |, $(), ``)
  *   even when args contain untrusted input. On Windows, a `bash -c 'exec "$@"'`
  *   wrapper preserves this guarantee for shell utilities.
+ * - gh api path allowlisting: `gh api` is restricted to a curated set of URL path
+ *   patterns using segment-level wildcard matching (`*` = one segment, trailing
+ *   `**` = one or more). Blocked flags: `--method`/`-X` (verb override),
+ *   `--input` (file body), `-f`/`-F`/`--field`/`--raw-field` (body fields / @file
+ *   read), `--hostname` (SSRF — redirects request + auth token to arbitrary host),
+ *   `--verbose` (dumps Authorization header in output — token leak),
+ *   `-H`/`--header` (arbitrary HTTP header injection).
+ *   `--method GET` is injected immediately after the endpoint (before user flags)
+ *   so a `--` end-of-options marker in user args cannot defeat it.
+ *   Full URLs (http/https) are rejected — only relative paths accepted.
+ *   Short-flag concatenation (-XPOST) is caught by the prefix matcher's
+ *   short-flag rule.
  * - --registry blocked: prevents SSRF / data exfiltration to attacker-controlled registries.
  *   Uses prefix matching because npm/pnpm expand abbreviated flags internally
  *   (e.g., `--reg` resolves to `--registry`). Exact matching would be bypassable.
@@ -52,6 +64,14 @@
  *   the working directory. They cannot read file contents — `cat`/`head`/`tail`
  *   are excluded for that reason. The host's `Read` tool with its own permission
  *   prompts is the content-read boundary.
+ * - `gh api`: exposes read-only data from allowlisted REST endpoint paths. The
+ *   wildcard segments accept any value, so an agent can read review comments,
+ *   deployments, environments, check annotations/suites, commit statuses,
+ *   ref comparisons, requested reviewers, and file contents from any
+ *   repo the authenticated user can access. The `contents/**` pattern enables
+ *   systematic file enumeration at any depth. Error messages include the full
+ *   pattern list (aids agent correction but doubles as adversary reconnaissance;
+ *   accepted because the patterns are already published in agent instructions).
  * - `az` non-invoke subcommands: no flag filtering is applied. The allowlisted
  *   commands (`list`, `show`) are inherently read-only. If future az CLI versions
  *   add mutating flags to these commands, they would pass through unchecked.

@@ -1,6 +1,9 @@
 import { describe, it } from "vitest";
 import { z } from "zod";
-import { ArgsSchema, matchesAllowlist, rejectSubcommand, rejectBlockedFlags } from "../lib/allowlist.mjs";
+import {
+  ArgsSchema, matchesAllowlist, rejectSubcommand, rejectBlockedFlags,
+  matchesApiPath, rejectApiEndpoint,
+} from "../lib/allowlist.mjs";
 
 describe("ArgsSchema coercion", () => {
   const schema = z.object(ArgsSchema);
@@ -203,6 +206,37 @@ describe("rejectBlockedFlags", () => {
     });
   });
 
+  describe("concatenated short flags", () => {
+    const shortBlocked = new Set(["-X", "-f"]);
+
+    it("blocks -XPOST (value concatenated to short flag)", ({ expect }) => {
+      const result = rejectBlockedFlags(["api", "endpoint", "-XPOST"], shortBlocked);
+      expect(result?.isError).toBe(true);
+    });
+
+    it("blocks -fkey=val (value concatenated to short flag)", ({ expect }) => {
+      const result = rejectBlockedFlags(["api", "endpoint", "-fkey=val"], shortBlocked);
+      expect(result?.isError).toBe(true);
+    });
+
+    it("does not false-positive on long flag starting with single dash char", ({ expect }) => {
+      // -Xtra is not a concatenated -X if -X is not in the blocked set for this test
+      const unrelated = new Set(["--registry"]);
+      expect(rejectBlockedFlags(["cmd", "-Xtra"], unrelated)).toBeNull();
+    });
+
+    it("does not apply short-flag rule to long flags", ({ expect }) => {
+      // --method is 8 chars, not a 2-char short flag
+      const longOnly = new Set(["--method"]);
+      // "--methodical" should NOT be caught by the short-flag rule (only by prefix)
+      // prefix check: "--method".startsWith("--methodical") → false
+      // long flag rule doesn't apply (--method.length !== 2)
+      // but a.startsWith(f + "=") → "--methodical".startsWith("--method=") → false
+      // and f.startsWith(a.split("=")[0]) → "--method".startsWith("--methodical") → false
+      expect(rejectBlockedFlags(["cmd", "--methodical"], longOnly)).toBeNull();
+    });
+  });
+
   describe("end-of-options marker", () => {
     it("does not false-positive on bare --", ({ expect }) => {
       expect(rejectBlockedFlags(["audit", "--", "arg"], blocked)).toBeNull();
@@ -226,5 +260,129 @@ describe("rejectBlockedFlags", () => {
       const result = rejectBlockedFlags(["audit", "--fix", "--registry"], blocked);
       expect(result.content[0].text).toContain("--fix");
     });
+  });
+});
+
+describe("matchesApiPath", () => {
+  const patterns = [
+    "repos/*/*/pulls/*/comments",
+    "repos/*/*/commits/*/status",
+    "repos/*/*/contents/**",
+  ];
+
+  describe("matching", () => {
+    it("matches exact pattern with wildcards", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/123/comments", patterns)).toBe(true);
+    });
+
+    it("matches second pattern", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/commits/abc/status", patterns)).toBe(true);
+    });
+  });
+
+  describe("trailing ** glob", () => {
+    it("matches single trailing segment", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/contents/README.md", patterns)).toBe(true);
+    });
+
+    it("matches multiple trailing segments", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/contents/src/main.js", patterns)).toBe(true);
+    });
+
+    it("matches deeply nested path", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/contents/a/b/c/d", patterns)).toBe(true);
+    });
+
+    it("rejects when no trailing segment exists", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/contents", patterns)).toBe(false);
+    });
+  });
+
+  describe("normalization", () => {
+    it("strips leading slash", ({ expect }) => {
+      expect(matchesApiPath("/repos/owner/repo/pulls/123/comments", patterns)).toBe(true);
+    });
+
+    it("strips query parameters", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/123/comments?per_page=100", patterns)).toBe(true);
+    });
+
+    it("strips trailing slash", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/123/comments/", patterns)).toBe(true);
+    });
+
+    it("strips leading slash, trailing slash, and query string together", ({ expect }) => {
+      expect(matchesApiPath("/repos/owner/repo/pulls/123/comments/?page=2", patterns)).toBe(true);
+    });
+  });
+
+  describe("rejection", () => {
+    it("rejects full https URL", ({ expect }) => {
+      expect(matchesApiPath("https://api.github.com/repos/o/r/pulls/1/comments", patterns)).toBe(false);
+    });
+
+    it("rejects full http URL", ({ expect }) => {
+      expect(matchesApiPath("http://api.github.com/repos/o/r/pulls/1/comments", patterns)).toBe(false);
+    });
+
+    it("rejects too few segments", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/123", patterns)).toBe(false);
+    });
+
+    it("rejects too many segments (non-** pattern)", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/123/comments/extra", patterns)).toBe(false);
+    });
+
+    it("rejects unmatched path", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/git/refs", patterns)).toBe(false);
+    });
+
+    it("rejects empty endpoint", ({ expect }) => {
+      expect(matchesApiPath("", patterns)).toBe(false);
+    });
+
+    it("rejects bare slash", ({ expect }) => {
+      expect(matchesApiPath("/", patterns)).toBe(false);
+    });
+  });
+
+  describe("edge cases", () => {
+    it("returns false for empty patterns array", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/pulls/1/comments", [])).toBe(false);
+    });
+
+    it("** requires at least one trailing segment", ({ expect }) => {
+      expect(matchesApiPath("repos/owner/repo/contents", patterns)).toBe(false);
+    });
+
+    it("contents/. matches (dot is a valid trailing segment)", ({ expect }) => {
+      // By design — `.` is a valid directory entry; GitHub's API interprets it
+      // as the repo root. The `**` glob accepts any content after the prefix.
+      expect(matchesApiPath("repos/owner/repo/contents/.", patterns)).toBe(true);
+    });
+  });
+});
+
+describe("rejectApiEndpoint", () => {
+  const patterns = ["repos/*/pulls/*/comments"];
+
+  it("returns isError: true", ({ expect }) => {
+    const result = rejectApiEndpoint("repos/owner/bad/path", patterns);
+    expect(result.isError).toBe(true);
+  });
+
+  it("includes normalized endpoint in message", ({ expect }) => {
+    const result = rejectApiEndpoint("/repos/owner/bad/path?foo=bar", patterns);
+    expect(result.content[0].text).toContain("repos/owner/bad/path");
+  });
+
+  it("includes allowed patterns in message", ({ expect }) => {
+    const result = rejectApiEndpoint("bad/path", patterns);
+    expect(result.content[0].text).toContain("repos/*/pulls/*/comments");
+  });
+
+  it("shows (none) for undefined endpoint", ({ expect }) => {
+    const result = rejectApiEndpoint(undefined, patterns);
+    expect(result.content[0].text).toContain("(none)");
   });
 });

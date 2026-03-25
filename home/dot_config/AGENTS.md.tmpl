@@ -109,7 +109,7 @@
   - `mcp__readonly__git` for: blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree
   - `mcp__readonly__shell` for: basename, date, dirname, eza, file, jq, ls, pwd, readlink, realpath, stat, wc, which, whoami
   - `mcp__readonly__az` for: devops invoke (GET-only, build-debugging endpoints), devops project/team/extension/service-endpoint/wiki, pipelines list/show/build/release/runs/pool/agent
-  - `mcp__readonly__gh` for: attestation verify, cache list, gist list/view, issue list/status/view, label list, pr checks/diff/list/status/view, project field-list/item-list/list/view, release list/view, repo list/view, ruleset check/list/view, run list/view, search code/commits/issues/prs/repos, secret list, status, variable list, workflow list/view
+  - `mcp__readonly__gh` for: api (GET-only: pulls/reviews+reviewers, deployments+environments, check-runs+suites, commits/statuses, compare, contents), attestation verify, cache list, gist list/view, issue list/status/view, label list, pr checks/diff/list/status/view, project field-list/item-list/list/view, release list/view, repo list/view, ruleset check/list/view, run list/view, search code/commits/issues/prs/repos, secret list, status, variable list, workflow list/view
   - `mcp__readonly__chezmoi` for: diff, doctor, managed, source-path, status, target-path, verify
   - `mcp__readonly__acli` for: jira board/filter/project/sprint/workitem list/search/view/comment list
   - `mcp__readonly__npm` for: audit, bin, explain, fund, ls, outdated, root, search, view
@@ -140,11 +140,13 @@
   - Issue comments: `gh issue view {n} --comments`
   - Run logs: `gh run view {id} --log-failed`
   - PR changed files: `gh pr diff {n}` or `gh pr view {n} --json files`
-- Only use `gh api` when the structured CLI genuinely doesn't expose the data
-  (e.g., deployment statuses, specific check annotations, GraphQL queries).
+- `gh api` for read-only endpoints is available via the readonly MCP server
+  (path-allowlisted, GET-only). Use it for data the structured CLI doesn't
+  expose (e.g., review comments, deployment statuses, check annotations).
 - `gh pr view --json comments` only returns issue/conversation comments, NOT
   inline review comments. To read review comments, use:
   `gh api repos/{owner}/{repo}/pulls/{n}/comments`
+  (available via the readonly MCP server)
 - There is no `gh` subcommand for replying to review comment threads. Use `gh api`:
   1. List review comments:
      `gh api repos/{owner}/{repo}/pulls/{n}/comments --jq '.[] | "\(.id) \(.path):\(.line) \(.in_reply_to_id)"'`
