@@ -52,15 +52,6 @@ PREV_BG_FG="${ENV_FG}"
 LINE="${LINE}${DIR_BG}${PREV_BG_FG}${SEP}${RESET}${DIR_BG}${DARK_FG} ${ICON_DIR} ${DIR} ${RESET}"
 PREV_BG_FG="${DIR_FG}"
 
-# --- Worktree segment (wt_bg, only when name differs from branch) ---
-if [ -n "$WORKTREE_NAME" ]; then
-    WT_BRANCH_STRIPPED="${WORKTREE_BRANCH#worktree-}"
-    if [ "$WORKTREE_NAME" != "$WT_BRANCH_STRIPPED" ]; then
-        LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
-        PREV_BG_FG="${WT_FG}"
-    fi
-fi
-
 # --- Git segment (git_bg) ---
 CWD=$(echo "$input" | jq -r '.cwd')
 CACHE_DIR_HASH=$(printf '%s' "$CWD" | md5sum | cut -d' ' -f1)
@@ -117,6 +108,19 @@ fi
 
 IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH < "$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
+# Restore / from + (Claude Code replaces / with + in worktree branch names)
+[ "$BRANCH_STRIPPED" != "$BRANCH" ] && BRANCH_STRIPPED="${BRANCH_STRIPPED//+//}"
+
+# --- Worktree segment (wt_bg, only when current branch differs from worktree name) ---
+if [ -n "$WORKTREE_NAME" ]; then
+    # Claude Code replaces / with + in worktree dir/branch names; normalize both for comparison
+    WT_NAME_NORM="${WORKTREE_NAME//\//+}"
+    GIT_BRANCH_NORM="${BRANCH_STRIPPED//\//+}"
+    if [ "$WT_NAME_NORM" != "$GIT_BRANCH_NORM" ]; then
+        LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
+        PREV_BG_FG="${WT_FG}"
+    fi
+fi
 
 if [ -n "$BRANCH" ]; then
     GIT_STATUS=""
@@ -150,7 +154,7 @@ if [ -n "$BRANCH" ]; then
     GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
     [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
     GIT_ICON="${ICON_BRANCH} "
-    [ -n "$WORKTREE_NAME" ] && GIT_ICON="🌳"
+    [ -n "$WORKTREE_NAME" ] && [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && GIT_ICON="🌳"
     LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
     PREV_BG_FG="${GIT_FG}"
 fi
