@@ -12,6 +12,9 @@ Always edit the corresponding source in **this repo** under `home/`, then run
 
 ## Workflow
 
+- Always pass `--no-tty` to `chezmoi apply` so it fails on interactive prompts
+  instead of blocking. If it fails, report the error and let the user decide
+  whether to re-run with `--force`.
 - Edit files under `home/`, then run `chezmoi apply <target>...` to deploy only the
   affected targets (e.g., `chezmoi apply ~/.config/starship.toml ~/.gitconfig`).
 - Use bare `chezmoi apply` (no targets) when editing shared templates — files included

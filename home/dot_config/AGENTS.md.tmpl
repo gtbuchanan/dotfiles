@@ -17,8 +17,8 @@
 ## Configuration
 
 - Always update user-level configuration in `{{ .chezmoi.workingTree }}` and run
-  `chezmoi apply <target>...` to deploy only the affected targets. Use bare
-  `chezmoi apply` only when editing shared templates.
+  `chezmoi apply --no-tty <target>...` to deploy only the affected targets. Use bare
+  `chezmoi apply --no-tty` only when editing shared templates.
 
 ## Git
 
