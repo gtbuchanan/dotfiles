@@ -105,7 +105,10 @@
 
 ## MCP Readonly Tools
 
-- Prefer MCP readonly tools over Bash for read-only operations:
+- **ALWAYS use MCP readonly tools instead of Bash for read-only operations.**
+  If the command is covered below, you MUST use the MCP tool — not Bash.
+  Fetch the tool schema via `ToolSearch` first if needed; the extra step is not
+  optional.
   - `mcp__readonly__git` for: blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree
   - `mcp__readonly__shell` for: basename, date, dirname, eza, file, jq, ls, pwd, readlink, realpath, stat, wc, which, whoami
   - `mcp__readonly__az` for: devops invoke (GET-only, build-debugging endpoints), devops project/team/extension/service-endpoint/wiki, pipelines list/show/build/release/runs/pool/agent
@@ -114,7 +117,8 @@
   - `mcp__readonly__acli` for: jira board/filter/project/sprint/workitem list/search/view/comment list
   - `mcp__readonly__npm` for: audit, bin, explain, fund, ls, outdated, root, search, view
   - `mcp__readonly__pnpm` for: audit, bin, licenses list, list, outdated, root, search, store status, why
-- Only fall back to Bash when a command isn't supported by the MCP server
+- NEVER use Bash for a command that is covered by an MCP readonly tool.
+  Only fall back to Bash when the command is genuinely not supported.
 
 ## GitHub CLI
 
