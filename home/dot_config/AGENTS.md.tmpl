@@ -89,13 +89,20 @@
 
 ## Shell
 
-- NEVER use `cd` to change to the current working directory before running a command.
-  The working directory is already set — just run the command directly.
-  IMPORTANT: On Windows with Git Bash, `/c/Users/...` and `C:\Users\...` are the SAME path.
-  Do NOT do `cd /c/Users/.../project && command` if the cwd is
-  `C:\Users\...\project`. They are equivalent — skip the `cd`.
-- When running a command in a different directory, prefer the tool's `-C` flag
-  (e.g., `git -C dir`, `pnpm -C dir`) over changing directories.
+- The working directory is ALREADY set to the project root — just run commands directly.
+  NEVER prepend `cd`, `pushd`, or `-C` to reach the current working directory.
+  This includes ALL equivalent representations of the same path:
+  on Windows with Git Bash, `/c/Users/...` and `C:\Users\...` are identical.
+  ❌ `cd /c/Users/.../project && command`
+  ❌ `git -C /c/Users/.../project status`
+  ❌ `pnpm -C . run test`
+  ✅ `command` (just run it)
+  ✅ `git status`
+  ✅ `pnpm run test`
+- `-C` and `pushd` are ONLY for commands that target a **different** directory.
+  Prefer the tool's `-C` flag (e.g., `git -C other-dir`, `pnpm -C other-dir`)
+  over changing directories. Use relative paths for targets within the cwd tree;
+  use absolute paths for targets outside it.
 - `pnpm -C dir <cmd>` only works for built-in pnpm commands (install, test, run, etc.).
   To run a local binary from a different directory, use `pnpm -C dir exec <tool>`.
 - When no `-C` flag is available, use
