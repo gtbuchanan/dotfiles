@@ -1,1 +1,24 @@
-{{ includeTemplate "dot_config/AGENTS.md.tmpl" . -}}
+{{ includeTemplate "dot_config/AGENTS.md.tmpl" . }}
+
+## LSP
+
+- Prefer LSP over Read/Grep for symbol-level code navigation:
+  - Finding a definition: `goToDefinition` instead of grepping the symbol name
+  - Finding all usages: `findReferences` instead of grepping — avoids false positives
+    from comments, strings, and same-named identifiers in unrelated scopes
+  - Understanding file structure: `documentSymbol` instead of reading the entire file
+  - Finding interface implementations: `goToImplementation` instead of grepping
+  - Tracing call chains: `incomingCalls`/`outgoingCalls` instead of manual grep
+  - Getting type info or docs: `hover` instead of reading source to infer types
+  - Finding a symbol across the workspace: `workspaceSymbol` instead of Glob + Grep
+- Fall back to Read/Grep for non-symbol searches: string literals, config values,
+  comments, regex patterns, or files without LSP server support
+- After editing code, check for `<new-diagnostics>` in system reminders — the LSP
+  server pushes diagnostics automatically. Fix any errors or warnings before proceeding
+
+## Agent Teams
+
+- When I ask for an "agent team", "team of agents", or "swarm", always use the
+  `TeamCreate` tool to create a coordinated team with shared task lists —
+  never substitute regular `Agent` subagents. Use `Agent` with `team_name` to
+  spawn teammates into the team.
