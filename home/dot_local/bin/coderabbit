@@ -1,0 +1,15 @@
+#!/bin/bash
+# CodeRabbit CLI doesn't detect git worktrees (.git file vs directory).
+# Resolve via git and pass to WSL with WSLENV path translation.
+GIT_WORK_TREE=$(git rev-parse --show-toplevel 2>/dev/null)
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+
+# Convert MSYS/Git Bash paths to Windows paths for WSLENV translation
+if command -v cygpath &>/dev/null; then
+  GIT_WORK_TREE=$(cygpath -w "$GIT_WORK_TREE")
+  GIT_DIR=$(cygpath -w "$GIT_DIR")
+fi
+
+export GIT_WORK_TREE GIT_DIR
+export WSLENV="GIT_DIR/p:GIT_WORK_TREE/p"
+exec wsl ~/.local/bin/coderabbit "$@"

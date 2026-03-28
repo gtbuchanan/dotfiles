@@ -3,6 +3,7 @@
 AppData
 Documents
 **/*.bat*
+.local/bin/coderabbit
 {{- else }}
 .gnupg
 # On Windows, symlink_ creates file symlinks; use a script for directory symlinks
