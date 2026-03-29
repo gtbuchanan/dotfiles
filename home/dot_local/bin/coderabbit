@@ -12,4 +12,4 @@ fi
 
 export GIT_WORK_TREE GIT_DIR
 export WSLENV="GIT_DIR/p:GIT_WORK_TREE/p"
-exec wsl ~/.local/bin/coderabbit "$@"
+exec wsl '~/.local/bin/coderabbit' "$@"
