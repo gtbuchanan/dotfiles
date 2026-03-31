@@ -49,7 +49,7 @@ export const rejectSubcommand = (args, allowlist) => {
 // with `--fix` (e.g., a hypothetical `--fixup`). This errs on the side of
 // safety: false positives (blocking a legitimate flag) are preferable to false
 // negatives (allowing a dangerous abbreviated flag through).
-const normalizeApiPath = (endpoint) =>
+export const normalizeApiPath = (endpoint) =>
   endpoint?.replace(/^\//, "").split("?")[0].replace(/\/$/, "") || "";
 
 // Matches a GitHub API endpoint path against a list of segment patterns.

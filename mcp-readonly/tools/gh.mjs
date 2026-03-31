@@ -2,6 +2,7 @@ import { exec } from "../lib/exec.mjs";
 import {
   ArgsSchema, matchesAllowlist, rejectSubcommand,
   rejectBlockedFlags, matchesApiPath, rejectApiEndpoint,
+  normalizeApiPath,
 } from "../lib/allowlist.mjs";
 
 const GLOBAL_FLAGS = new Set(["--version", "--help", "-h"]);
@@ -50,7 +51,8 @@ const API_PATHS = [
   "repos/*/*/pulls/*/requested_reviewers",
   // Deployment environments
   "repos/*/*/environments",
-  // Repository contents (variable-depth path)
+  // Repository contents (bare = directory listing, ** = file/nested path)
+  "repos/*/*/contents",
   "repos/*/*/contents/**",
 ];
 
@@ -84,11 +86,18 @@ export const register = (server) =>
         if (rejected) return rejected;
         if (!matchesApiPath(endpoint, API_PATHS))
           return rejectApiEndpoint(endpoint, API_PATHS);
+        // Auto-inject raw Accept header for contents endpoints so file
+        // responses return plain text instead of base64-encoded JSON.
+        // Directory listings are unaffected — GitHub ignores the media type
+        // for directory responses and still returns JSON.
+        const [top,,, kind] = normalizeApiPath(endpoint).split("/");
+        const rawAccept = top === "repos" && kind === "contents"
+          ? ["-H", "Accept: application/vnd.github.raw+json"] : [];
         // Inject --method GET immediately after the endpoint, before any
         // user-supplied flags. Appending it at the end would be defeated by
         // a `--` (end-of-options marker) in user args, since everything after
         // `--` is treated as positional, making the injected flag a no-op.
-        return exec("gh", ["api", endpoint, "--method", "GET", ...args.slice(2)]);
+        return exec("gh", ["api", endpoint, "--method", "GET", ...rawAccept, ...args.slice(2)]);
       }
 
       if (!matchesAllowlist(args, SUBCOMMANDS))

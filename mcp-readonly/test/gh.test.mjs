@@ -107,6 +107,7 @@ describe.concurrent("gh tool (unit)", () => {
       ["api", "repos/o/r/compare/main...feature"],
       ["api", "repos/o/r/pulls/1/requested_reviewers"],
       ["api", "repos/o/r/environments"],
+      ["api", "repos/o/r/contents"],
       ["api", "repos/o/r/contents/README.md"],
       ["api", "repos/o/r/contents/src/main.js"],
     ].map(args => ({ name: args[1], args })))(
@@ -246,9 +247,34 @@ describe.concurrent("gh tool (unit)", () => {
       expect(result.isError).toBeTruthy();
     });
 
-    it("blocks contents without path (** requires trailing segment)", async ({ expect }) => {
+    it("allows contents without path (directory listing)", async ({ expect }) => {
+      assertAllowed(expect, await callMocked(["api", "repos/o/r/contents"]));
+    });
+
+    it("allows contents with trailing slash (directory listing)", async ({ expect }) => {
+      assertAllowed(expect, await callMocked(["api", "repos/o/r/contents/"]));
+    });
+
+    it("injects raw Accept header for contents endpoint", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/contents/README.md"]);
+      const args = JSON.parse(result.content[0].text);
+      const hIdx = args.indexOf("-H");
+      expect(hIdx).toBeGreaterThan(-1);
+      expect(args[hIdx + 1]).toBe("Accept: application/vnd.github.raw+json");
+    });
+
+    it("injects raw Accept header for bare contents endpoint", async ({ expect }) => {
       const result = await callMocked(["api", "repos/o/r/contents"]);
-      expect(result.isError).toBeTruthy();
+      const args = JSON.parse(result.content[0].text);
+      const hIdx = args.indexOf("-H");
+      expect(hIdx).toBeGreaterThan(-1);
+      expect(args[hIdx + 1]).toBe("Accept: application/vnd.github.raw+json");
+    });
+
+    it("does not inject Accept header for non-contents endpoint", async ({ expect }) => {
+      const result = await callMocked(["api", "repos/o/r/pulls/1/comments"]);
+      const args = JSON.parse(result.content[0].text);
+      expect(args.indexOf("-H")).toBe(-1);
     });
   });
 });
