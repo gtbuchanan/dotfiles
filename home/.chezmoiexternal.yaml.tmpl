@@ -48,13 +48,6 @@
   include: ["PowerShellEditorServices/**"]
   url: https://github.com/PowerShell/PowerShellEditorServices/releases/latest/download/PowerShellEditorServices.zip
 
-'.psmux/plugins/ppm':
-  exact: true
-  type: archive
-  stripComponents: 2
-  include: ["*/ppm/**"]
-  url: https://github.com/marlocarlo/psmux-plugins/archive/refs/heads/main.tar.gz
-
 {{- else }}
 '.tmux/plugins/tpm-redux':
   exact: true

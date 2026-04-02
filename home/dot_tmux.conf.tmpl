@@ -31,14 +31,7 @@ set -g status-right '#[fg=#282828,bg=default]'
 set -g status-right '#[fg=#282828,bg=terminal]'
 {{- end }}
 
-# Define Plugins
 {{- if eq .chezmoi.os "windows" }}
-set -g @plugin 'psmux-plugins/ppm'
-set -g @plugin 'psmux-plugins/psmux-sensible'
-set -g @plugin 'psmux-plugins/psmux-resurrect'
-set -g @plugin 'psmux-plugins/psmux-continuum'
-set -g @continuum-restore 'on'
-
 # Disable warm panes — fresh shell every time
 # https://github.com/psmux/psmux/issues/120
 set -g warm off
@@ -46,16 +39,6 @@ set -g warm off
 # Preserve user PredictionSource — replaces PowerShell.OnIdle workaround
 # https://github.com/psmux/psmux/issues/150
 set -g allow-predictions on
-
-# Initialize PPM
-run '~/.psmux/plugins/ppm/ppm.ps1'
-
-# Override plugin commands — pwsh -File doesn't expand ~
-# https://github.com/psmux/psmux-plugins/issues/2
-bind-key C-s run-shell "pwsh -NoProfile -Command \"& '~/.psmux/plugins/psmux-resurrect/scripts/save.ps1'\""
-bind-key C-r run-shell "pwsh -NoProfile -Command \"& '~/.psmux/plugins/psmux-resurrect/scripts/restore.ps1'\""
-set-hook -g client-attached 'run-shell "pwsh -NoProfile -Command \"& ~/.psmux/plugins/psmux-continuum/scripts/auto_save.ps1 -IntervalMinutes 15\""'
-set-hook -g after-new-session 'run-shell "pwsh -NoProfile -Command \"& ~/.psmux/plugins/psmux-continuum/scripts/auto_restore.ps1\""'
 
 # Pane navigation (no vim detection — psmux lacks #{m/r:} support)
 # https://github.com/marlocarlo/psmux/issues/30
@@ -71,6 +54,7 @@ bind-key -T copy-mode-vi C-k select-pane -U
 bind-key -T copy-mode-vi C-l select-pane -R
 bind-key -T copy-mode-vi C-\\ select-pane -l
 {{- else }}
+# Define Plugins
 set -g @plugin 'tmux-plugins/tmux-sensible'
 set -g @plugin 'christoomey/vim-tmux-navigator'
 
