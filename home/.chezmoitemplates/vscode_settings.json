@@ -33,7 +33,7 @@
     "servers": {
       "readonly": {
         "command": "node",
-        "args": ["{{ .chezmoi.workingTree | replace "\\" "/" }}/mcp-readonly/index.mjs"]
+        "args": ["{{ output "pnpm" "root" "-g" | trim | replace "\\" "/" }}/@readonly-mcp/core/index.mjs"]
       }
     }
   },

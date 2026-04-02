@@ -1,10 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
-{{- $root := .chezmoi.workingTree }}
-# pnpm-lock.yaml hash: {{ output "git" "hash-object" (joinPath $root "mcp-readonly/pnpm-lock.yaml") | trim }}
 set -euo pipefail
-MCP_DIR='{{ $root }}/mcp-readonly'
-pnpm -C "$MCP_DIR" install --frozen-lockfile --prod
+pnpm add -g github:readonly-mcp/core#f0f79da
 
-INDEX_MJS="$MCP_DIR/index.mjs"
+INDEX_MJS="$(pnpm root -g)/@readonly-mcp/core/index.mjs"
 claude mcp remove readonly -s user 2>/dev/null || true
 claude mcp add -s user readonly -- node "$INDEX_MJS"

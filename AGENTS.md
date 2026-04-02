@@ -61,11 +61,6 @@ Key variables available in `.tmpl` files:
 ## Directory Structure
 
 ```
-mcp-readonly/                    # Read-only MCP server (runs from repo, not deployed)
-├── index.mjs                    # Server entrypoint (security docs + wiring)
-├── lib/                         # Shared helpers (exec, allowlist)
-├── tools/                       # One tool per file + barrel index
-└── test/                        # node:test integration tests
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
 ├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply
@@ -172,26 +167,18 @@ host-specific skills (e.g., `atlassian-cli` is ewn-only).
 
 ## MCP Readonly Server
 
-A custom MCP server at `mcp-readonly/` (repo root) provides read-only tool access
-for AI agents. It exposes allowlisted subsets of `az`, `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`,
-and common shell utilities (ls, jq, stat, wc, etc.) — blocking any mutating operations.
+The read-only MCP server lives in a separate repo:
+[readonly-mcp/core](https://github.com/readonly-mcp/core). It provides allowlisted
+read-only access to CLI tools (`az`, `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`,
+and common shell utilities) for AI agents.
 
-The server runs directly from the chezmoi repo — it is **not** deployed by chezmoi.
-Tools reference the repo path via `{{ .chezmoi.workingTree }}`.
+The server is installed globally via `pnpm add -g github:readonly-mcp/core#<hash>`.
+Install scripts pin a specific commit hash; bump the hash comment to trigger reinstall
+via chezmoi's `run_onchange_` mechanism.
 
 Configuration targets:
 - **Claude Code**: Registered via `claude mcp add --scope user` (in the install script), auto-allow permissions in `home/dot_claude/settings.json.tmpl`
 - **VS Code / Copilot**: `home/.chezmoitemplates/vscode_settings.json` (`mcp.servers`)
-
-Dependencies are installed and the server is registered via
-`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`,
-which reruns when `pnpm-lock.yaml` changes (hashed via `git hash-object`).
-
-After any change to the MCP server, run security tests before committing:
-`pnpm -C mcp-readonly install && pnpm -C mcp-readonly test`
-
-Security design rationale is documented in the `index.mjs` header comment and
-`test/*.test.mjs`. Auto-allow decisions are in `home/dot_claude/settings.json.tmpl`.
 
 ## User-Level Agent Preferences
 

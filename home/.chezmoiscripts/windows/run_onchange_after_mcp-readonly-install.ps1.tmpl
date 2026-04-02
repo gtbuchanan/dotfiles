@@ -1,9 +1,6 @@
-{{- $root := .chezmoi.workingTree | replace "\\" "/" -}}
-# pnpm-lock.yaml hash: {{ output "git" "hash-object" (joinPath $root "mcp-readonly/pnpm-lock.yaml") | trim }}
 $ErrorActionPreference = 'Stop'
-$McpDir = '{{ $root }}/mcp-readonly'
-pnpm -C $McpDir install --frozen-lockfile --prod
+pnpm add -g github:readonly-mcp/core#f0f79da
 
-$IndexMjs = "$McpDir/index.mjs"
+$IndexMjs = "$(pnpm root -g)/@readonly-mcp/core/index.mjs"
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- node $IndexMjs
