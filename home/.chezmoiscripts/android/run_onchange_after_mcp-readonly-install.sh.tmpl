@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
-pnpm add -g github:readonly-mcp/core#f0f79da
+pnpm add -g github:readonly-mcp/core#285c51d732c820a98db75b8c94eb5d8c13d9987b
 
 INDEX_MJS="$(pnpm root -g)/@readonly-mcp/core/index.mjs"
 claude mcp remove readonly -s user 2>/dev/null || true
