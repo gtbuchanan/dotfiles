@@ -1,0 +1,10 @@
+#!/bin/sh
+# Wrapper for oxlint-tsgolint on Android/Termux where no android-arm64 binary
+# exists. Resolves the linux-arm64 binary from the project's node_modules.
+# https://github.com/oxc-project/tsgolint/issues/866
+# Requires: pnpm install --os current --os linux
+for f in node_modules/.pnpm/@oxlint-tsgolint+linux-arm64@*/node_modules/@oxlint-tsgolint/linux-arm64/tsgolint; do
+  [ -x "$f" ] && exec "$f" "$@"
+done
+echo "tsgolint: linux-arm64 binary not found in node_modules" >&2
+exit 1

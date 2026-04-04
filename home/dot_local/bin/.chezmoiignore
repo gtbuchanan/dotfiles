@@ -4,4 +4,5 @@ ssh-agent-pipe
 
 {{- if ne .chezmoi.os "android" }}
 android-patch-claude-code-tmpdir
+tsgolint
 {{- end }}
