@@ -5,6 +5,10 @@ export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
 # oxlint-tsgolint has no android-arm64 binary; use linux-arm64 via wrapper
 # https://github.com/oxc-project/tsgolint/issues/866
 export OXLINT_TSGOLINT_PATH="$HOME/.local/bin/tsgolint"
+
+# Use native Android dialogs for SSH/GPG passphrases (via termux-dialog)
+export SSH_ASKPASS="$HOME/.local/bin/ssh-askpass-termux"
+export SSH_ASKPASS_REQUIRE=force
 {{ end -}}
 
 # Add user's private bin to PATH

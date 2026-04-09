@@ -1,0 +1,12 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# ssh-askpass-termux: SSH_ASKPASS using termux-dialog (native Android popup)
+
+prompt="${1:-Enter passphrase}"
+result=$(termux-dialog text -p -t "SSH" -i "$prompt")
+passphrase=$(jq -r '.text // empty' <<< "$result")
+
+if [[ -z "$passphrase" ]]; then
+  exit 1
+fi
+
+printf '%s' "$passphrase"

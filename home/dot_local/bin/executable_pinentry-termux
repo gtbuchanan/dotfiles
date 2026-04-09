@@ -1,0 +1,58 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# pinentry-termux: GPG pinentry using termux-dialog (native Android popup)
+
+echo "OK Pleased to meet you"
+
+description=""
+title="GPG Passphrase"
+error_msg=""
+
+while IFS= read -r cmd; do
+  case "$cmd" in
+    BYE)
+      echo "OK closing connection"
+      exit 0
+      ;;
+    GETPIN)
+      hint="$description"
+      [[ -n "$error_msg" ]] && hint="WRONG PASSPHRASE. $hint"
+      result=$(termux-dialog text -p -t "$title" -i "${hint:-Enter passphrase}")
+      passphrase=$(jq -r '.text // empty' <<< "$result")
+      if [[ -z "$passphrase" ]]; then
+        echo "ERR 83886179 Operation cancelled <Pinentry>" # GPG_ERR_CANCELED
+      else
+        echo "D $passphrase"
+        echo "OK"
+      fi
+      error_msg=""
+      ;;
+    SETDESC\ *)
+      description="${cmd#SETDESC }"
+      # Decode percent-encoding from gpg-agent
+      description=$(printf '%b' "${description//%/\\x}")
+      echo "OK"
+      ;;
+    SETPROMPT\ *)
+      echo "OK"
+      ;;
+    SETTITLE\ *)
+      title="${cmd#SETTITLE }"
+      echo "OK"
+      ;;
+    SETERROR\ *)
+      error_msg="${cmd#SETERROR }"
+      echo "OK"
+      ;;
+    GETINFO\ pid)
+      echo "D $$"
+      echo "OK"
+      ;;
+    GETINFO\ ttyinfo)
+      echo "D - - -"
+      echo "OK"
+      ;;
+    *)
+      echo "OK"
+      ;;
+  esac
+done

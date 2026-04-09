@@ -1,0 +1,6 @@
+default-cache-ttl 14400
+max-cache-ttl 28800
+max-cache-ttl-ssh 7200
+{{- if eq .chezmoi.os "android" }}
+pinentry-program {{ .chezmoi.homeDir }}/.local/bin/pinentry-termux
+{{- end }}
