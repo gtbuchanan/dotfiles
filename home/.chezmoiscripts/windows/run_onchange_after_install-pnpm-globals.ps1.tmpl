@@ -1,0 +1,7 @@
+$ErrorActionPreference = 'Stop'
+{{ template "pnpm-globals" dict "include" (list
+  "@openai/codex"
+  "@vtsls/language-server"
+  "@vue/language-server"
+  "vscode-langservers-extracted"
+) }}

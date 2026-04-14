@@ -1,0 +1,13 @@
+{{- $deps := (include "../package.json" | mustFromJson).dependencies -}}
+{{- $include := index . "include" -}}
+{{- $args := "" -}}
+{{- range $name, $version := $deps -}}
+{{-   if has $name $include -}}
+{{-     if hasPrefix "github:" $version -}}
+{{-       $args = printf "%s %s" $args $version -}}
+{{-     else -}}
+{{-       $args = printf "%s %s@%s" $args $name $version -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+pnpm add -g{{ $args }}

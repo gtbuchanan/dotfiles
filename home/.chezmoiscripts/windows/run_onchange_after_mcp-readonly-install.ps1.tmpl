@@ -1,6 +1,5 @@
 $ErrorActionPreference = 'Stop'
-pnpm add -g github:readonly-mcp/core#285c51d732c820a98db75b8c94eb5d8c13d9987b
-
+{{ template "pnpm-globals" dict "include" (list "@readonly-mcp/core") }}
 $IndexMjs = "$(pnpm root -g)/@readonly-mcp/core/index.mjs"
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- node $IndexMjs

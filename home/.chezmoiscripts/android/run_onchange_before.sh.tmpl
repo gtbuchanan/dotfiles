@@ -28,13 +28,6 @@ rm -Rf "$TMPDIR/ble-nightly"
 # Install pnpm
 npm i -g pnpm
 
-# Install Claude Code
-pnpm i -g @anthropic-ai/claude-code
-{{- if eq .hosttype "personal" }}
-# Install Bitwarden CLI
-pnpm i -g @bitwarden/cli
-{{- end }}
-
 # Install Nerd Font
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i "{{ .fontpack }}"

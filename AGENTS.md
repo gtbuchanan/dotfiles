@@ -39,6 +39,7 @@ Chezmoi uses filename prefixes/suffixes to control deployment behavior:
 | `.tmpl` | Go text template; evaluated during `chezmoi apply` |
 | `modify_` | Script that modifies an existing target file |
 | `run_onchange_before_` | Script run before apply when its content changes |
+| `run_onchange_after_` | Script run after apply when its content changes |
 | `remove_` | Ensures the target path is removed |
 
 Prefixes may be combined, e.g., `private_dot_ssh/`.
@@ -61,12 +62,14 @@ Key variables available in `.tmpl` files:
 ## Directory Structure
 
 ```
+package.json                       # pnpm global package versions (Renovate-managed)
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
 ├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply
 ├── .chezmoiignore               # Platform-conditional file exclusions
 ├── .chezmoiremove               # Files to remove from target
 ├── .chezmoitemplates/
+│   ├── pnpm-globals             # Shared template: generates pnpm add -g commands
 │   ├── powershell_profile.ps1   # PowerShell profile (aliases, functions, shell config)
 │   └── ...                      # Other reusable Go templates (VS Code settings, etc.)
 ├── .chezmoiscripts/
@@ -165,6 +168,43 @@ To add a new skill, add an entry in `.chezmoiexternal.yaml.tmpl` pointing to the
 archive. All tools pick it up automatically. Use template conditionals to gate
 host-specific skills (e.g., `atlassian-cli` is ewn-only).
 
+## Global pnpm Packages
+
+Global pnpm package versions are centralized in `package.json` at the repo root.
+A shared chezmoi template (`home/.chezmoitemplates/pnpm-globals`) reads this file
+and generates `pnpm add -g` commands.
+
+### How it works
+
+Each `run_onchange_after_` script declares which packages it needs via an include list:
+
+```
+{{ template "pnpm-globals" dict "include" (list "@openai/codex" "@vtsls/language-server") }}
+```
+
+The template resolves versions from `package.json` and renders a `pnpm add -g` command
+with pinned versions. Since the versions are embedded in the rendered script content,
+chezmoi's `run_onchange_` mechanism only re-runs a script when its specific packages
+change — bumping one package does not trigger unrelated scripts.
+
+### Adding a new package
+
+1. Add the package and pinned version to `package.json`
+1. Add the package name to the include list in the appropriate script(s)
+
+Each package should belong to exactly one script. Scripts that need a package for
+post-install steps (e.g., MCP registration, patching) should install it themselves
+via the shared template, making them self-contained with no ordering dependencies.
+
+### Current scripts
+
+| Script | Packages | Post-install |
+|---|---|---|
+| `install-pnpm-globals` (Windows) | codex, LSP servers | — |
+| `install-pnpm-globals` (Android) | claude-code, codex, bitwarden (personal) | — |
+| `mcp-readonly-install` | @readonly-mcp/core | `claude mcp add` registration |
+| `claude-configure` (Windows) | tweakcc | Plugin install, LSP patching |
+
 ## MCP Readonly Server
 
 The read-only MCP server lives in a separate repo:
@@ -172,9 +212,8 @@ The read-only MCP server lives in a separate repo:
 read-only access to CLI tools (`az`, `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`,
 and common shell utilities) for AI agents.
 
-The server is installed globally via `pnpm add -g github:readonly-mcp/core#<hash>`.
-Install scripts pin a specific commit hash; bump the hash comment to trigger reinstall
-via chezmoi's `run_onchange_` mechanism.
+The server is installed globally via the `pnpm-globals` shared template (see above).
+The install script also registers it with Claude Code via `claude mcp add --scope user`.
 
 Configuration targets:
 - **Claude Code**: Registered via `claude mcp add --scope user` (in the install script), auto-allow permissions in `home/dot_claude/settings.json.tmpl`

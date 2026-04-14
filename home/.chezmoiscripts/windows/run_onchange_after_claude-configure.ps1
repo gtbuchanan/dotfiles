@@ -9,8 +9,6 @@ foreach ($Name in $HttpServers.Keys) {
   claude mcp add --scope user --transport http $Name $HttpServers[$Name]
 }
 
-# Install LSP language servers
-pnpm install -g @vtsls/language-server @vue/language-server@2 vscode-langservers-extracted 2>$null
 # Install plugins (marketplace add is idempotent)
 claude plugin marketplace add Piebald-AI/claude-code-lsps 2>$null
 claude plugin install coderabbit 2>$null
