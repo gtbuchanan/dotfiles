@@ -7,6 +7,7 @@
     "@readonly-mcp/core": "github:readonly-mcp/core#285c51d732c820a98db75b8c94eb5d8c13d9987b",
     "@vtsls/language-server": "0.3.0",
     "@vue/language-server": "2.2.12",
+    "tweakcc": "4.0.11",
     "vscode-langservers-extracted": "4.10.0"
   }
 }

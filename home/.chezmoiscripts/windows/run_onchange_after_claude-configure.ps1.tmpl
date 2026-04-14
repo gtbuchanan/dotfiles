@@ -1,5 +1,5 @@
 $ErrorActionPreference = 'Stop'
-
+{{ template "pnpm-globals" dict "include" (list "tweakcc") }}
 $HttpServers = @{
   'microsoft-learn' = 'https://learn.microsoft.com/api/mcp'
 }
@@ -36,5 +36,5 @@ foreach ($dir in $PluginDirs) {
 }
 
 # Patch Claude Code: LSP diagnostics
-pnpm dlx tweakcc --restore 2>$null
-pnpm dlx tweakcc --apply --patches "fix-lsp-support" 2>$null
+tweakcc --restore 2>$null
+tweakcc --apply --patches "fix-lsp-support" 2>$null
