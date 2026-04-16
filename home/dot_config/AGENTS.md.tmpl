@@ -5,6 +5,30 @@
 - Prefer functional programming style over procedural
 - Prefer pure functions for testability. Push side effects to app boundaries
 
+## Static Analysis
+
+- Avoid diagnostic suppressions. They usually indicate poor code quality — fix
+  the underlying issue instead. Only suppress when there is no reasonable alternative.
+- Prefer `eslint-disable-next-line` over `eslint-disable` — scope suppressions
+  to the narrowest possible range.
+- Prefer `@ts-expect-error` over `@ts-ignore` — it fails when the error is
+  resolved, preventing stale suppressions.
+- Every eslint/oxlint suppression comment MUST include a reason explaining why
+  the rule is suppressed. Use the multiline format:
+  ```
+  /* eslint-disable-next-line rule-name-1, rule-name-2 --
+     This is my reason */
+  ```
+- `@ts-expect-error` only supports single-line comments — do NOT use block
+  comments (`/* */`). Keep the reason concise to fit the line length limit.
+  If extended reasoning is needed, put it in a separate comment above with
+  a blank line between:
+  ```ts
+  // Extended reasoning here...
+
+  // @ts-expect-error -- concise reason
+  ```
+
 ## Communication
 
 - I'm a senior engineer - don't explain basics
