@@ -4,6 +4,13 @@
 
 - Prefer functional programming style over procedural
 - Prefer pure functions for testability. Push side effects to app boundaries
+- Prefer discriminated unions over optional/nullable properties when modeling
+  distinct states — they make invalid states unrepresentable
+- Prefer alphabetical sorting for unordered collections (object keys, YAML
+  mappings, keyed lists, etc.) to reduce merge conflicts. Exception:
+  `package.json` root keys have their own conventional order — sort nested
+  objects (dependencies, scripts, etc.) but not top-level keys.
+- Prefer multiline comment style for comments spanning multiple lines
 
 ## Static Analysis
 
@@ -187,6 +194,19 @@
 - For `devops invoke`, pass project via `--route-parameters project=proddev`
   (`--project` is not supported by `az devops invoke`)
 {{- end }}
+
+## .NET
+
+- Use the OneOf library for discriminated unions in C# versions without native
+  union support
+
+## TypeScript
+
+- Avoid type assertions (`as`, `!`) and user-defined type guards — they are
+  usually a code smell. Prefer correcting types at the source (e.g.,
+  `satisfies`, narrowing, generics) or schema parsing (e.g., valibot) for
+  untyped data like JSON.
+- Prefer `undefined` over `null` to reduce cognitive overhead
 
 ## Node.js
 
