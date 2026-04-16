@@ -32,6 +32,13 @@
   include: ["*/skills/playwright-cli/**"]
   url: https://github.com/microsoft/playwright-cli/archive/refs/tags/v0.1.1.tar.gz
 
+'.config/skills/turborepo':
+  exact: true
+  type: archive
+  stripComponents: 3
+  include: ["*/skills/turborepo/**"]
+  url: https://github.com/vercel/turborepo/archive/3188a5662c7eb14eb49d443a9f3bc4d7ee176e4b.tar.gz
+
 {{- if ne .chezmoi.os "windows" }}
 # https://wezterm.org/shell-integration.html
 '.config/wezterm/wezterm.sh':
