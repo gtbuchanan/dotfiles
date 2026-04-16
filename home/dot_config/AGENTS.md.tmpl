@@ -120,6 +120,9 @@
 
 - Prefer TDD (red/green): write a failing test first, then make it pass
 - Always use Playwright CLI to verify website changes
+- Avoid logic in test lifecycle hooks — it encourages shared mutable state.
+  Prefer fixture factory functions or types, instantiated per test. Make
+  fixtures disposable when they need cleanup.
 
 ## Shell
 
