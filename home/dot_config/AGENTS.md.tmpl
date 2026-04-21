@@ -90,26 +90,13 @@
   because the base branch is checked out in another worktree. This is
   expected in linked worktrees. Do NOT re-run the merge command. The
   local branch will be cleaned up when the worktree is removed.
-- Claude Code replaces `/` with `+` in worktree directory and branch names
-  (e.g., `-w fix/foo` creates branch `worktree-fix+foo`). When resolving the
-  original branch name, replace `+` back to `/` after stripping the `worktree-`
-  prefix.
-- When checking out a `worktree-` branch, check if a remote tracking branch
-  exists without the prefix (e.g., `origin/fix/foo` for `worktree-fix+foo`).
-  If so, set it as upstream:
-  `git branch --set-upstream-to=origin/fix/foo worktree-fix+foo`.
-- When pushing a branch that starts with `worktree-`, strip the prefix and
-  restore `/` from `+` in the remote refspec
-  (e.g., `git push -u origin worktree-fix+foo:fix/foo`). This keeps remote
-  branch names clean while preserving the local worktree convention.
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
 - When merging the current branch into another and you know you're in a
-  linked worktree (e.g., spawned via `isolation: "worktree"`), run
-  `git worktree list` to find the target branch. If it's in the main
-  working tree, merge from there without prompting. If it's in another
-  linked worktree, prompt before merging.
+  linked worktree, run `git worktree list` to find the target branch. If
+  it's in the main working tree, merge from there without prompting. If
+  it's in another linked worktree, prompt before merging.
 {{- if eq .hosttype "ewn" }}
 - When a GitHub org is ambiguous or unspecified, infer `energyworldnet`
 {{- end }}

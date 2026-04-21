@@ -29,3 +29,11 @@
   `TeamCreate` tool to create a coordinated team with shared task lists —
   never substitute regular `Agent` subagents. Use `Agent` with `team_name` to
   spawn teammates into the team.
+
+## Worktrees
+
+- The `-w` flag creates branches/dirs as `worktree-<name>` with `/` → `+`
+  (e.g., `-w fix/foo` → `worktree-fix+foo`). Reverse both for the original.
+- Remotes use the original (unprefixed) name. Push with
+  `git push -u origin worktree-fix+foo:fix/foo`; set upstream with
+  `git branch --set-upstream-to=origin/fix/foo worktree-fix+foo`.
