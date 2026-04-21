@@ -5,7 +5,9 @@
 */ -}}
 {
   "autoMemoryEnabled": false,
+{{- if eq .chezmoi.os "windows" }}
   "defaultShell": "powershell",
+{{- end }}
   "effortLevel": "high",
   "enabledPlugins": {
     "coderabbit@claude-plugins-official": true,

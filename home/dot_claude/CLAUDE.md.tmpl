@@ -1,4 +1,11 @@
 {{ includeTemplate "dot_config/AGENTS.md.tmpl" . }}
+{{- if eq .chezmoi.os "windows" }}
+
+## Shell
+
+- Prefer the PowerShell tool over Bash, regardless of what the environment
+  block reports.
+{{- end }}
 
 ## LSP
 
