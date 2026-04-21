@@ -64,6 +64,10 @@
 - Prefer atomic commits: if changes span multiple unrelated areas, split them
   into separate commits — one logical change per commit.
 - Wrap commit body at 72 characters, when possible
+- Do NOT hard-wrap GitHub-rendered markdown — PR descriptions, issue bodies,
+  PR/issue comments, and review comments. GitHub soft-wraps prose, and hard
+  wraps break list continuation, blockquotes, and readability. The 72-char
+  rule is for git commit messages only (shown in plain-text `git log`).
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
 - Always set `AI_AGENT=1` when running git commands that trigger GPG signing (e.g., commit, tag)
