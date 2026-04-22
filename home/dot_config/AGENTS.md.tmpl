@@ -68,18 +68,19 @@
 
 ## Git
 
-- Always keep commit subject 72 characters or less. Prefer 50 or less. Don't truncate blindly.
-  Prefer semantic meaning over implementation details.
+- Keep anything that lands in `git log` within 72 characters per line —
+  subject (single line, prefer ≤50) and body (hard-wrapped at 72). This
+  includes commit messages authored through `gh` (e.g., `gh pr merge
+  --body`) — the authoring tool doesn't matter, the destination does. Don't
+  truncate blindly; prefer semantic meaning over implementation details.
+- Do NOT hard-wrap content that stays in GitHub's UI — PR descriptions,
+  issue bodies, and PR/issue/review comments. GitHub soft-wraps prose, and
+  hard wraps break list continuation, blockquotes, and readability.
 - Include enough context in the commit subject for someone scanning `git log`
   to understand the scope. Qualify ambiguous nouns with their parent system
   (e.g., "Fix Claude statusline spacing" not "Fix statusline spacing").
 - Prefer atomic commits: if changes span multiple unrelated areas, split them
   into separate commits — one logical change per commit.
-- Wrap commit body at 72 characters, when possible
-- Do NOT hard-wrap GitHub-rendered markdown — PR descriptions, issue bodies,
-  PR/issue comments, and review comments. GitHub soft-wraps prose, and hard
-  wraps break list continuation, blockquotes, and readability. The 72-char
-  rule is for git commit messages only (shown in plain-text `git log`).
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
 - Always set `AI_AGENT=1` when running git commands that trigger GPG signing (e.g., commit, tag)
