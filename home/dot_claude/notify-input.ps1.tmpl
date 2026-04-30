@@ -1,0 +1,8 @@
+$icon = '{{ .chezmoi.workingTree }}/assets/claude.png'
+
+try {
+  $label = (psmux display-message -p -t $env:TMUX_PANE '#S:#W.#P').Trim()
+} catch {}
+if (-not $label) { $label = 'Claude' }
+
+New-BurntToastNotification -Text 'Claude Code',"$label needs input" -AppLogo $icon

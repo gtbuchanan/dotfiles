@@ -21,6 +21,23 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1",
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"
   },
+{{- if eq .chezmoi.os "windows" }}
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "idle_prompt|permission_prompt",
+        "hooks": [
+          {
+            "async": true,
+            "command": "& $HOME/.claude/notify-input.ps1",
+            "shell": "powershell",
+            "type": "command"
+          }
+        ]
+      }
+    ]
+  },
+{{- end }}
   "permissions": {
     "allow": [
       "mcp__microsoft-learn__microsoft_code_sample_search",

@@ -144,6 +144,14 @@ properties:
       settings:
         id: Brave.Brave
         source: winget
+    - resource: PowerShellGet/PSModule
+      dependsOn: [pwsh]
+      directives:
+        description: Install BurntToast
+      id: burntToast
+      settings:
+        Name: BurntToast
+        InstallationPolicy: Trusted
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
