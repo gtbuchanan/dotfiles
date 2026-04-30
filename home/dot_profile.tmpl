@@ -9,6 +9,11 @@ export OXLINT_TSGOLINT_PATH="$HOME/.local/bin/tsgolint"
 # Use native Android dialogs for SSH/GPG passphrases (via termux-dialog)
 export SSH_ASKPASS="$HOME/.local/bin/ssh-askpass-termux"
 export SSH_ASKPASS_REQUIRE=force
+
+# Skip uv's libc detection so it can find Termux's Bionic Python
+# https://github.com/astral-sh/uv/issues/18285
+# https://github.com/gtbuchanan/tooling/issues/51
+export UV_LIBC=none
 {{ end -}}
 
 # Add user's private bin to PATH
