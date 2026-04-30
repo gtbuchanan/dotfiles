@@ -1,3 +1,7 @@
+# Forward terminal focus events so apps consume ESC[I/ESC[O as
+# control sequences instead of leaking them as literal input
+set -g focus-events on
+
 # Sane leader key
 unbind C-b
 set -g prefix C-Space
