@@ -38,3 +38,14 @@ foreach ($dir in $PluginDirs) {
 # Patch Claude Code: LSP diagnostics
 tweakcc --restore 2>$null
 tweakcc --apply --patches "fix-lsp-support" 2>$null
+
+# Register URL protocol for click-to-focus toast button (claude-pane://)
+$ProtocolKey = 'HKCU:\Software\Classes\claude-pane'
+$Handler = Join-Path $env:USERPROFILE '.claude\focus-pane.ps1'
+$PwshPath = (Get-Command pwsh).Source
+$Command = "`"$PwshPath`" -NoProfile -ExecutionPolicy Bypass -File `"$Handler`" `"%1`""
+New-Item -Path $ProtocolKey -Force | Out-Null
+Set-ItemProperty -Path $ProtocolKey -Name '(default)' -Value 'URL:Claude Pane'
+Set-ItemProperty -Path $ProtocolKey -Name 'URL Protocol' -Value ''
+New-Item -Path "$ProtocolKey\shell\open\command" -Force | Out-Null
+Set-ItemProperty -Path "$ProtocolKey\shell\open\command" -Name '(default)' -Value $Command
