@@ -227,3 +227,11 @@
 ## Python
 
 - Always use `py.exe` on Windows instead of `python.exe` or `python3.exe` directly
+
+## Agent Skills
+
+- When authoring a new skill or making non-trivial changes to an existing
+  one, invoke the `skill-creator` skill first. It enforces the canonical
+  layout (frontmatter, body limits, `evals/evals.json`, supporting `agents/`
+  and viewer files) and catches structural drift the open agentskills.io
+  spec doesn't cover.
