@@ -2,5 +2,8 @@
 set -euo pipefail
 {{ template "pnpm-globals" dict "include" (list "@readonly-mcp/core") }}
 INDEX_MJS="$(pnpm root -g)/@readonly-mcp/core/index.mjs"
-claude mcp remove readonly -s user 2>/dev/null || true
-claude mcp add -s user readonly -- node "$INDEX_MJS"
+# `claude mcp` signals its own process group on exit (Android-only bug),
+# killing the calling script. `setsid` runs each call in a fresh session
+# so the signal stays contained.
+setsid claude mcp remove readonly -s user 2>/dev/null || true
+setsid claude mcp add -s user readonly -- node "$INDEX_MJS"
