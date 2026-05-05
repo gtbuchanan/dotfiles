@@ -81,6 +81,10 @@
   (e.g., "Fix Claude statusline spacing" not "Fix statusline spacing").
 - Prefer atomic commits: if changes span multiple unrelated areas, split them
   into separate commits — one logical change per commit.
+- Prefer `git commit --fixup=<sha>` + `git rebase --autosquash <base>` to
+  amend earlier commits on a branch. Avoid `git rebase -i` (agents can't
+  drive the editor reliably) and reset/cherry-pick workarounds. Plain
+  `git commit --amend` is fine for HEAD-only fixes.
 - Always run project-specific build before committing
 - Always use `--force-with-lease` to force push, when necessary
 - Always set `AI_AGENT=1` when running git commands that trigger GPG signing (e.g., commit, tag)
