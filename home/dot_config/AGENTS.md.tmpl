@@ -162,10 +162,13 @@
 
 ## MCP Readonly Tools
 
-- **ALWAYS use MCP readonly tools instead of Bash for read-only operations.**
-  If the command is covered below, you MUST use the MCP tool — not Bash.
-  Fetch the tool schema via `ToolSearch` first if needed; the extra step is not
-  optional.
+- **ALWAYS use MCP readonly tools instead of Bash or web/HTTP fetching for
+  read-only operations.** If the command is covered below, you MUST use the
+  MCP tool — not a shell, not a web fetch, not a web search. This applies
+  even when a URL is provided directly (e.g., a GitHub PR or issue link):
+  resolve it through the matching MCP tool rather than fetching the HTML
+  page. Fetch the tool schema first if your harness requires it; the extra
+  step is not optional.
   - `mcp__readonly__git` for: blame, branch, describe, diff, log, ls-files, ls-tree, merge-base, reflog, remote, rev-parse, shortlog, show, stash, status, worktree
   - `mcp__readonly__shell` for: basename, date, dirname, eza, file, jq, ls, pwd, readlink, realpath, stat, wc, which, whoami
   - `mcp__readonly__az` for: devops invoke (GET-only, build-debugging endpoints), devops project/team/extension/service-endpoint/wiki, pipelines list/show/build/release/runs/pool/agent
