@@ -8,9 +8,6 @@ Documents
 .gnupg
 # On Windows, symlink_ creates file symlinks; use a script for directory symlinks
 .claude/skills
-.codex/skills
-.copilot/skills
-.agents/skills
 {{- end }}
 
 {{- if ne .chezmoi.os "android" }}

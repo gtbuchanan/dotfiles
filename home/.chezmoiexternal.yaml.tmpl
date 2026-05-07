@@ -1,6 +1,6 @@
 ---
 {{- if eq .hosttype "ewn" }}
-'.config/skills/atlassian-cli':
+'.agents/skills/atlassian-cli':
   exact: true
   type: archive
   stripComponents: 2
@@ -9,7 +9,7 @@
 
 {{- $msSkills := list "azure-devops" "azure-pipelines" }}
 {{- range $msSkills }}
-'.config/skills/{{ . }}':
+'.agents/skills/{{ . }}':
   exact: true
   type: archive
   stripComponents: 3
@@ -18,35 +18,35 @@
 {{ end -}}
 {{- end }}
 
-'.config/skills/cloudflare':
+'.agents/skills/cloudflare':
   exact: true
   type: archive
   stripComponents: 3
   include: ["*/skills/cloudflare/**"]
   url: https://github.com/cloudflare/skills/archive/d3113039790f64e052ff80f351190da65e9b7510.tar.gz
 
-'.config/skills/mise-guide':
+'.agents/skills/mise-guide':
   exact: true
   type: archive
   stripComponents: 2
   include: ["*/mise-guide/**"]
   url: https://github.com/kinoward/agent-skills/archive/98fd4ad7e39d7eba170ed1ef4787e16bc88cef05.tar.gz
 
-'.config/skills/playwright-cli':
+'.agents/skills/playwright-cli':
   exact: true
   type: archive
   stripComponents: 3
   include: ["*/skills/playwright-cli/**"]
   url: https://github.com/microsoft/playwright-cli/archive/refs/tags/v0.1.1.tar.gz
 
-'.config/skills/skill-creator':
+'.agents/skills/skill-creator':
   exact: true
   type: archive
   stripComponents: 3
   include: ["*/skills/skill-creator/**"]
   url: https://github.com/anthropics/skills/archive/5128e1865d670f5d6c9cef000e6dfc4e951fb5b9.tar.gz
 
-'.config/skills/turborepo':
+'.agents/skills/turborepo':
   exact: true
   type: archive
   stripComponents: 3

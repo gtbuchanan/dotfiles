@@ -88,11 +88,8 @@ home/
 ├── dot_claude/
 │   ├── CLAUDE.md.tmpl            # References dot_config/AGENTS.md.tmpl
 │   ├── settings.json.tmpl       # Auto-allow permissions + status line
-│   └── symlink_skills           # → ../.config/skills
+│   └── symlink_skills           # → ../.agents/skills
 ├── dot_copilot/                 # GitHub Copilot instructions (references AGENTS.md)
-│   └── symlink_skills           # → ../.config/skills
-├── dot_agents/
-│   └── symlink_skills           # → ../.config/skills
 ├── private_dot_vim/             # Vim config, plugins, after-plugin overrides
 ├── private_dot_ssh/             # SSH config
 ├── winget.yaml.tmpl             # Windows package/config manifest (DSC)
@@ -152,16 +149,16 @@ GPG signing is enabled for all commits. The GPG wrapper at
 ## Agent Skills
 
 Skills follow the [Agent Skills](https://agentskills.io) standard. Skills are fetched as
-external archives via `home/.chezmoiexternal.yaml.tmpl` and deployed to `~/.config/skills/`.
-Each tool discovers skills via a `skills/` symlink in its config directory:
+external archives via `home/.chezmoiexternal.yaml.tmpl` and deployed to `~/.agents/skills/`,
+the cross-tool convention picked up by Codex CLI, Cursor, Gemini CLI, OpenCode,
+and GitHub Copilot (VS Code and Visual Studio 2026). Claude Code only reads
+`~/.claude/skills`, so a single symlink redirects it to the same directory:
 
 ```
-~/.config/skills/              ← deployed by chezmoi externals
+~/.agents/skills/              ← deployed by chezmoi externals
     atlassian-cli/SKILL.md
 
-~/.claude/skills  → ../.config/skills   (symlink)
-~/.copilot/skills → ../.config/skills   (symlink)
-~/.agents/skills  → ../.config/skills   (symlink)
+~/.claude/skills → ../.agents/skills   (symlink)
 ```
 
 To add a new skill, add an entry in `.chezmoiexternal.yaml.tmpl` pointing to the skill's

@@ -1,2 +1,9 @@
 # Vim defaults to `vimfiles` instead of .vim on Windows
 vimfiles
+
+# Copilot and Codex both discover skills via ~/.agents/skills now
+.codex/skills
+.copilot/skills
+
+# Skills moved from ~/.config/skills to ~/.agents/skills as the canonical location
+.config/skills
