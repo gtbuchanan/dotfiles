@@ -12,10 +12,6 @@ winget configure -f $ConfigFilePath --suppress-initial-details --accept-configur
 # TODO: SOOO slow... Need to do this after applying config changes instead of before
 #winget upgrade --all --accept-package-agreements --silent
 
-# Purge Desktop Shortcuts
-Join-Path $env:USERPROFILE "Desktop" "*.lnk" | Remove-Item
-sudo pwsh { Remove-Item "C:\Users\Public\Desktop\*.lnk" }
-
 # TODO: Download
 # * ADOM: https://www.adom.de/home/downloads.html
 # * Age of Empires II

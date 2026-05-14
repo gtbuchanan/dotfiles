@@ -56,6 +56,27 @@ properties:
           $Result -ne $null -and $Result.Contains("Inline")
         SetScript: |
           sudo config --enable normal
+    - resource: ComputerManagementDsc/ScheduledTask
+      directives:
+        allowPrerelease: true
+        description: Configure Desktop Shortcut Purge Task
+        securityContext: elevated
+      id: purgeDesktopShortcutsTask
+      settings:
+        ActionArguments: >-
+          -NoProfile -WindowStyle Hidden
+          -Command "Remove-Item -Path '{{ .chezmoi.homeDir }}/Desktop/*.lnk','C:/Users/Public/Desktop/*.lnk' -ErrorAction SilentlyContinue"
+        ActionExecutable: powershell.exe
+        BuiltInAccount: SYSTEM
+        Description: Removes .lnk files from the current user's Desktop and the Public Desktop
+        Enable: true
+        RepeatInterval: '00:30:00'
+        RepetitionDuration: '9999.00:00:00'
+        RunLevel: Highest
+        ScheduleType: Once
+        StartTime: '2026-01-01T00:00:00'
+        TaskName: Purge Desktop Shortcuts
+        TaskPath: \gtbuchanan
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install 7zip
