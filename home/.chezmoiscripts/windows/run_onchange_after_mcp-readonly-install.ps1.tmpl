@@ -1,5 +1,6 @@
 $ErrorActionPreference = 'Stop'
 {{ template "pnpm-globals" dict "include" (list "@readonly-mcp/core") }}
-$IndexMjs = "$(pnpm root -g)/@readonly-mcp/core/index.mjs"
+$PkgPath = (pnpm list -g --depth=0 --json | ConvertFrom-Json).dependencies.'@readonly-mcp/core'.path
+$IndexMjs = Join-Path $PkgPath 'index.mjs'
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- node $IndexMjs
