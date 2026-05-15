@@ -1,6 +1,10 @@
 {{- $deps := (include "../package.json" | mustFromJson).dependencies -}}
 {{- $include := index . "include" -}}
+{{- $pnpmfile := index . "pnpmfile" | default "" -}}
 {{- $args := "" -}}
+{{- if $pnpmfile -}}
+{{-   $args = printf " --config.global-pnpmfile=%s" $pnpmfile -}}
+{{- end -}}
 {{- range $name, $version := $deps -}}
 {{-   if has $name $include -}}
 {{-     if hasPrefix "github:" $version -}}
