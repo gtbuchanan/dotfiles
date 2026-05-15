@@ -32,8 +32,7 @@
   "mcp": {
     "servers": {
       "readonly": {
-        "command": "node",
-        "args": ["{{ output "pnpm" "root" "-g" | trim | replace "\\" "/" }}/@readonly-mcp/core/index.mjs"]
+        "command": "readonly-mcp"
       }
     }
   },
