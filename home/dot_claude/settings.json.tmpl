@@ -5,6 +5,10 @@
 */ -}}
 {
   "autoMemoryEnabled": false,
+{{- /* Android: native binary is chezmoi-managed; block the in-session updater from clobbering it. */ -}}
+{{- if eq .chezmoi.os "android" }}
+  "autoUpdates": false,
+{{- end }}
 {{- if eq .chezmoi.os "windows" }}
   "defaultShell": "powershell",
 {{- end }}
@@ -55,7 +59,12 @@
   },
   "model": "opus[1m]",
   "statusLine": {
+{{- /* Android: invoke via bash explicitly so kernel never resolves the /usr/bin/env shebang (no termux-exec preload in glibc claude). */ -}}
+{{- if eq .chezmoi.os "android" }}
+    "command": "bash ~/.claude/statusline",
+{{- else }}
     "command": "~/.claude/statusline",
+{{- end }}
     "padding": 0,
     "type": "command"
   },

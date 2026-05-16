@@ -1,0 +1,94 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  Native Claude Code install for Termux/Android.
+
+  As of v2.1.113, Anthropic ships Claude Code as a bun-compiled glibc ELF
+  with no android-arm64 build, breaking the npm install path on Termux.
+  See: https://github.com/anthropics/claude-code/issues/50270
+
+  Bypasses npm: downloads the linux-arm64 binary, patches its ELF
+  interpreter to Termux's glibc loader so the kernel can exec it
+  directly, and installs a wrapper that clears LD_PRELOAD first.
+
+  Why direct exec instead of `grun`:
+  Claude Code's in-process `grep` shell function re-execs itself via
+  `exec -a ugrep "$CLAUDE_CODE_EXECPATH" -G ...` to enter the embedded
+  ripgrep. That needs argv[0]="ugrep" to actually reach the binary —
+  a kernel-direct exec, with $CLAUDE_CODE_EXECPATH pointing at the
+  binary (not at `ld.so` or a script wrapper). `grun` chains via
+  `exec ld.so $binary $@`, leaving $CLAUDE_CODE_EXECPATH = ld.so,
+  which then mis-parses `-G` as the executable.
+
+  Why clear LD_PRELOAD:
+  Termux's `libtermux-exec-ld-preload.so` is preloaded into every
+  shell process. Its DT_NEEDED includes unversioned `libc.so`, which
+  in $GLIBC_PREFIX/lib is a static-linker text script. Loading it
+  into a glibc binary (patchelf at install time, claude at runtime)
+  makes ld.so error out with "libc.so: invalid ELF header". Clearing
+  LD_PRELOAD before exec'ing sidesteps it.
+
+  Why no rpath:
+  Setting --set-rpath "$GLIBC_PREFIX/lib" (as `grun -c` does) makes
+  ld.so search that dir first and hit the same `libc.so` linker-script
+  trap. Leaving rpath unset lets ld.so use its compiled-in defaults,
+  which resolve `libc.so.6` correctly.
+
+  Version is pinned in `home/.chezmoidata/claude-code.yaml` and tracked
+  by Renovate.
+*/}}
+set -euo pipefail
+
+VERSION='{{ .claude_code_version }}'
+PLATFORM='linux-arm64'
+DL_BASE='https://downloads.claude.ai/claude-code-releases'
+
+INSTALL_DIR="$HOME/.local/share/claude-code"
+BINARY="$INSTALL_DIR/claude-$VERSION"
+WRAPPER="$HOME/.local/bin/claude"
+
+GLIBC_PREFIX='/data/data/com.termux/files/usr/glibc'
+PATCHELF="$GLIBC_PREFIX/bin/patchelf"
+GLIBC_LD="$GLIBC_PREFIX/lib/ld-linux-aarch64.so.1"
+
+if [ ! -x "$PATCHELF" ]; then
+  echo "patchelf not found at $PATCHELF; install patchelf-glibc." >&2
+  exit 1
+fi
+if [ ! -e "$GLIBC_LD" ]; then
+  echo "glibc loader not found at $GLIBC_LD." >&2
+  exit 1
+fi
+
+mkdir -p "$INSTALL_DIR" "$(dirname "$WRAPPER")"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Installing Claude Code $VERSION..."
+  checksum=$(curl -fsSL "$DL_BASE/$VERSION/manifest.json" \
+    | jq -er ".platforms[\"$PLATFORM\"].checksum")
+
+  tmp=$(mktemp)
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL "$DL_BASE/$VERSION/$PLATFORM/claude" -o "$tmp"
+
+  actual=$(sha256sum "$tmp" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $PLATFORM: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  chmod +x "$tmp"
+  mv "$tmp" "$BINARY"
+  trap - EXIT
+fi
+
+# Idempotent. LD_PRELOAD cleared so termux-exec doesn't crash patchelf.
+LD_PRELOAD= "$PATCHELF" --set-interpreter "$GLIBC_LD" "$BINARY"
+
+cat > "$WRAPPER" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+unset LD_PRELOAD
+exec "$BINARY" "\$@"
+EOF
+chmod +x "$WRAPPER"
+
+find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'claude-*' ! -name "claude-$VERSION" -delete
