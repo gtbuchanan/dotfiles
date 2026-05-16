@@ -26,6 +26,28 @@ Always edit the corresponding source in **this repo** under `home/`, then run
   output — do not edit it directly.
 - To preview changes without applying: `chezmoi diff`.
 
+## Forcing run_onchange Scripts to Re-run
+
+`run_onchange_*` scripts only fire when their rendered content's SHA256
+changes. The hash is tracked in chezmoi's `entryState` bucket — deleting
+the matching `scriptState` entry alone is NOT enough, because chezmoi
+compares the new hash against `entryState` to decide whether to skip
+the script.
+
+To force a re-run, delete the script's `entryState` entry (keyed by the
+destination path of the rendered script):
+
+```
+chezmoi state delete --bucket=entryState \
+  --key=$HOME/.chezmoiscripts/<os>/<script>.sh
+chezmoi apply --no-tty
+```
+
+Useful when the rendered content is unchanged but external state has
+drifted (e.g., pnpm's global bin layout moved from `$PNPM_HOME` to
+`$PNPM_HOME/bin` and globals need to be reinstalled even though their
+pinned versions match).
+
 ## File Naming Conventions
 
 Chezmoi uses filename prefixes/suffixes to control deployment behavior:
