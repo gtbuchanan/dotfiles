@@ -8,7 +8,10 @@
 
   Bypasses npm: downloads the linux-arm64 binary, patches its ELF
   interpreter to Termux's glibc loader so the kernel can exec it
-  directly, and installs a wrapper that clears LD_PRELOAD first.
+  directly, and installs a wrapper that clears LD_PRELOAD before
+  exec'ing the binary. claude itself then re-exports LD_PRELOAD via
+  its settings.json `env` block so subprocesses still get termux-exec
+  for shebang resolution.
 
   Why direct exec instead of `grun`:
   Claude Code's in-process `grep` shell function re-execs itself via
@@ -26,6 +29,17 @@
   into a glibc binary (patchelf at install time, claude at runtime)
   makes ld.so error out with "libc.so: invalid ELF header". Clearing
   LD_PRELOAD before exec'ing sidesteps it.
+
+  Why re-export LD_PRELOAD via claude's settings.json env:
+  Termux's termux-exec is what makes `#!/usr/bin/env foo` shebangs
+  resolve on Android (no real /usr/bin/env). Clearing LD_PRELOAD for
+  the claude binary means subprocesses spawned by claude inherit no
+  termux-exec either, so shebang-based scripts (pnpm, npx, etc.) fail
+  with "bad interpreter". claude's `env` block in settings.json sets
+  LD_PRELOAD back to libtermux-exec-ld-preload.so — applied AFTER
+  ld.so has finished with claude, so it doesn't crash claude, but it
+  IS in claude's process.env when it spawns children, so termux-exec
+  loads cleanly into bionic bash subprocesses.
 
   Why no rpath:
   Setting --set-rpath "$GLIBC_PREFIX/lib" (as `grun -c` does) makes
