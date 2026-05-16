@@ -14,7 +14,19 @@ Always edit the corresponding source in **this repo** under `home/`, then run
 
 - Always pass `--no-tty` to `chezmoi apply` so it fails on interactive prompts
   instead of blocking. If it fails, report the error and let the user decide
-  whether to re-run with `--force`.
+  how to proceed.
+- Never combine `--force` with a bare `chezmoi apply` (no targets) —
+  `--force` discards any local drift across the entire tree without
+  inspection. Always scope `--force` to the specific target(s) that need it:
+  `chezmoi apply --no-tty --force <path>`. For everything else, fix the
+  drift at the source or ask the user.
+- Exception that needs `--force` on every apply: `~/.claude/settings.json`
+  is rewritten by Claude Code at runtime (key reordering, blank-line
+  stripping, auto-set fields like `editorMode`), so chezmoi sees drift on
+  every run. When apply fails because of this, re-run targeted:
+  `chezmoi apply --no-tty --force ~/.claude/settings.json`, then a normal
+  `chezmoi apply --no-tty` for the rest. If a drifted field is actually
+  wanted, add it to `home/dot_claude/settings.json.tmpl` first.
 - Edit files under `home/`, then run `chezmoi apply <target>...` to deploy only the
   affected targets (e.g., `chezmoi apply ~/.config/starship.toml ~/.gitconfig`).
 - Use bare `chezmoi apply` (no targets) when editing shared templates — files included
