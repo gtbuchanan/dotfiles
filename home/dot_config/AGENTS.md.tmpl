@@ -154,7 +154,11 @@
   `pushd dir && command; rc=$?; popd; exit $rc` instead of `cd dir && command`.
   This ensures the working directory is always restored and the command's exit
   code is preserved.
-{{- if eq .chezmoi.os "android" }}
+{{- if eq .chezmoi.os "windows" }}
+- `sudo` is available natively on Windows 11 (24H2+) and configured in inline
+  mode — use it when a command needs administrator privileges and won't
+  self-elevate.
+{{- else if eq .chezmoi.os "android" }}
 - On Termux, `/tmp` does not exist. Use `$TMPDIR`
   (`/data/data/com.termux/files/usr/tmp`) for scratch files, or `mktemp` /
   `mktemp -d` which honors `$TMPDIR` automatically.
