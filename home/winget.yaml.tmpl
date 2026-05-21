@@ -1198,6 +1198,31 @@ properties:
       settings:
         id: WiresharkFoundation.Wireshark
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install wt
+      id: wt
+      settings:
+        id: timvw.wt
+        source: winget
+    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows timvw/wt
+    # HACK: There appears to be no Windows API for App Execution Aliases, so we delete the file
+    # https://superuser.com/a/1746939
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [wt]
+      directives:
+        description: Remove Windows Terminal App Execution Alias
+      id: wtAppAlias
+      settings:
+        GetScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          @{ Result = (Test-Path $AliasPath) }
+        TestScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          -Not (Test-Path $AliasPath)
+        SetScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          Remove-Item $AliasPath -Force -ErrorAction SilentlyContinue
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:

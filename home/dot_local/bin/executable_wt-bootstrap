@@ -1,0 +1,22 @@
+#!/bin/sh
+# Invoked by wt's post_create / post_checkout / post_pr hooks to bring a
+# new worktree up to a usable state. Add more bootstrap steps below as
+# needed (mise install, uv sync, etc.).
+
+# Mirror untracked per-checkout files from $WT_MAIN, preserving subdirs:
+#   *.local      .env.local, .cleanignore.local
+#   *.local.*    .env.local.json, mise.local.toml
+#   *.user       *.csproj.user, *.vbproj.user, *.fsproj.user
+# `--directory` collapses ignored dirs (node_modules, dist, .venv, ...) into
+# one entry that the regex discards cheaply (the trailing `/` fails `[^/]*$`).
+git -C "$WT_MAIN" ls-files --others --exclude-standard --ignored --directory 2>/dev/null |
+  grep -E '\.(local|user)(\.[^/]*)?$' |
+  while IFS= read -r f; do
+    dst="$WT_PATH/$f"
+    mkdir -p "$(dirname "$dst")"
+    cp "$WT_MAIN/$f" "$dst"
+  done
+
+if [ -f "$WT_PATH/pnpm-lock.yaml" ]; then
+  pnpm -C "$WT_PATH" install --frozen-lockfile
+fi

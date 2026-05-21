@@ -28,6 +28,7 @@ Library
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
+.config/wt
 .tmux
 {{- end }}
 

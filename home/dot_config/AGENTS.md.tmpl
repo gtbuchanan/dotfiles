@@ -107,13 +107,6 @@
   because the base branch is checked out in another worktree. This is
   expected in linked worktrees. Do NOT re-run the merge command. The
   local branch will be cleaned up when the worktree is removed.
-- When running in a linked worktree, always search, read, and edit files
-  within the worktree directory. Never fall back to the base working tree
-  for file operations — the worktree has its own copy of the repo.
-- When merging the current branch into another and you know you're in a
-  linked worktree, run `git worktree list` to find the target branch. If
-  it's in the main working tree, merge from there without prompting. If
-  it's in another linked worktree, prompt before merging.
 {{- if eq .hosttype "ewn" }}
 - When a GitHub org is ambiguous or unspecified, infer `energyworldnet`
 {{- end }}
@@ -123,6 +116,20 @@
 {{- else }}
   Default suggestion: personal account
 {{- end }}
+
+## Worktrees
+
+- Prefer `wt` commands (`wt create`, `wt co`, `wt pr`, `wt rm`) over raw
+  `git worktree add` / `git checkout`. See the `wt` skill for command
+  details and the active strategy (parent-worktrees).
+- When running in a linked worktree, always search, read, and edit files
+  within the worktree directory. Never fall back to the base working tree
+  for file operations — the worktree has its own copy of the repo.
+- When merging the current branch into another and you know you're in a
+  linked worktree, run `wt ls` (or `git worktree list`) to find the
+  target branch. If it's in the main working tree, merge from there
+  without prompting. If it's in another linked worktree, prompt before
+  merging.
 
 ## Testing
 

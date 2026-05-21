@@ -6,3 +6,9 @@ ssh-agent-pipe
 android-patch-claude-code-tmpdir
 tsgolint
 {{- end }}
+
+{{- if eq .chezmoi.os "windows" }}
+wt-bootstrap
+{{- else }}
+wt-bootstrap.ps1
+{{- end }}

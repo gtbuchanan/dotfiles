@@ -53,6 +53,13 @@
   include: ["*/skills/turborepo/**"]
   url: https://github.com/vercel/turborepo/archive/3188a5662c7eb14eb49d443a9f3bc4d7ee176e4b.tar.gz
 
+'.agents/skills/wt':
+  exact: true
+  type: archive
+  stripComponents: 5
+  include: ["*/plugins/wt/skills/wt/**"]
+  url: https://github.com/timvw/wt/archive/c67a53efb8a75ec4c668abe2bbfe0c77904c3f67.tar.gz
+
 {{- if ne .chezmoi.os "windows" }}
 # https://wezterm.org/shell-integration.html
 '.config/wezterm/wezterm.sh':
