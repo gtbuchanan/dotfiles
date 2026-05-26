@@ -30,3 +30,16 @@
   never substitute regular `Agent` subagents. Use `Agent` with `team_name` to
   spawn teammates into the team.
 
+## Worktree Sessions
+
+- After `wt create <branch>` / `wt co <branch>` / `wt pr <num>`, immediately
+  call `EnterWorktree` with the printed path to switch the session into the
+  worktree. This moves cwd, status line, file resolution, and git context.
+- Use `ExitWorktree { action: "keep" }` to return to the original session
+  directory. `ExitWorktree` cannot remove wt-managed worktrees (they were
+  entered by path, not created by Claude) — use `wt rm <branch>` to delete.
+- NEVER call `EnterWorktree` with `name`. That creates a Claude-native
+  worktree under `.claude/worktrees/`, bypassing wt and its bootstrap
+  (`.local` file mirroring, `pnpm install`, `.vs/` carry-over). Always
+  create via wt, then enter by path.
+

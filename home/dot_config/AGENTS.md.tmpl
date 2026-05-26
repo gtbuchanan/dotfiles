@@ -120,8 +120,9 @@
 ## Worktrees
 
 - Prefer `wt` commands (`wt create`, `wt co`, `wt pr`, `wt rm`) over raw
-  `git worktree add` / `git checkout`. See the `wt` skill for command
-  details and the active strategy (parent-worktrees).
+  `git worktree add` / `git checkout` / `git worktree remove`. `wt rm`
+  removes both the worktree dir and the branch in one step. See the `wt`
+  skill for command details and the active strategy (parent-worktrees).
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
