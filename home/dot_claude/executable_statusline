@@ -2,7 +2,12 @@
 input=$(cat)
 
 MODEL=$(echo "$input" | jq -r '.model.display_name')
-DIR=$(echo "$input" | jq -r '(.worktree.original_cwd // .workspace.project_dir) | split("/|\\\\"; "g") | last')
+DIR=$(echo "$input" | jq -r '
+    ((.worktree.original_cwd // .workspace.project_dir)
+      | gsub("\\\\"; "/") | split("/") | map(select(length > 0))) as $parts
+    | ($parts | map(select(endswith(".worktrees"))) | first) as $wt
+    | if $wt then ($wt | rtrimstr(".worktrees")) else ($parts | last) end
+  ')
 PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 WORKTREE_NAME=$(echo "$input" | jq -r '.worktree.name // empty')
 WORKTREE_BRANCH=$(echo "$input" | jq -r '.worktree.branch // empty')
@@ -66,6 +71,10 @@ cache_is_stale() {
 
 if cache_is_stale; then
     if GIT_DIR=$(git rev-parse --git-dir 2>/dev/null); then
+        # Linked worktree: per-worktree gitdir differs from the common gitdir.
+        GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+        IS_WORKTREE=0
+        [ "$GIT_DIR" != "$GIT_COMMON_DIR" ] && IS_WORKTREE=1
         BRANCH=$(git branch --show-current 2>/dev/null)
         # Detect rebase/merge/cherry-pick/revert state
         STATE=""
@@ -100,16 +109,23 @@ if cache_is_stale; then
             AHEAD=0
             BEHIND=0
         fi
-        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}|${STASH}" > "$CACHE_FILE"
+        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}|${STASH}|${IS_WORKTREE}" > "$CACHE_FILE"
     else
-        echo "|||||||||" > "$CACHE_FILE"
+        echo "||||||||||" > "$CACHE_FILE"
     fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH IS_WORKTREE < "$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
 # Restore / from + (Claude Code replaces / with + in worktree branch names)
 [ "$BRANCH_STRIPPED" != "$BRANCH" ] && BRANCH_STRIPPED="${BRANCH_STRIPPED//+//}"
+
+# Claude Code only sets .worktree.name for worktrees it creates itself. For any
+# other linked worktree (wt, manual `git worktree add`, etc.) synthesize
+# WORKTREE_NAME from the branch so the 🌳 icon still shows up.
+if [ -z "$WORKTREE_NAME" ] && [ "$IS_WORKTREE" = "1" ]; then
+    WORKTREE_NAME="$BRANCH_STRIPPED"
+fi
 
 # --- Worktree segment (wt_bg, only when current branch differs from worktree name) ---
 if [ -n "$WORKTREE_NAME" ]; then
