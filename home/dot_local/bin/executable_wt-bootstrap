@@ -17,6 +17,12 @@ git -C "$WT_MAIN" ls-files --others --exclude-standard --ignored --directory 2>/
     cp "$WT_MAIN/$f" "$dst"
   done
 
-if [ -f "$WT_PATH/pnpm-lock.yaml" ]; then
+# Prefer the project's mise bootstrap task when defined — it owns the
+# canonical setup (pnpm install, codegen, db prep, etc.) and mise
+# auto-installs its tool prerequisites. Fall back to a bare pnpm
+# install for projects that haven't adopted mise tasks yet.
+if mise -C "$WT_PATH" tasks info bootstrap >/dev/null 2>&1; then
+  mise -C "$WT_PATH" run bootstrap
+elif [ -f "$WT_PATH/pnpm-lock.yaml" ]; then
   pnpm -C "$WT_PATH" install --frozen-lockfile
 fi
