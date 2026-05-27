@@ -1,0 +1,15 @@
+# Termux/Android-only mise global config.
+#
+# node: mise's "core" node backend ships only glibc and musl arm64
+# tarballs; both reference dynamic linkers (/lib/ld-linux-aarch64.so.1,
+# /lib/ld-musl-aarch64.so.1) that don't exist on Termux's bionic. Use
+# Termux's `nodejs-lts` package instead — workspace mise.toml entries
+# for node are honored elsewhere; disable_tools just makes mise ignore
+# them here.
+#
+# pnpm: mise's shim execs the pnpm script (`#!/usr/bin/env node`), but
+# mise is musl-static so its execve bypasses termux-exec's LD_PRELOAD
+# path remapping, and the shebang lookup ENOENTs. Use the system pnpm
+# installed via `npm i -g pnpm` in run_onchange_before.sh instead.
+[settings]
+disable_tools = ["node", "pnpm"]

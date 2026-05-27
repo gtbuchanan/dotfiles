@@ -12,6 +12,7 @@ Documents
 
 {{- if ne .chezmoi.os "android" }}
 .chezmoiscripts/android/**
+.config/mise
 .local/bin/pinentry-termux
 .local/bin/ssh-askpass-termux
 .termux
