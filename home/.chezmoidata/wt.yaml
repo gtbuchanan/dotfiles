@@ -1,0 +1,2 @@
+# renovate: datasource=github-releases depName=timvw/wt
+wt_version: "0.1.28"
