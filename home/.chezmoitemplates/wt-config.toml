@@ -4,3 +4,4 @@ strategy = "parent-worktrees"
 post_create = ["wt-bootstrap"]
 post_checkout = ["wt-bootstrap"]
 post_pr = ["wt-bootstrap"]
+post_remove = ["wt-cleanup"]

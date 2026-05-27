@@ -121,8 +121,15 @@
 
 - Prefer `wt` commands (`wt create`, `wt co`, `wt pr`, `wt rm`) over raw
   `git worktree add` / `git checkout` / `git worktree remove`. `wt rm`
-  removes both the worktree dir and the branch in one step. See the `wt`
-  skill for command details and the active strategy (parent-worktrees).
+  removes both the worktree dir and the branch in one step (via the
+  `wt-cleanup` post_remove hook, which falls back to `-D` only when the
+  upstream is `[gone]` — i.e., the PR was merged and the remote branch
+  was deleted — and otherwise keeps unmerged work). See the `wt` skill
+  for command details and the active strategy (parent-worktrees).
+- Always prompt before `wt rm` or any branch-deleting command. A local
+  fetch may be stale, so a branch can look unmerged even after its PR
+  landed; conversely it can look `[gone]` while still holding work the
+  user wants. Confirm with the user before removing.
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
