@@ -4,7 +4,7 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": ["^home/\\.chezmoidata/.+\\.ya?ml$"],
+      "managerFilePatterns": ["/^home/\\.chezmoidata/.+\\.ya?ml$/"],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s*\\n[ \\t]*\\S+:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
       ]
@@ -12,7 +12,7 @@
     {
       "customType": "regex",
       "datasourceTemplate": "github-releases",
-      "fileMatch": ["^home/\\.chezmoiexternal\\.yaml\\.tmpl$"],
+      "managerFilePatterns": ["/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"],
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/archive/refs/tags/(?<currentValue>[\\w.-]+)\\.tar\\.gz"
       ]
@@ -22,7 +22,7 @@
       "customType": "regex",
       "datasourceTemplate": "git-refs",
       "depNameTemplate": "https://github.com/{{depName}}",
-      "fileMatch": ["^home/\\.chezmoiexternal\\.yaml\\.tmpl$"],
+      "managerFilePatterns": ["/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"],
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/archive/(?<currentDigest>[a-f0-9]{40})\\.tar\\.gz"
       ]
