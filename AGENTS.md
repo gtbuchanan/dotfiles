@@ -183,22 +183,12 @@ GPG signing is enabled for all commits. The GPG wrapper at
 
 ## Agent Skills
 
-Skills follow the [Agent Skills](https://agentskills.io) standard. Skills are fetched as
-external archives via `home/.chezmoiexternal.yaml.tmpl` and deployed to `~/.agents/skills/`,
-the cross-tool convention picked up by Codex CLI, Cursor, Gemini CLI, OpenCode,
-and GitHub Copilot (VS Code and Visual Studio 2026). Claude Code only reads
-`~/.claude/skills`, so a single symlink redirects it to the same directory:
+Skills follow the [Agent Skills](https://agentskills.io) standard. To add one,
+add an entry in `home/.chezmoiexternal.yaml.tmpl` pointing to the skill's
+archive — every supported tool picks it up automatically.
 
-```
-~/.agents/skills/              ← deployed by chezmoi externals
-    atlassian-cli/SKILL.md
-
-~/.claude/skills → ../.agents/skills   (symlink)
-```
-
-To add a new skill, add an entry in `.chezmoiexternal.yaml.tmpl` pointing to the skill's
-archive. All tools pick it up automatically. Use template conditionals to gate
-host-specific skills (e.g., `atlassian-cli` is ewn-only).
+See [`docs/agent-config.md`](docs/agent-config.md) for the cross-tool deploy
+path, Claude symlink redirect, and pinning conventions.
 
 ## Global pnpm Packages
 
@@ -235,7 +225,8 @@ Configuration targets:
 ## User-Level Agent Preferences
 
 Project-agnostic agent preferences (coding style, git conventions, etc.) live in
-`home/dot_config/AGENTS.md.tmpl`. That file is the single source consumed by Claude Code
-(`dot_claude/CLAUDE.md.tmpl`), GitHub Copilot (`dot_copilot/copilot-instructions.md.tmpl`),
-and VS Code (`AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`).
-Do not duplicate those rules here.
+`home/dot_config/AGENTS.md.tmpl`, the single source consumed by every supported
+tool via per-tool wrappers. Do not duplicate those rules here.
+
+See [`docs/agent-config.md`](docs/agent-config.md) for the wrapper map and how
+the shared template fans out.
