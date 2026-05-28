@@ -199,20 +199,6 @@ To add a new package:
 See [`docs/pnpm-globals.md`](docs/pnpm-globals.md) for the template internals,
 GitHub-spec handling, the `pnpmfile.cjs` hook, and the per-script package mapping.
 
-## MCP Readonly Server
-
-The read-only MCP server lives in a separate repo:
-[readonly-mcp/core](https://github.com/readonly-mcp/core). It provides allowlisted
-read-only access to CLI tools (`az`, `git`, `gh`, `chezmoi`, `acli`, `npm`, `pnpm`,
-and common shell utilities) for AI agents.
-
-The server is installed globally via the `pnpm-globals` shared template (see above).
-The install script also registers it with Claude Code via `claude mcp add --scope user`.
-
-Configuration targets:
-- **Claude Code**: Registered via `claude mcp add --scope user` (in the install script), auto-allow permissions in `home/dot_claude/settings.json.tmpl`
-- **VS Code / Copilot**: `home/.chezmoitemplates/vscode_settings.json` (`mcp.servers`)
-
 ## User-Level Agent Preferences
 
 Project-agnostic agent preferences (coding style, git conventions, etc.) live in
