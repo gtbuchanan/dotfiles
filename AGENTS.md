@@ -172,15 +172,6 @@ conditionals within a script (e.g., WSL vs. native Linux, personal vs. ewn).
 - Exception: `*gitconfig*` files use tab indent (Git requires tabs).
 - See `.editorconfig` for the canonical rules.
 
-## GPG Signing and AI Agents
-
-GPG signing is enabled for all commits. The GPG wrapper at
-`home/dot_config/private_git/gpg-wrapper.bat` adjusts pinentry behavior based on the caller:
-
-- When `CLAUDE_CODE` or `AI_AGENT` env var is set: calls GPG without `--pinentry-mode loopback`
-  so non-interactive signing works.
-- Otherwise with `GPG_TTY` set: adds `--pinentry-mode loopback` for terminal pinentry.
-
 ## Agent Skills
 
 Skills follow the [Agent Skills](https://agentskills.io) standard. To add one,
