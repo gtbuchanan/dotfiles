@@ -1198,18 +1198,34 @@ properties:
       settings:
         id: WiresharkFoundation.Wireshark
         source: winget
+    # Worktrunk ships both `wt.exe` and `git-wt.exe` on Windows. Removing
+    # Windows Terminal's `wt.exe` App Execution Alias (below) exposes the
+    # worktrunk binary as `wt` across every shell (PowerShell, Git Bash,
+    # cmd, etc.) -- a PowerShell-only alias wouldn't survive non-PS shells.
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install wt
-      id: wt
+        description: Install worktrunk
+      id: worktrunk
+      settings:
+        id: max-sixty.worktrunk
+        source: winget
+    # Uninstall the previous worktree manager (timvw/wt). Idempotent --
+    # no-op on machines that never had it. Safe to remove this entry once
+    # all known machines have applied this config.
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Uninstall legacy timvw/wt
+      id: timvwWt
       settings:
         id: timvw.wt
         source: winget
-    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows timvw/wt
+        ensure: Absent
+    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows
+    # worktrunk's `wt.exe` regardless of PATH order.
     # HACK: There appears to be no Windows API for App Execution Aliases, so we delete the file
     # https://superuser.com/a/1746939
     - resource: xPSDesiredStateConfiguration/xScript
-      dependsOn: [wt]
+      dependsOn: [worktrunk]
       directives:
         description: Remove Windows Terminal App Execution Alias
       id: wtAppAlias

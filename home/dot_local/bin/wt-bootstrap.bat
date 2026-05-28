@@ -1,1 +1,1 @@
-@pwsh -NoProfile -File "%~dp0wt-bootstrap.ps1"
+@pwsh -NoProfile -File "%~dp0wt-bootstrap.ps1" %*

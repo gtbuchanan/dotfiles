@@ -111,9 +111,12 @@ Set-PsFzfOption `
 # Configure posh-git
 Import-Module posh-git
 
-# Configure wt shell integration
+# Worktrunk shell integration: subprocesses can't change the parent shell's
+# cwd, so `wt config shell init powershell` emits a wrapper function that
+# reads directive files written by the binary and runs `cd` in the host
+# session. See worktrunk's shell-integration.md.
 if (Get-Command wt -ErrorAction SilentlyContinue) {
-  & wt shellenv | Out-String | Invoke-Expression
+  Invoke-Expression (& wt config shell init powershell | Out-String)
 }
 
 {{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}

@@ -29,7 +29,7 @@ Library
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
-.config/wt
+.config/worktrunk
 .tmux
 {{- end }}
 

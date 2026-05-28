@@ -55,6 +55,11 @@ eval "$(fzf --bash)"
 eval "$(delta --generate-completion bash)"
 {{- end }}
 
+# Enable worktrunk shell integration: subprocesses can't change the parent
+# shell's cwd, so `wt config shell init bash` emits a `wt` function that
+# reads the directive file written by the binary and `cd`s the host shell.
+command -v wt >/dev/null && eval "$(wt config shell init bash)"
+
 # Configure Node Version Manager (nvm)
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm

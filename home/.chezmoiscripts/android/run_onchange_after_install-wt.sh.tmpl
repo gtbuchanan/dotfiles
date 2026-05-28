@@ -1,31 +1,29 @@
 #!/data/data/com.termux/files/usr/bin/bash
 {{/*
-  timvw/wt install for Termux/Android.
+  worktrunk install for Termux/Android.
 
-  Not packaged in the Termux registry. wt is a static Go binary, so the
-  upstream linux-arm64 release tarball runs natively on Termux without
-  any glibc patching.
+  Not packaged in the Termux registry. Worktrunk ships musl-linked
+  static binaries; aarch64-unknown-linux-musl runs natively on Termux.
 
   Version pinned in `home/.chezmoidata/wt.yaml` and tracked by Renovate.
 */}}
 set -euo pipefail
 
-VERSION='{{ .wt_version }}'
-ARCHIVE="wt_${VERSION}_linux_arm64.tar.gz"
-DL_BASE="https://github.com/timvw/wt/releases/download/v${VERSION}"
+VERSION='{{ .worktrunk_version }}'
+ARCHIVE="worktrunk-aarch64-unknown-linux-musl.tar.xz"
+DL_BASE="https://github.com/max-sixty/worktrunk/releases/download/v${VERSION}"
 
-INSTALL_DIR="$HOME/.local/share/wt"
+INSTALL_DIR="$HOME/.local/share/worktrunk"
 BINARY="$INSTALL_DIR/wt-$VERSION"
 WRAPPER="$HOME/.local/bin/wt"
 
 mkdir -p "$INSTALL_DIR" "$(dirname "$WRAPPER")"
 
 if [ ! -x "$BINARY" ]; then
-  echo "Installing wt $VERSION..."
-  checksum=$(curl -fsSL "$DL_BASE/checksums.txt" \
-    | awk -v a="$ARCHIVE" '$2 == a { print $1 }')
+  echo "Installing worktrunk $VERSION..."
+  checksum=$(curl -fsSL "$DL_BASE/$ARCHIVE.sha256" | awk '{ print $1 }')
   if [ -z "$checksum" ]; then
-    echo "Could not find $ARCHIVE in checksums.txt" >&2
+    echo "Could not fetch checksum for $ARCHIVE" >&2
     exit 1
   fi
 
@@ -39,7 +37,10 @@ if [ ! -x "$BINARY" ]; then
     exit 1
   fi
 
-  tar -xzf "$tmp/$ARCHIVE" -C "$tmp" wt
+  # Archive contains worktrunk-<triple>/{wt,git-wt,README.md,LICENSE,CHANGELOG.md}.
+  # On Android there's no `wt.exe` conflict, so we only need `wt`.
+  tar -xJf "$tmp/$ARCHIVE" -C "$tmp" --strip-components=1 \
+    "worktrunk-aarch64-unknown-linux-musl/wt"
   chmod +x "$tmp/wt"
   mv "$tmp/wt" "$BINARY"
   rm -rf "$tmp"

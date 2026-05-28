@@ -1,7 +1,13 @@
 #!/bin/sh
-# Invoked by wt's post_create / post_checkout / post_pr hooks to bring a
-# new worktree up to a usable state. Add more bootstrap steps below as
-# needed (mise install, uv sync, etc.).
+# Invoked by worktrunk's post-start hook to bring a new worktree up to a
+# usable state. Add more bootstrap steps below as needed (mise install,
+# uv sync, etc.).
+#
+# Args: $1=worktree_path  $2=primary_worktree_path  $3=branch
+
+WT_PATH="$1"
+WT_MAIN="$2"
+WT_BRANCH="$3"
 
 # Mirror untracked per-checkout files from $WT_MAIN, preserving subdirs:
 #   *.local      .env.local, .cleanignore.local

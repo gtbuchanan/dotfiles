@@ -119,22 +119,28 @@
 
 ## Worktrees
 
-- Prefer `wt` commands (`wt create`, `wt co`, `wt pr`, `wt rm`) over raw
-  `git worktree add` / `git checkout` / `git worktree remove`. `wt rm`
-  removes both the worktree dir and the branch in one step (via the
-  `wt-cleanup` post_remove hook, which falls back to `-D` only when the
-  upstream is `[gone]` — i.e., the PR was merged and the remote branch
-  was deleted — and otherwise keeps unmerged work). See the `wt` skill
-  for command details and the active strategy (parent-worktrees).
-- Always prompt before `wt rm` or any branch-deleting command. A local
-  fetch may be stale, so a branch can look unmerged even after its PR
-  landed; conversely it can look `[gone]` while still holding work the
-  user wants. Confirm with the user before removing.
+- We use [worktrunk](https://worktrunk.dev) (the `wt` CLI) for worktree
+  management.
+- Prefer `wt` commands over raw `git worktree add` / `git checkout` /
+  `git worktree remove`:
+  - `wt switch --create <branch>` — new branch + worktree
+  - `wt switch <branch>` — switch to an existing worktree (or create
+    one tracking a remote branch)
+  - `wt switch pr:<num>` — check out a GitHub PR into a worktree
+  - `wt list` — list worktrees with merge/dirty status
+  - `wt remove [<branch>]` — remove worktree; deletes the branch too
+    when worktrunk's 6-condition merge check says it's safe
+  - `wt merge` — rebase + squash + merge + cleanup pipeline
+  - See the `worktrunk` skill for the full command reference.
+- Always prompt before `wt remove` or any branch-deleting command. The
+  merge detection is robust (same-commit, ancestor, three-dot diff, tree
+  match, simulated merge, patch-id) but a local fetch may be stale.
+  Confirm with the user before removing.
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
 - When merging the current branch into another and you know you're in a
-  linked worktree, run `wt ls` (or `git worktree list`) to find the
+  linked worktree, run `wt list` (or `git worktree list`) to find the
   target branch. If it's in the main working tree, merge from there
   without prompting. If it's in another linked worktree, prompt before
   merging.
