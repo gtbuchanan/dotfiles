@@ -16,4 +16,6 @@ AppData/Roaming/wt
 .local/bin/wt-cleanup
 .local/bin/wt-cleanup.bat
 .local/bin/wt-cleanup.ps1
+.local/bin/wt-bootstrap.bat
+.local/bin/wt-bootstrap.ps1
 .agents/skills/wt
