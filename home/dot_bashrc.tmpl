@@ -77,10 +77,8 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
 
-# Activate mise (tool version + env + task manager). Use the absolute
-# path so it works in tmux panes inheriting a stale PATH from a tmux
-# server started before mise was installed
-eval "$("$HOME/.local/bin/mise" activate bash)"
+# Activate mise (tool version + env + task manager).
+eval "$(mise activate bash)"
 
 # Patch Claude Code for Termux compatibility
 # https://github.com/anthropics/claude-code/issues/15637
