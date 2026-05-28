@@ -204,38 +204,19 @@ host-specific skills (e.g., `atlassian-cli` is ewn-only).
 
 Global pnpm package versions are centralized in `package.json` at the repo root.
 A shared chezmoi template (`home/.chezmoitemplates/pnpm-globals`) reads this file
-and generates `pnpm add -g` commands.
+and generates `pnpm add -g` commands. Each `run_onchange_after_` script declares
+which packages it needs via an include list, so a version bump only re-runs the
+scripts that use that package.
 
-### How it works
+To add a new package:
 
-Each `run_onchange_after_` script declares which packages it needs via an include list:
+1. Add the package and pinned version to `package.json`.
+1. Add the package name to the include list in exactly one script. Scripts that
+   need a package for post-install steps (e.g., MCP registration) install it
+   themselves to stay self-contained.
 
-```
-{{ template "pnpm-globals" dict "include" (list "@openai/codex" "@vtsls/language-server") }}
-```
-
-The template resolves versions from `package.json` and renders a `pnpm add -g` command
-with pinned versions. Since the versions are embedded in the rendered script content,
-chezmoi's `run_onchange_` mechanism only re-runs a script when its specific packages
-change — bumping one package does not trigger unrelated scripts.
-
-### Adding a new package
-
-1. Add the package and pinned version to `package.json`
-1. Add the package name to the include list in the appropriate script(s)
-
-Each package should belong to exactly one script. Scripts that need a package for
-post-install steps (e.g., MCP registration, patching) should install it themselves
-via the shared template, making them self-contained with no ordering dependencies.
-
-### Current scripts
-
-| Script | Packages | Post-install |
-|---|---|---|
-| `install-pnpm-globals` (Windows) | codex, LSP servers | — |
-| `install-pnpm-globals` (Android) | claude-code, codex, bitwarden (personal) | — |
-| `mcp-readonly-install` | @readonly-mcp/core | `claude mcp add` registration |
-| `claude-configure` (Windows) | tweakcc | Plugin install, LSP patching |
+See [`docs/pnpm-globals.md`](docs/pnpm-globals.md) for the template internals,
+GitHub-spec handling, the `pnpmfile.cjs` hook, and the per-script package mapping.
 
 ## MCP Readonly Server
 
