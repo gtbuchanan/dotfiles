@@ -2,7 +2,7 @@
   "private": true,
   "dependencies": {
     "@bitwarden/cli": "2026.4.2",
-    "@openai/codex": "0.120.0",
+    "@openai/codex": "0.133.0",
     "@playwright/cli": "0.1.13",
     "@readonly-mcp/core": "github:readonly-mcp/core#1ff05ccedbe3a589decdbd67e73f98a5884f3286",
     "@vtsls/language-server": "0.3.0",
