@@ -1,11 +1,34 @@
 {{ includeTemplate "dot_config/AGENTS.md.tmpl" . }}
-{{- if eq .chezmoi.os "windows" }}
 
 ## Shell
 
+{{- if eq .chezmoi.os "windows" }}
 - Prefer the PowerShell tool over Bash, regardless of what the environment
   block reports.
 {{- end }}
+- For long-running commands, use `Bash` with `run_in_background: true`
+  instead of piping through `head`/`tail`/`Select-Object`. The harness
+  captures stdout/stderr to an output file (path in the tool result) and
+  notifies on exit — then `Read` the file. Spot-check the live file if you
+  suspect a hang; don't busy-poll.
+- Pair every background `Bash` with a stall-detector `Monitor` — the Bash
+  `timeout` only bounds the foreground call, so backgrounded processes can
+  hang silently for the rest of the session. Sketch (polls output size,
+  emits when it doesn't grow for 60s; stop with `TaskStop` after the task
+  completes):
+  ```
+  prev=-1
+  while true; do
+    sleep 60
+    cur=$(stat -c %s <output-file> 2>/dev/null || echo 0)
+    [ "$cur" = "$prev" ] && echo "STALLED: no output for 60s ($cur bytes)"
+    prev=$cur
+  done
+  ```
+- Use `Monitor` directly for per-occurrence streaming (e.g., every ERROR
+  line): pass a command whose stdout lines are the events
+  (`tail -f log | grep --line-buffered -E "ERROR|FAIL"`). Monitor does not
+  auto-tail files.
 
 ## LSP
 

@@ -169,6 +169,18 @@
   `pushd dir && command; rc=$?; popd; exit $rc` instead of `cd dir && command`.
   This ensures the working directory is always restored and the command's exit
   code is preserved.
+- For long-running commands (builds, test suites, pipelines, anything that
+  takes more than a few seconds), redirect output to a file and run in the
+  background, then read/tail the file to inspect progress. Do NOT pipe
+  through `head`/`tail`/`grep`/`Select-Object` to limit output — those
+  buffer until the upstream command exits, hiding all progress until
+  completion and defeating the point of streaming. Patterns:
+  - PowerShell: `command *> output.log` (background), then
+    `Get-Content output.log -Tail 50` or `Get-Content output.log -Wait`
+  - Bash: `command &> output.log` (background), then
+    `tail -n 50 output.log` or `tail -f output.log`
+  Once the command finishes, filter the saved file freely — by then the
+  output is static and `head`/`tail`/`grep` are fine.
 {{- if eq .chezmoi.os "windows" }}
 - `sudo` is available natively on Windows 11 (24H2+) and configured in inline
   mode — use it when a command needs administrator privileges and won't
