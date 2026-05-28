@@ -1,2 +1,2 @@
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
-claude_code_version: "2.1.143"
+claude_code_version: "2.1.153"
