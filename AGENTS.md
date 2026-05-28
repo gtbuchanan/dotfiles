@@ -1,7 +1,8 @@
 # Chezmoi Dotfiles — Agent Guide
 
 Cross-platform dotfiles managed with [chezmoi](https://www.chezmoi.io/) v2.62.2+.
-The chezmoi root is `home/`; see `.chezmoiroot`.
+The chezmoi root is `home/`; see `.chezmoiroot`. Deep-dive references for
+cross-file configurations live in [`docs/`](docs/README.md).
 
 ## CRITICAL: All Changes Go Through Chezmoi
 

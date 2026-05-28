@@ -114,17 +114,12 @@ Import-Module posh-git
 # Worktrunk shell integration: subprocesses can't change the parent shell's
 # cwd, so `wt config shell init powershell` emits a wrapper function that
 # reads directive files written by the binary and runs `cd` in the host
-# session. On Windows the binary is `git-wt` (to avoid clashing with Windows
-# Terminal's `wt`); elsewhere it's `wt`. See worktrunk's shell-integration.md.
-{{- if eq .chezmoi.os "windows" }}
-if (Get-Command git-wt -ErrorAction SilentlyContinue) {
-  Invoke-Expression (& git-wt config shell init powershell | Out-String)
-}
-{{- else }}
+# session. On Windows, `wt` resolves to worktrunk via the `~/.local/bin/wt.exe`
+# symlink (Windows Terminal's App Execution Alias for `wt.exe` is removed by
+# the winget config). See worktrunk's shell-integration.md.
 if (Get-Command wt -ErrorAction SilentlyContinue) {
   Invoke-Expression (& wt config shell init powershell | Out-String)
 }
-{{- end }}
 
 {{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}
 {{- if ne .osid "ubuntu" }}

@@ -1198,10 +1198,13 @@ properties:
       settings:
         id: WiresharkFoundation.Wireshark
         source: winget
-    # Worktrunk ships its Windows binary as `git-wt.exe` to avoid clashing
-    # with Windows Terminal's `wt.exe`. We invoke it as `git-wt` from every
-    # shell on Windows (PowerShell's shell-init function defines `git-wt`
-    # too). `wt` stays bound to Windows Terminal -- we don't use it.
+    # Worktrunk ships both `wt.exe` and `git-wt.exe` on Windows, but winget
+    # only symlinks `git-wt.exe` into `WinGet\Links\` (the `wt.exe` link
+    # collides with Windows Terminal's App Execution Alias). Removing that
+    # alias plus a chezmoi-managed `~/.local/bin/wt.exe` symlink (see
+    # `home/dot_local/bin/symlink_wt.exe.tmpl`) exposes worktrunk as `wt`
+    # across every shell with no per-shell wrapper hacks, so tab completion
+    # (which clap registers under `wt`) just works.
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install worktrunk
@@ -1220,6 +1223,25 @@ properties:
         id: timvw.wt
         source: winget
         ensure: Absent
+    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows
+    # worktrunk's `wt.exe` regardless of PATH order.
+    # HACK: There appears to be no Windows API for App Execution Aliases, so we delete the file
+    # https://superuser.com/a/1746939
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [worktrunk]
+      directives:
+        description: Remove Windows Terminal App Execution Alias
+      id: wtAppAlias
+      settings:
+        GetScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          @{ Result = (Test-Path $AliasPath) }
+        TestScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          -Not (Test-Path $AliasPath)
+        SetScript: |
+          $AliasPath = "$env:LOCALAPPDATA\Microsoft\WindowsApps\wt.exe"
+          Remove-Item $AliasPath -Force -ErrorAction SilentlyContinue
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:

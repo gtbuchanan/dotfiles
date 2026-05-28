@@ -117,22 +117,21 @@
   Default suggestion: personal account
 {{- end }}
 
-{{- $wt := eq .chezmoi.os "windows" | ternary "git-wt" "wt" }}
 ## Worktrees
 
 - We use [worktrunk](https://worktrunk.dev) for worktree management.
-- Prefer `{{ $wt }}` commands over raw `git worktree add` / `git checkout` /
+- Prefer `wt` commands over raw `git worktree add` / `git checkout` /
   `git worktree remove`:
-  - `{{ $wt }} switch --create <branch>` — new branch + worktree
-  - `{{ $wt }} switch <branch>` — switch to an existing worktree (or create
+  - `wt switch --create <branch>` — new branch + worktree
+  - `wt switch <branch>` — switch to an existing worktree (or create
     one tracking a remote branch)
-  - `{{ $wt }} switch pr:<num>` — check out a GitHub PR into a worktree
-  - `{{ $wt }} list` — list worktrees with merge/dirty status
-  - `{{ $wt }} remove [<branch>]` — remove worktree; deletes the branch too
+  - `wt switch pr:<num>` — check out a GitHub PR into a worktree
+  - `wt list` — list worktrees with merge/dirty status
+  - `wt remove [<branch>]` — remove worktree; deletes the branch too
     when worktrunk's 6-condition merge check says it's safe
-  - `{{ $wt }} merge` — rebase + squash + merge + cleanup pipeline
+  - `wt merge` — rebase + squash + merge + cleanup pipeline
   - See the `worktrunk` skill for the full command reference.
-- Always prompt before `{{ $wt }} remove` or any branch-deleting command.
+- Always prompt before `wt remove` or any branch-deleting command.
   The merge detection is robust (same-commit, ancestor, three-dot diff,
   tree match, simulated merge, patch-id) but a local fetch may be stale.
   Confirm with the user before removing.
@@ -140,7 +139,7 @@
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
 - When merging the current branch into another and you know you're in a
-  linked worktree, run `{{ $wt }} list` (or `git worktree list`) to find
+  linked worktree, run `wt list` (or `git worktree list`) to find
   the target branch. If it's in the main working tree, merge from there
   without prompting. If it's in another linked worktree, prompt before
   merging.
