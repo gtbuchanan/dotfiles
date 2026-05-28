@@ -128,14 +128,25 @@ if [ -z "$WORKTREE_NAME" ] && [ "$IS_WORKTREE" = "1" ]; then
 fi
 
 # --- Worktree segment (wt_bg, only when current branch differs from worktree name) ---
+# Equivalence checks:
+#   1. Claude Code-managed: replaces / with + in worktree names, so compare
+#      after normalizing both sides.
+#   2. Worktrunk default layout: worktree dir is `<repo>.<sanitize(branch)>`,
+#      where sanitize replaces `/` and `\` with `-`. The repo name appears in
+#      the DIR segment and the sanitized branch in BRANCH -- so when this
+#      pattern matches, the worktree segment is pure repetition.
+WT_NAME_NORM="${WORKTREE_NAME//\//+}"
+GIT_BRANCH_NORM="${BRANCH_STRIPPED//\//+}"
+BRANCH_SANITIZED="${BRANCH_STRIPPED//\//-}"
+BRANCH_SANITIZED="${BRANCH_SANITIZED//\\/-}"
+WT_EQUIV_BRANCH=0
 if [ -n "$WORKTREE_NAME" ]; then
-    # Claude Code replaces / with + in worktree dir/branch names; normalize both for comparison
-    WT_NAME_NORM="${WORKTREE_NAME//\//+}"
-    GIT_BRANCH_NORM="${BRANCH_STRIPPED//\//+}"
-    if [ "$WT_NAME_NORM" != "$GIT_BRANCH_NORM" ]; then
-        LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
-        PREV_BG_FG="${WT_FG}"
-    fi
+    [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && WT_EQUIV_BRANCH=1
+    [ "$WORKTREE_NAME" = "${DIR}.${BRANCH_SANITIZED}" ] && WT_EQUIV_BRANCH=1
+fi
+if [ -n "$WORKTREE_NAME" ] && [ "$WT_EQUIV_BRANCH" = "0" ]; then
+    LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
+    PREV_BG_FG="${WT_FG}"
 fi
 
 if [ -n "$BRANCH" ]; then
@@ -170,7 +181,7 @@ if [ -n "$BRANCH" ]; then
     GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
     [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
     GIT_ICON="${ICON_BRANCH} "
-    [ -n "$WORKTREE_NAME" ] && [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && GIT_ICON="🌳"
+    [ "$WT_EQUIV_BRANCH" = "1" ] && GIT_ICON="🌳"
     LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
     PREV_BG_FG="${GIT_FG}"
 fi
