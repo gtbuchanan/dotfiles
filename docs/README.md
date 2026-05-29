@@ -11,6 +11,7 @@ the moving parts fit together when a single config spans multiple files.
 | [`coderabbit.md`](coderabbit.md) | CLI install (native on Linux/macOS, via WSL on Windows), Windows wrappers for worktree + path translation, Claude Code plugin |
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
 | [`mcp.md`](mcp.md) | MCP server registrations across Claude + VS Code, `readonly-mcp` install + auto-allow, microsoft-learn HTTP transport |
+| [`nerd-font.md`](nerd-font.md) | `.font` vs `.fontpack` variable split, per-OS installers (`getnf` / NerdFonts PS module), Termux's fixed-path font quirk |
 | [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, `pnpmfile.cjs` hook |
 | [`ssh.md`](ssh.md) | Shared `Include ./*.conf` config, Windows-native OpenSSH as the canonical client, WSL→Windows agent bridge, Android popup askpass |
 | [`vim.md`](vim.md) | `.vimrc` + `.vsvimrc` shared-config split, `data_dir` cross-platform trick, plugin/auto-load layout, Android fauxClip, LSP via vim-lsp + ALE |
