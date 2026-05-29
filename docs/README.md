@@ -11,5 +11,6 @@ the moving parts fit together when a single config spans multiple files.
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
 | [`mcp.md`](mcp.md) | MCP server registrations across Claude + VS Code, `readonly-mcp` install + auto-allow, microsoft-learn HTTP transport |
 | [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, `pnpmfile.cjs` hook |
+| [`ssh.md`](ssh.md) | Shared `Include ./*.conf` config, Windows-native OpenSSH as the canonical client, WSL→Windows agent bridge, Android popup askpass |
 | [`vim.md`](vim.md) | `.vimrc` + `.vsvimrc` shared-config split, `data_dir` cross-platform trick, plugin/auto-load layout, Android fauxClip, LSP via vim-lsp + ALE |
 | [`worktrunk.md`](worktrunk.md) | Worktrunk install, `wt`-resolution per platform, shared config template, post-start bootstrap, skill deployment |
