@@ -14,10 +14,6 @@ export SSH_ASKPASS_REQUIRE=force
 # https://github.com/astral-sh/uv/issues/18285
 # https://github.com/gtbuchanan/tooling/issues/51
 export UV_LIBC=none
-
-# Point mise (and other Rust/reqwest binaries) at Termux's CA bundle —
-# the default `/etc/ssl/certs/ca-certificates.crt` does not exist here
-export SSL_CERT_FILE="$PREFIX/etc/tls/cert.pem"
 {{ end -}}
 
 # Add user's private bin to PATH

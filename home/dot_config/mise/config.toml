@@ -1,8 +1,7 @@
 # Termux/Android-only mise global config.
 #
-# The mise binary itself is fine on Termux (built dynamically linked
-# against bionic — see ~/.chezmoiscripts/android/run_onchange_after_install-mise.sh.tmpl).
-# But mise's tool-install backends don't have Android targets for these:
+# mise itself is packaged by Termux (installed via run_onchange_before.sh),
+# but mise's tool-install backends don't have Android targets for these:
 #
 # node: `core:node` has no Android tarball and falls back to building
 # from source, which doesn't compile cleanly against bionic. Use Termux's
