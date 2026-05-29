@@ -6,6 +6,7 @@ the moving parts fit together when a single config spans multiple files.
 | Doc | Topic |
 |---|---|
 | [`agent-config.md`](agent-config.md) | User-level instructions fan-out per tool, skill deployment to `~/.agents/skills/`, Claude divergence |
+| [`bash.md`](bash.md) | Per-OS bash source (Homebrew on macOS, Git Bash on Windows), ble.sh nightly install + vi mode, `.bash_profile` → `.profile` → `.bashrc` load order, auto-tmux |
 | [`claude-code.md`](claude-code.md) | settings.json drift, Windows LSP plugin + `.cmd`-shim fixes, notification → pane-focus chain, Android native install |
 | [`coderabbit.md`](coderabbit.md) | CLI install (native on Linux/macOS, via WSL on Windows), Windows wrappers for worktree + path translation, Claude Code plugin |
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
