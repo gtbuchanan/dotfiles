@@ -11,7 +11,7 @@ bumps.
 | File | Role |
 |---|---|
 | `package.json` | Pinned versions; Renovate-managed |
-| `pnpmfile.cjs` | Optional global pnpm hooks (currently patches a volar dep) |
+| `pnpmfile.cjs` | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
 | `home/.chezmoitemplates/pnpm-globals` | Shared template that renders `pnpm add -g <name@version> …` |
 | `home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl` | Termux installer |
 | `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | Installs `tweakcc` + Claude plugin setup |
@@ -58,15 +58,26 @@ self-contained, no ordering dependencies.
 
 ## The `pnpmfile` Option
 
-`pnpmfile.cjs` at the repo root contains a `readPackage` hook that
-patches `volar-service-emmet@0.0.64`'s GitHub-resolved
-`@emmetio/css-parser` dep to the npm-published version (pnpm 11's
-`blockExoticSubdeps` rejects the GitHub fork). The Windows
-`install-pnpm-globals` script passes the file via
-`--config.global-pnpmfile=` because that's the only script installing
-`@vue/language-server`, which transitively pulls the broken volar
-dep. Other scripts don't set the flag — they don't need it. See the
-inline comments in `pnpmfile.cjs` for the upstream-issue trail.
+`pnpmfile.cjs` at the repo root contains a `readPackage` hook with two
+patches:
+
+- `volar-service-emmet@0.0.64`'s GitHub-resolved `@emmetio/css-parser`
+  dep is repointed to the npm-published version (pnpm 11's
+  `blockExoticSubdeps` rejects the GitHub fork). Pulled transitively by
+  `@vue/language-server`, installed by `install-pnpm-globals`.
+- `ink-link@4.1.0` imports `react` in its compiled output but declares
+  it neither as a dependency nor a peerDependency. Under pnpm's isolated
+  `node_modules`, react isn't linked into ink-link's scope, so ESM
+  resolution fails ("Cannot find package 'react'") and `tweakcc` — which
+  pulls ink-link — crashes on startup. Hoisted layouts (npm) mask the
+  bug. The hook adds react as an explicit dep. Pulled by `tweakcc`,
+  installed by `claude-configure`.
+
+Both Windows scripts that pull an affected package pass the file via
+`--config.global-pnpmfile=` (rendered by the `pnpmfile` option of the
+shared template). Scripts whose packages need no patching don't set the
+flag. See the inline comments in `pnpmfile.cjs` for the upstream-issue
+trail.
 
 ## Adding a New Global Package
 

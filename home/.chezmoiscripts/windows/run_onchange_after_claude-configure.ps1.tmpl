@@ -1,5 +1,8 @@
 $ErrorActionPreference = 'Stop'
-{{ template "pnpm-globals" dict "include" (list "tweakcc") }}
+{{ template "pnpm-globals" dict
+  "pnpmfile" (printf "%s/pnpmfile.cjs" (.chezmoi.workingTree | replace "\\" "/"))
+  "include" (list "tweakcc")
+}}
 $HttpServers = @{
   'microsoft-learn' = 'https://learn.microsoft.com/api/mcp'
 }
