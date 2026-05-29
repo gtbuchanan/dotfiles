@@ -82,7 +82,11 @@ A [dotfiles] configuration using [chezmoi].
 
 1. Restart shell or reload environment variables
 1. `dcli sync` (Work only)
-1. `chezmoi init --apply gtbuchanan`
+1. `chezmoi init --apply --ssh gtbuchanan`
+
+   `--ssh` clones over SSH; this first connection also trusts github.com's
+   host key, which the SSH externals then rely on (gist.github.com via the
+   `HostKeyAlias` in `~/.ssh/config`).
 
 ### Troubleshooting
 

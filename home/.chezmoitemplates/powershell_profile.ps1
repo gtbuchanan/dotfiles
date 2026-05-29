@@ -129,7 +129,7 @@ delta --generate-completion powershell | Out-String | Invoke-Expression
 
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Configure PSRSA module
-Import-Module -Name $env:USERPROFILE/Code/PSRSA/src/PSRSA.psm1
+Import-Module -Name $env:USERPROFILE/{{ .codeDir }}/PSRSA/src/PSRSA.psm1
 
 # Configure Cloudflare CLI
 $env:CF_API_TOKEN = {{ (index (dashlanePassword "Cloudflare API Token") 0).password | quote }}

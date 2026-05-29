@@ -86,6 +86,7 @@ Key variables available in `.tmpl` files:
 | Variable | Values | Description |
 |---|---|---|
 | `.chezmoi.os` | `windows`, `linux`, `darwin`, `android` | Host OS |
+| `.codeDir` | `Code` (Windows), `code` (other) | Dev-repo dir leaf under `$HOME`, cased per platform |
 | `.hosttype` | `personal`, `ewn` | Host type (personal or company) |
 | `.osid` | `linux-ubuntu`, `windows`, `darwin`, etc. | OS identifier |
 | `.wsl` | `true`/`false` | Running under WSL |
@@ -100,7 +101,7 @@ Key variables available in `.tmpl` files:
 package.json                       # pnpm global package versions (Renovate-managed)
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
-├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply
+├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply (skills, vim-plug, ~/Code dev repos)
 ├── .chezmoiignore               # Platform-conditional file exclusions
 ├── .chezmoiremove               # Files to remove from target
 ├── .chezmoitemplates/

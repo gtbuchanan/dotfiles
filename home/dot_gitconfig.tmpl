@@ -3,7 +3,7 @@
 	aa = a -A
 	ai = a -i
 {{- if eq .chezmoi.os "windows" }}
-	amt = !pwsh -File "~/Code/git-add-mergetool/git-add-mergetool.ps1"
+	amt = !pwsh -File "~/{{ .codeDir }}/git-add-mergetool/git-add-mergetool.ps1"
 {{- end }}
 	ap = a -p
 	b = branch
@@ -59,7 +59,7 @@
 	sw = switch
 	swc = sw -c
 {{- if eq .hosttype "ewn" }}
-	unpicked = !pwsh -File "~/Code/git-unpicked/git-unpicked.ps1" -Format "oneline-detailed"
+	unpicked = !pwsh -File "~/{{ .codeDir }}/git-unpicked/git-unpicked.ps1" -Format "oneline-detailed"
 {{- end }}
 	unsynced = l --branches --not --remotes --no-walk --decorate --format=oneline-detailed
 	wt = worktree

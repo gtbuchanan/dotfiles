@@ -2,6 +2,12 @@
 # https://superuser.com/a/1142813
 Include ./*.conf
 
+# gist.github.com shares github.com's SSH infra and host keys. Verify it
+# against the github.com known_hosts entry so trusting github.com once also
+# covers gist clones (the git-unpicked / git-add-mergetool git-repo externals).
+Host gist.github.com
+  HostKeyAlias github.com
+
 {{- if eq .chezmoi.os "darwin" }}
 Host *
   # Persist keys across restarts

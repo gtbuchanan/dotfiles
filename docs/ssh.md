@@ -25,12 +25,20 @@ checked in.
 
 ## Shared ssh_config
 
-The committed `~/.ssh/config` does essentially two things: it pulls in
-sibling `*.conf` files via `Include`, and on macOS it tells the agent
-to persist keys in the system keychain. The include pattern is the key
-piece — it lets each host drop its own infrastructure-specific entries
-into `~/.ssh/something.conf` without those entries ever needing to land
-in this repo. Anything you don't want public stays out of chezmoi.
+The committed `~/.ssh/config` does essentially three things: it pulls
+in sibling `*.conf` files via `Include`, on macOS it tells the agent to
+persist keys in the system keychain, and it aliases `gist.github.com`'s
+host key to `github.com`'s. The include pattern is the key piece — it
+lets each host drop its own infrastructure-specific entries into
+`~/.ssh/something.conf` without those entries ever needing to land in
+this repo. Anything you don't want public stays out of chezmoi.
+
+The `gist.github.com` entry sets `HostKeyAlias github.com` because gists
+share github.com's SSH infrastructure and host keys. Verifying both
+against the same `known_hosts` entry means trusting github.com once also
+covers the gist-backed `git-repo` externals (`git-unpicked`,
+`git-add-mergetool`) — no second interactive host-key prompt, which
+would otherwise stall a non-interactive `chezmoi apply`.
 
 ## Linux and macOS
 

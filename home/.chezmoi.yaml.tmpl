@@ -6,6 +6,9 @@
 {{- end -}}
 
 data:
+  # Personal dev-repo dir under $HOME. Capitalized on Windows, lowercase
+  # elsewhere, matching the local convention on each platform.
+  codeDir: {{ if eq .chezmoi.os "windows" }}"Code"{{ else }}"code"{{ end }}
 {{- if eq $hostType "personal" }}
   email: "me+dev.git@taylorbuchanan.com"
 {{- else if eq $hostType "ewn" }}

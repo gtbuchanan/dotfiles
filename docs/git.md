@@ -75,8 +75,12 @@ jc`, `git jl`, `git jt`, `git jv`) this turns most JIRA operations
 into two-character commands when you're already in the right
 worktree.
 
-Two more aliases shell out to external PowerShell scripts that this
-repo doesn't manage — clone them to `~/Code/` separately:
+Some aliases shell out to external PowerShell scripts. They live in
+their own gists rather than this repo, but chezmoi clones them under
+`~/{{ .codeDir }}/` (`~/Code` on Windows, `~/code` elsewhere) as
+`git-repo` externals (see
+[`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)),
+so they're available without a manual clone:
 
 - `git unpicked` (ewn) — lists commits that haven't been cherry-picked
   to a target branch (or were picked inexactly). Source:
