@@ -131,6 +131,10 @@
     when worktrunk's 6-condition merge check says it's safe
   - `wt merge` — rebase + squash + merge + cleanup pipeline
   - See the `worktrunk` skill for the full command reference.
+- Always run `git fetch` before `wt remove` (or any other worktree
+  cleanup) so worktrunk's merge detection sees the latest remote refs.
+  Without a fresh fetch, a branch that was merged upstream can still look
+  unmerged locally, and worktrunk will refuse to delete it.
 - Always prompt before `wt remove` or any branch-deleting command.
   The merge detection is robust (same-commit, ancestor, three-dot diff,
   tree match, simulated merge, patch-id) but a local fetch may be stale.
