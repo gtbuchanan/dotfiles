@@ -30,16 +30,47 @@
   makes ld.so error out with "libc.so: invalid ELF header". Clearing
   LD_PRELOAD before exec'ing sidesteps it.
 
+  Why a compiled C wrapper instead of a bash script:
+  When the snapshot's grep function does `exec -a ugrep $wrapper -G ...`,
+  it needs argv[0]="ugrep" to reach the binary (claude dispatches to
+  ripgrep based on argv[0]). The kernel re-interprets shebangs and
+  drops the original argv[0] — bash's argv[0] becomes its interpreter
+  path. A real ELF wrapper preserves argv[0] through `execv(BINARY,
+  argv)`. The wrapper itself is a bionic binary, so libtermux-exec
+  loads into it cleanly; it then unsetenv's LD_PRELOAD before exec'ing
+  the glibc binary, which now starts clean.
+
   Why re-export LD_PRELOAD via claude's settings.json env:
   Termux's termux-exec is what makes `#!/usr/bin/env foo` shebangs
   resolve on Android (no real /usr/bin/env). Clearing LD_PRELOAD for
   the claude binary means subprocesses spawned by claude inherit no
-  termux-exec either, so shebang-based scripts (pnpm, npx, etc.) fail
-  with "bad interpreter". claude's `env` block in settings.json sets
+  termux-exec either, so shebang-based scripts (pnpm, etc.) fail with
+  "bad interpreter". claude's `env` block in settings.json sets
   LD_PRELOAD back to libtermux-exec-ld-preload.so — applied AFTER
   ld.so has finished with claude, so it doesn't crash claude, but it
   IS in claude's process.env when it spawns children, so termux-exec
   loads cleanly into bionic bash subprocesses.
+
+  Why patch the binary's subprocess CLAUDE_CODE_EXECPATH:
+  Claude's shell snapshot defines `grep`/`find`/`rg` functions that
+  re-exec the claude binary (with ARGV0=ugrep/bfs/rg) to enter the
+  embedded tools. They prefer $CLAUDE_CODE_EXECPATH, which claude
+  sets to process.execPath (the bare binary) for every subprocess,
+  bypassing the launcher wrapper. With the LD_PRELOAD re-export
+  above, that re-exec inherits LD_PRELOAD and ld.so crashes the
+  same way as a fresh claude process would. We can't intercept via
+  another wrapper at process.execPath — the new binary's
+  process.execPath always resolves to itself, never the wrapper.
+
+  The patch replaces the single `$[FxK]=process.execPath` assignment
+  (the line that builds subprocess env) with `$[FxK]=""` + padding.
+  Subprocesses see CLAUDE_CODE_EXECPATH="", the snapshot's
+  `[[ -x $_cc_bin ]] || _cc_bin=$WRAPPER` fallback routes the
+  re-exec through the wrapper, and the wrapper clears LD_PRELOAD.
+  All other process.execPath references in the binary are the
+  binary's own legitimate uses and are left untouched. The anchor
+  `$.TMUX=` immediately after the assignment makes the match unique
+  across versions.
 
   Why no rpath:
   Setting --set-rpath "$GLIBC_PREFIX/lib" (as `grun -c` does) makes
@@ -57,7 +88,7 @@ PLATFORM='linux-arm64'
 DL_BASE='https://downloads.claude.ai/claude-code-releases'
 
 INSTALL_DIR="$HOME/.local/share/claude-code"
-BINARY="$INSTALL_DIR/claude-$VERSION"
+BINARY="$INSTALL_DIR/claude"
 WRAPPER="$HOME/.local/bin/claude"
 
 GLIBC_PREFIX='/data/data/com.termux/files/usr/glibc'
@@ -75,34 +106,65 @@ fi
 
 mkdir -p "$INSTALL_DIR" "$(dirname "$WRAPPER")"
 
-if [ ! -x "$BINARY" ]; then
-  echo "Installing Claude Code $VERSION..."
-  checksum=$(curl -fsSL "$DL_BASE/$VERSION/manifest.json" \
-    | jq -er ".platforms[\"$PLATFORM\"].checksum")
+echo "Installing Claude Code $VERSION..."
+checksum=$(curl -fsSL "$DL_BASE/$VERSION/manifest.json" \
+  | jq -er ".platforms[\"$PLATFORM\"].checksum")
 
-  tmp=$(mktemp)
-  trap 'rm -f "$tmp"' EXIT
-  curl -fsSL "$DL_BASE/$VERSION/$PLATFORM/claude" -o "$tmp"
+tmp=$(mktemp)
+patched="$tmp.patched"
+trap 'rm -f "$tmp" "$patched"' EXIT
+curl -fsSL "$DL_BASE/$VERSION/$PLATFORM/claude" -o "$tmp"
 
-  actual=$(sha256sum "$tmp" | cut -d' ' -f1)
-  if [ "$actual" != "$checksum" ]; then
-    echo "Checksum mismatch for $PLATFORM: expected $checksum, got $actual" >&2
-    exit 1
-  fi
-
-  chmod +x "$tmp"
-  mv "$tmp" "$BINARY"
-  trap - EXIT
+actual=$(sha256sum "$tmp" | cut -d' ' -f1)
+if [ "$actual" != "$checksum" ]; then
+  echo "Checksum mismatch for $PLATFORM: expected $checksum, got $actual" >&2
+  exit 1
 fi
 
-# Idempotent. LD_PRELOAD cleared so termux-exec doesn't crash patchelf.
-LD_PRELOAD= "$PATCHELF" --set-interpreter "$GLIBC_LD" "$BINARY"
+# Set the ELF interpreter to Termux's glibc loader. LD_PRELOAD cleared so
+# termux-exec doesn't crash patchelf (a glibc binary).
+LD_PRELOAD= "$PATCHELF" --output "$patched" --set-interpreter "$GLIBC_LD" "$tmp"
 
-cat > "$WRAPPER" <<EOF
-#!/data/data/com.termux/files/usr/bin/bash
-unset LD_PRELOAD
-exec "$BINARY" "\$@"
+# Replace the single `$[FxK]=process.execPath` assignment so subprocess
+# CLAUDE_CODE_EXECPATH is empty. See comment block at top for rationale.
+# Fails loudly if the anchor pattern can't be found, so a future binary
+# refactor surfaces immediately.
+python3 - "$patched" <<'PYEOF'
+# Bun's minifier rotates identifiers across releases; the assignment we
+# patch always looks like `<env>[<key>]=process.execPath,<flag>)<env>.TMUX=<flag>`
+# but <env>, <key>, and <flag> vary. Backreferences keep the anchor unique.
+import sys, re
+path = sys.argv[1]
+with open(path, "rb") as f:
+    data = f.read()
+ident = rb"[A-Za-z_$][A-Za-z0-9_$]*"
+anchor = re.compile(rb"((" + ident + rb")\[" + ident + rb"\]=)process\.execPath(,(" + ident + rb")\)\2\.TMUX=\4)")
+matches = anchor.findall(data)
+if len(matches) != 1:
+    sys.exit(f"CLAUDE_CODE_EXECPATH patch: expected exactly 1 match, got {len(matches)}")
+replacement = b"\"\"" + b" " * 14
+assert len(replacement) == 16
+with open(path, "wb") as f:
+    f.write(anchor.sub(lambda m: m.group(1) + replacement + m.group(3), data))
+PYEOF
+
+chmod +x "$patched"
+mv "$patched" "$BINARY"
+trap - EXIT
+rm -f "$tmp"
+
+cc -O2 -DBINARY="\"$BINARY\"" -o "$WRAPPER.new" -xc - <<'EOF'
+#include <errno.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int main(int argc, char **argv) {
+  (void)unsetenv("LD_PRELOAD");
+  execv(BINARY, argv);
+  fprintf(stderr, "claude wrapper: execv %s failed: %s\n", BINARY, strerror(errno));
+  return 127;
+}
 EOF
-chmod +x "$WRAPPER"
-
-find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'claude-*' ! -name "claude-$VERSION" -delete
+mv "$WRAPPER.new" "$WRAPPER"

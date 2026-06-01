@@ -26,13 +26,22 @@
     "CLAUDE_CODE_USE_POWERSHELL_TOOL": "1"{{- if eq .chezmoi.os "android" }},
 {{- /*
   Android: re-arm termux-exec for subprocesses so /usr/bin/env shebangs
-  resolve (pnpm, npx, etc.). Claude's own process can't have this
-  preloaded — libtermux-exec-ld-preload.so has DT_NEEDED for unversioned
-  `libc.so`, which crashes glibc binaries on startup — but by the time
-  this env is applied the dynamic linker is already done with claude;
-  it only takes effect in subprocesses, which is exactly what we want.
-  Claude's launcher wrapper clears LD_PRELOAD before exec'ing the binary
-  so this value doesn't leak into the binary's own startup.
+  resolve (pnpm, etc.). Claude's own process can't have this preloaded —
+  libtermux-exec-ld-preload.so has DT_NEEDED for unversioned `libc.so`,
+  which crashes glibc binaries on startup — but by the time this env is
+  applied the dynamic linker is already done with claude; it only takes
+  effect in subprocesses, which is exactly what we want. Claude's
+  launcher wrapper clears LD_PRELOAD before exec'ing the binary so this
+  value doesn't leak into the binary's own startup.
+
+  This LD_PRELOAD also leaks into claude's shell snapshot subprocesses,
+  whose `grep`/`find`/`rg` functions re-exec the claude binary via
+  $CLAUDE_CODE_EXECPATH. That re-exec inherits LD_PRELOAD and crashes
+  with "libc.so: invalid ELF header" (libtermux-exec can't load into
+  glibc — bionic ABI). The install-claude-native.sh script patches the
+  binary so it sets CLAUDE_CODE_EXECPATH="" in subprocess env; the
+  snapshot's `[[ -x $_cc_bin ]] || _cc_bin=$WRAPPER` fallback then routes
+  the re-exec through the wrapper, which clears LD_PRELOAD.
 */}}
     "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
 {{- end }}
