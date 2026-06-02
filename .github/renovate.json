@@ -30,11 +30,11 @@
   ],
   "packageRules": [
     {
-      "description": "Restrict noisy agent-skill digest updates to bi-monthly",
+      "description": "Restrict noisy agent-skill digest updates to a single early-morning window on the 1st and 15th (America/Chicago). The narrow window keeps the snapshot of `main` to one PR per dep per cycle: daytime merges fall outside it, so a freshly-advanced `main` can't trigger a same-day follow-up PR.",
       "matchDatasources": ["git-refs"],
       "matchFileNames": ["home/.chezmoiexternal.yaml.tmpl"],
       "minimumReleaseAge": "0 days",
-      "schedule": ["* * 1,15 * *"]
+      "schedule": ["* 0-5 1,15 * *"]
     }
   ]
 }
