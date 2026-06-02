@@ -5,6 +5,7 @@ Documents
 **/*.bat*
 .local/bin/coderabbit
 .local/bin/wt.exe
+.wslconfig
 {{- else }}
 .gnupg
 # On Windows, symlink_ creates file symlinks; use a script for directory symlinks

@@ -1,0 +1,14 @@
+# WSL2 networking tuned for a corporate/VPN laptop:
+#   networkingMode=mirrored  Share the Windows host network stack so VPN,
+#                            firewall, and security tooling treat WSL traffic
+#                            the same as host traffic. Also gives bidirectional
+#                            localhost (host <-> WSL on 127.0.0.1) and IPv6.
+#   dnsTunneling=true        Resolve DNS through the Windows resolver, fixing
+#                            internal/corporate name resolution under VPN.
+#   autoProxy=true           Inherit the Windows system HTTP proxy automatically.
+#
+# Requires `wsl --shutdown` to take effect.
+[wsl2]
+autoProxy=true
+dnsTunneling=true
+networkingMode=mirrored
