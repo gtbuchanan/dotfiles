@@ -106,7 +106,6 @@ home/
 ├── .chezmoiremove               # Files to remove from target
 ├── .chezmoitemplates/
 │   ├── pnpm-globals             # Shared template: generates pnpm add -g commands
-│   ├── powershell_profile.ps1   # PowerShell profile (aliases, functions, shell config)
 │   └── ...                      # Other reusable Go templates (VS Code settings, etc.)
 ├── .chezmoiscripts/
 │   ├── windows/                 # PowerShell scripts (run on Windows)
@@ -118,7 +117,7 @@ home/
 │   ├── AGENTS.md.tmpl            # User-level agent preferences (source of truth)
 │   ├── Code/                    # VS Code settings (Windows-only, modify script)
 │   ├── wezterm/                 # WezTerm config (Lua)
-│   ├── powershell/              # PowerShell profile
+│   ├── powershell/              # Canonical PowerShell profile + profile.d/ parts (all OSes)
 │   ├── private_git/             # Git config: global ignore (`ignore`) + GPG wrapper
 │   └── private_starship.toml    # Starship prompt
 ├── dot_claude/
@@ -146,7 +145,7 @@ Key exclusions (see `.chezmoiignore` for the full set):
 | Files | Managed on | Excluded on |
 |---|---|---|
 | `.bash*`, `.blerc`, `.profile`, `*.sh*` | linux, darwin, android | windows |
-| `.config/powershell/` | linux, darwin | windows, android |
+| `.config/powershell/` | linux, darwin, windows | android |
 | `.config/Code/` | linux, darwin | windows, android |
 | `.config/wezterm/` | darwin, windows | linux, android |
 | `.gnupg/` | linux, darwin, android | windows |
@@ -156,10 +155,17 @@ Key exclusions (see `.chezmoiignore` for the full set):
 | `.termux/` | android | windows, linux, darwin |
 
 Shared templates (`.chezmoitemplates/`) are **not** deployed directly — they are
-included by platform-specific targets. For example, `powershell_profile.ps1` is
-consumed by both `dot_config/powershell/` (Linux/macOS) and
-`Documents/PowerShell/` (Windows). When editing a shared template, deploy the
-target(s) that exist on the current OS.
+included by platform-specific targets. For example, `vscode_settings.json` is
+consumed by the per-OS VS Code `modify_settings` targets on Linux, macOS, and
+Windows. When editing a shared template, deploy the target(s) that exist on the
+current OS.
+
+The PowerShell profile takes a different approach: rather than two targets
+re-including one shared template, `dot_config/powershell/` is the single
+canonical profile (deployed on every OS, since `~/.config/powershell` is a valid
+chezmoi target everywhere). On Windows, the `readonly_Documents/PowerShell` stub
+just dot-sources it, because that is the only profile path PowerShell auto-loads
+on Windows. See [`docs/powershell.md`](docs/powershell.md).
 
 ## Platform-Specific Scripting
 

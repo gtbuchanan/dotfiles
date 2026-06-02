@@ -1,0 +1,21 @@
+$ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
+
+Function ccc { clear; claude @args }
+Function cmcd { Set-Location $ChezmoiSourcePath }
+
+{{- if eq .chezmoi.os "windows" }}
+Function ls { eza --icons @args }
+
+Function su { sudo pwsh -NoLogo }
+
+Function Update-SessionEnvironment {
+  # Adapted from StackOverflow:
+  # https://stackoverflow.com/a/31845512/1409101
+  $env:Path = `
+    [System.Environment]::GetEnvironmentVariable("Path", "Machine") + `
+    ";" + `
+    [System.Environment]::GetEnvironmentVariable("Path", "User")
+}
+
+Function refreshenv { Update-SessionEnvironment }
+{{- end }}

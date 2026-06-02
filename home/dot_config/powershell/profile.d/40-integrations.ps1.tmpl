@@ -1,0 +1,24 @@
+# Configure GPG_TTY for terminal pinentry
+if ([Environment]::UserInteractive -and $Host.UI.RawUI) {
+  # The value is arbitrary; the wrapper script only checks if the variable is set
+  $env:GPG_TTY = "CON"
+}
+
+# Worktrunk shell integration: subprocesses can't change the parent shell's
+# cwd, so `wt config shell init powershell` emits a wrapper function that
+# reads directive files written by the binary and runs `cd` in the host
+# session. On Windows, `wt` resolves to worktrunk via the `~/.local/bin/wt.exe`
+# symlink (Windows Terminal's App Execution Alias for `wt.exe` is removed by
+# the winget config). See worktrunk's shell-integration.md.
+if (Get-Command wt -ErrorAction SilentlyContinue) {
+  Invoke-Expression (& wt config shell init powershell | Out-String)
+}
+
+# Enable delta autocomplete (--generate-completion needs delta >= 0.18; skip
+# gracefully where an older delta ships, e.g. Ubuntu's 0.16.5)
+if (Get-Command delta -ErrorAction SilentlyContinue) {
+  $deltaCompletion = delta --generate-completion powershell 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    $deltaCompletion | Out-String | Invoke-Expression
+  }
+}

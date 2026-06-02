@@ -14,7 +14,7 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 | `home/.chezmoidata/wt.yaml` | Pinned version (Renovate-tracked) |
 | `home/.chezmoiexternal.yaml.tmpl` | Skill archive → `~/.agents/skills/worktrunk/` |
 | `home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl` | Termux manual install |
-| `home/.chezmoitemplates/powershell_profile.ps1` | PowerShell shell integration |
+| `home/dot_config/powershell/profile.d/40-integrations.ps1` | PowerShell shell integration |
 | `home/.chezmoitemplates/worktrunk-config.toml` | Shared user-config template |
 | `home/AppData/Roaming/worktrunk/config.toml.tmpl` | Renders shared config on Windows (`%APPDATA%`) |
 | `home/dot_bashrc.tmpl` | Bash shell integration |

@@ -1,0 +1,3 @@
+{{- if not (and (eq .hosttype "ewn") (eq .chezmoi.os "windows")) }}
+profile.d/50-ewn.ps1
+{{- end }}
