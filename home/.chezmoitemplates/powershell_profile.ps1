@@ -121,11 +121,14 @@ if (Get-Command wt -ErrorAction SilentlyContinue) {
   Invoke-Expression (& wt config shell init powershell | Out-String)
 }
 
-{{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}
-{{- if ne .osid "ubuntu" }}
-# Enable delta autocomplete
-delta --generate-completion powershell | Out-String | Invoke-Expression
-{{- end }}
+# Enable delta autocomplete (--generate-completion needs delta >= 0.18; skip
+# gracefully where an older delta ships, e.g. Ubuntu's 0.16.5)
+if (Get-Command delta -ErrorAction SilentlyContinue) {
+  $deltaCompletion = delta --generate-completion powershell 2>$null
+  if ($LASTEXITCODE -eq 0) {
+    $deltaCompletion | Out-String | Invoke-Expression
+  }
+}
 
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Configure PSRSA module

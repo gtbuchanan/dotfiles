@@ -46,14 +46,17 @@ eval "$(starship init bash)"
 . "$HOME/.config/wezterm/wezterm.sh"
 {{- end }}
 
-# Set up fzf key bindings and fuzzy completion
-eval "$(fzf --bash)"
+# Set up fzf key bindings and fuzzy completion (--bash needs fzf >= 0.48;
+# skip gracefully where an older fzf ships, e.g. Ubuntu's 0.44)
+if fzf --bash >/dev/null 2>&1; then
+  eval "$(fzf --bash)"
+fi
 
-{{/* TODO: Ubuntu Universe repo only has git-delta v0.16.5, so we should install manually */}}
-{{- if ne .osid "ubuntu" }}
-# Enable git-delta completion
-eval "$(delta --generate-completion bash)"
-{{- end }}
+# Enable git-delta completion (--generate-completion needs delta >= 0.18;
+# skip gracefully where an older delta ships, e.g. Ubuntu's 0.16.5)
+if delta --generate-completion bash >/dev/null 2>&1; then
+  eval "$(delta --generate-completion bash)"
+fi
 
 # Enable worktrunk shell integration: subprocesses can't change the parent
 # shell's cwd, so `wt config shell init bash` emits a `wt` function that
