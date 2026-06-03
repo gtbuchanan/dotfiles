@@ -82,8 +82,4 @@ esac
 
 # Activate mise (tool version + env + task manager).
 eval "$(mise activate bash)"
-
-# Patch Claude Code for Termux compatibility
-# https://github.com/anthropics/claude-code/issues/15637
-. "$HOME/.local/bin/android-patch-claude-code-tmpdir"
 {{- end }}

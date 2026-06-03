@@ -1,0 +1,60 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  Install Claude Code on Termux/Android via the claude-code-termux apt package
+  (https://github.com/gtbuchanan/claude-code-termux).
+
+  Anthropic ships Claude Code only as a bun-compiled glibc ELF with no
+  android-arm64 build, so `npm i -g @anthropic-ai/claude-code` is broken on
+  Termux (https://github.com/anthropics/claude-code/issues/50270). The package
+  installs a compiled launcher that downloads the official linux-arm64 build
+  from Anthropic, patches its ELF interpreter to Termux's glibc loader, and
+  routes Claude's embedded-tool re-execs (grep/find/rg) back through the
+  launcher. This replaces the former hand-rolled download + patchelf + wrapper
+  script; the LD_PRELOAD / CLAUDE_CODE_EXECPATH / grun-vs-direct-exec rationale
+  now lives in the package.
+
+  Two independently Renovate-pinned versions, both embedded so a bump re-fires
+  this run_onchange script:
+    - claude_code_termux_version  the launcher package release (github-releases).
+    - claude_code_version         the Claude Code binary the launcher fetches.
+
+  CLAUDE_CODE_SKIP_SETTINGS=1 leaves ~/.claude/settings.json to chezmoi —
+  dot_claude/settings.json.tmpl owns the android env.LD_PRELOAD and
+  autoUpdates:false keys, so the package must not merge them.
+*/}}
+set -euo pipefail
+
+REPO='gtbuchanan/claude-code-termux'
+LAUNCHER_VERSION='{{ .claude_code_termux_version }}'
+
+export CLAUDE_CODE_VERSION='{{ .claude_code_version }}'
+export CLAUDE_CODE_SKIP_SETTINGS=1
+
+# Install or upgrade the launcher to the pinned release. install.sh (fetched at
+# the same tag) enables glibc-repo and apt-installs the .deb, resolving
+# glibc-runner/patchelf-glibc/jq/python3 as dependencies; its postinst then
+# downloads + patches the CLAUDE_CODE_VERSION-pinned Claude Code binary.
+if [ "$(dpkg-query -W -f='${Version}' claude-code-termux 2>/dev/null || true)" != "$LAUNCHER_VERSION" ]; then
+  deb=$(mktemp --suffix=.deb)
+  trap 'rm -f "$deb"' EXIT
+  curl -fsSL \
+    "https://github.com/$REPO/releases/download/v$LAUNCHER_VERSION/claude-code-termux_${LAUNCHER_VERSION}_aarch64.deb" \
+    -o "$deb"
+  curl -fsSL "https://raw.githubusercontent.com/$REPO/v$LAUNCHER_VERSION/install.sh" \
+    | CLAUDE_CODE_DEB="$deb" bash
+  rm -f "$deb"
+  trap - EXIT
+fi
+
+# Enforce the pinned Claude Code binary version (re-fetches only when it differs
+# from what's installed). Covers a CLAUDE_CODE_VERSION-only bump, where the
+# launcher was already current and the install block above was skipped.
+claude-code-termux-update
+
+# Drop the legacy hand-rolled install. Done here (not in .chezmoiremove, which
+# runs before this script) so it happens only after the package is in place —
+# set -e aborts above on any failure, leaving the old install untouched. ~/
+# .local/bin precedes $PREFIX/bin on PATH, so the stale wrapper would otherwise
+# keep shadowing the package's claude.
+rm -f "$HOME/.local/bin/claude"
+rm -rf "$HOME/.local/share/claude-code"

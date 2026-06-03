@@ -5,7 +5,7 @@
 */ -}}
 {
   "autoMemoryEnabled": false,
-{{- /* Android: native binary is chezmoi-managed; block the in-session updater from clobbering it. */ -}}
+{{- /* Android: binary is managed by the claude-code-termux package; block the in-session updater from clobbering the ELF-patched binary. */ -}}
 {{- if eq .chezmoi.os "android" }}
   "autoUpdates": false,
 {{- end }}
@@ -38,10 +38,10 @@
   whose `grep`/`find`/`rg` functions re-exec the claude binary via
   $CLAUDE_CODE_EXECPATH. That re-exec inherits LD_PRELOAD and crashes
   with "libc.so: invalid ELF header" (libtermux-exec can't load into
-  glibc — bionic ABI). The install-claude-native.sh script patches the
-  binary so it sets CLAUDE_CODE_EXECPATH="" in subprocess env; the
-  snapshot's `[[ -x $_cc_bin ]] || _cc_bin=$WRAPPER` fallback then routes
-  the re-exec through the wrapper, which clears LD_PRELOAD.
+  glibc — bionic ABI). The claude-code-termux package patches the binary
+  so it sets CLAUDE_CODE_EXECPATH="" in subprocess env; the snapshot's
+  `[[ -x $_cc_bin ]] || _cc_bin=$WRAPPER` fallback then routes the
+  re-exec through the wrapper, which clears LD_PRELOAD.
 */}}
     "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
 {{- end }}

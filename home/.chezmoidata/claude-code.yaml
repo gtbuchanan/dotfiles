@@ -1,2 +1,5 @@
+# Launcher package (gtbuchanan/claude-code-termux) release.
+# renovate: datasource=github-releases depName=gtbuchanan/claude-code-termux
+claude_code_termux_version: "2026.6.1"
 # renovate: datasource=npm depName=@anthropic-ai/claude-code
 claude_code_version: "2.1.158"

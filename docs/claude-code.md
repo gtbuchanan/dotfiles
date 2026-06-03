@@ -9,7 +9,7 @@ chain that lets desktop toasts switch focus into the right psmux pane.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/android/run_onchange_after_install-claude-native.sh.tmpl` | Termux native install (downloads binary, ELF-patches for glibc-runner, installs LD_PRELOAD-clearing wrapper) |
+| `home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl` | Termux install via the [`claude-code-termux`](https://github.com/gtbuchanan/claude-code-termux) apt package (Renovate-pinned launcher + Claude Code versions; `CLAUDE_CODE_SKIP_SETTINGS=1` so chezmoi keeps `settings.json`) |
 | `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | Plugin install, LSP `.cmd`-shim rewriting, tweakcc patching, `claude-pane://` URL-protocol registration |
 | `home/dot_claude/CLAUDE.md.tmpl` | Wrapper that includes shared user instructions + Claude-only sections |
 | `home/dot_claude/executable_statusline` | Powerline-style status bar (model, dir, worktree, git state, context %) |
@@ -79,21 +79,29 @@ sits in the `claude-configure` PowerShell script alongside the plugin
 install, not next to `focus-pane.ps1` itself. Each link in the chain
 is self-documenting in its own file.
 
-## Android: Native Install
+## Android: claude-code-termux Package
 
 Anthropic ships Claude Code as a bun-compiled glibc ELF with no
 android-arm64 build, breaking the npm install path on Termux (see
 [issue #50270](https://github.com/anthropics/claude-code/issues/50270)).
-The install script bypasses npm and runs the linux-arm64 binary
-directly by patching its ELF interpreter to Termux's glibc loader.
-The script's header comment covers the LD_PRELOAD dance, the `grun`
-vs direct-exec trade-off, and the rpath trap.
+The [`claude-code-termux`](https://github.com/gtbuchanan/claude-code-termux)
+apt package bypasses npm: it installs a compiled launcher that downloads the
+linux-arm64 binary from Anthropic, patches its ELF interpreter to Termux's
+glibc loader, and routes embedded-tool re-execs back through the launcher.
+The LD_PRELOAD dance, the `CLAUDE_CODE_EXECPATH` patch, the `grun`
+vs direct-exec trade-off, and the rpath trap all live in the package — see
+its README and `bootstrap.sh` / `patch-execpath.py` for the rationale.
+
+Both the launcher release and the Claude Code binary it fetches are
+Renovate-pinned in `home/.chezmoidata/claude-code.yaml`. chezmoi keeps ownership
+of `settings.json` rather than letting the package manage it, so the Android
+branches below remain the single source for those keys.
 
 The `settings.json` template carries the matching Android branches:
 
 - `LD_PRELOAD` in `env` so subprocesses get termux-exec.
 - `autoUpdates: false` so the in-session updater doesn't clobber the
-  chezmoi-managed binary.
+  ELF-patched binary the package installs.
 - `statusLine.command` invokes `bash ~/.claude/statusline` explicitly
   so the kernel never resolves the `/usr/bin/env` shebang (no
   termux-exec preload inside glibc claude).

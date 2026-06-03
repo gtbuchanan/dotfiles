@@ -1,24 +1,18 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# Enable the glibc-packages termux repo so glibc-runner and patchelf-glibc
-# are resolvable. Native Claude Code is a glibc ELF; the install script
-# under .chezmoiscripts/android/ patches its interpreter to glibc-runner's
-# loader and execs it directly.
-pkg install -y glibc-repo
-
+# Base Termux packages. Claude Code's glibc deps (glibc-repo, glibc-runner,
+# patchelf-glibc) and toolchain are owned by the claude-code-termux package,
+# installed by run_onchange_after_claude-code-install.sh.tmpl.
 PKG_PACKAGES=(
   "bash-completion"
-  "clang"
   "eza"
   "fzf"
   "git-delta"
-  "glibc-runner"
   "gnupg"
   "jq"
   "mise"
   "ncurses-utils"
   "nodejs-lts"
   "openssh"
-  "patchelf-glibc"
   "ripgrep"
   "starship"
   "termux-api"
