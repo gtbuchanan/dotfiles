@@ -50,11 +50,3 @@ fi
 # from what's installed). Covers a CLAUDE_CODE_VERSION-only bump, where the
 # launcher was already current and the install block above was skipped.
 claude-code-termux-update
-
-# Drop the legacy hand-rolled install. Done here (not in .chezmoiremove, which
-# runs before this script) so it happens only after the package is in place —
-# set -e aborts above on any failure, leaving the old install untouched. ~/
-# .local/bin precedes $PREFIX/bin on PATH, so the stale wrapper would otherwise
-# keep shadowing the package's claude.
-rm -f "$HOME/.local/bin/claude"
-rm -rf "$HOME/.local/share/claude-code"
