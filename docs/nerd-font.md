@@ -11,20 +11,20 @@ config files.
 
 | File | Role |
 |---|---|
-| `home/.chezmoi.yaml.tmpl` | Defines `.font` and `.fontpack` — the canonical names |
-| `home/.chezmoiscripts/android/run_onchange_before.sh.tmpl` | Installs via `getnf`, then copies a single TTF into `~/.termux/font.ttf` and reloads Termux |
-| `home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl` | Installs via `getnf` |
-| `home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl` | Installs via `getnf` |
-| `home/.chezmoitemplates/vscode_settings.json` | Sets `editor.fontFamily` (with Consolas fallback) |
-| `home/AppData/Local/Packages/Microsoft.WindowsTerminal_*/LocalState/settings.json.tmpl` | Windows Terminal profile font |
-| `home/AppData/Local/kdiff3rc.cmm.tmpl` | KDiff3 font (Windows merge tool) |
-| `home/dot_config/wezterm/wezterm.lua.tmpl` | WezTerm font |
-| `home/winget.yaml.tmpl` | Windows install via the `NerdFonts` PowerShell module |
+| [`home/.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) | Defines `.font` and `.fontpack` — the canonical names |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs via `getnf`, then copies a single TTF into `~/.termux/font.ttf` and reloads Termux |
+| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl) | Installs via `getnf` |
+| [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl) | Installs via `getnf` |
+| [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) | Sets `editor.fontFamily` (with Consolas fallback) |
+| [`home/AppData/Local/Packages/Microsoft.WindowsTerminal_*/LocalState/settings.json.tmpl`](../home/AppData/Local/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json.tmpl) | Windows Terminal profile font |
+| [`home/AppData/Local/kdiff3rc.cmm.tmpl`](../home/AppData/Local/kdiff3rc.cmm.tmpl) | KDiff3 font (Windows merge tool) |
+| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl) | WezTerm font |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows install via the `NerdFonts` PowerShell module |
 
 ## Two Variables
 
 The font name a consumer sees and the name an installer takes aren't
-the same string, so `.chezmoi.yaml.tmpl` defines both:
+the same string, so [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) defines both:
 
 - **`.font`** — the **font family** name as the OS reports it
   (`CaskaydiaCove NF`). Every app config interpolates this into its
@@ -34,7 +34,7 @@ the same string, so `.chezmoi.yaml.tmpl` defines both:
 
 Splitting them keeps every consumer pointing at a single source of
 truth and makes swapping fonts a two-line edit in
-`.chezmoi.yaml.tmpl`.
+[`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl).
 
 ## Platform Installers
 

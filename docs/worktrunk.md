@@ -11,17 +11,17 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 
 | File | Role |
 |---|---|
-| `home/.chezmoidata/wt.yaml` | Pinned version (Renovate-tracked) |
-| `home/.chezmoiexternal.yaml.tmpl` | Skill archive → `~/.agents/skills/worktrunk/` |
-| `home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl` | Termux manual install |
-| `home/dot_config/powershell/profile.d/40-integrations.ps1` | PowerShell shell integration |
-| `home/.chezmoitemplates/worktrunk-config.toml` | Shared user-config template |
-| `home/AppData/Roaming/worktrunk/config.toml.tmpl` | Renders shared config on Windows (`%APPDATA%`) |
-| `home/dot_bashrc.tmpl` | Bash shell integration |
-| `home/dot_config/worktrunk/config.toml.tmpl` | Renders shared config on Linux/macOS/Android (XDG) |
-| `home/dot_local/bin/executable_wt-bootstrap` | `post-start` hook script |
-| `home/dot_local/bin/symlink_wt.exe.tmpl` | Windows symlink → winget-installed `wt.exe` |
-| `home/winget.yaml.tmpl` | Windows install + App Execution Alias removal |
+| [`home/.chezmoidata/wt.yaml`](../home/.chezmoidata/wt.yaml) | Pinned version (Renovate-tracked) |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | Skill archive → `~/.agents/skills/worktrunk/` |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl) | Termux manual install |
+| [`home/.chezmoitemplates/worktrunk-config.toml`](../home/.chezmoitemplates/worktrunk-config.toml) | Shared user-config template |
+| [`home/AppData/Roaming/worktrunk/config.toml.tmpl`](../home/AppData/Roaming/worktrunk/config.toml.tmpl) | Renders shared config on Windows (`%APPDATA%`) |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | Bash shell integration |
+| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | PowerShell shell integration |
+| [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl) | Renders shared config on Linux/macOS/Android (XDG) |
+| [`home/dot_local/bin/executable_wt-bootstrap`](../home/dot_local/bin/executable_wt-bootstrap) | `post-start` hook script |
+| [`home/dot_local/bin/symlink_wt.exe.tmpl`](../home/dot_local/bin/symlink_wt.exe.tmpl) | Windows symlink → winget-installed `wt.exe` |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows install + App Execution Alias removal |
 
 ## `wt` Resolution Per Platform
 
@@ -36,7 +36,7 @@ Two `wt.exe` binaries compete:
 - Windows Terminal's `wt.exe` is registered as an App Execution Alias
   in `%LOCALAPPDATA%\Microsoft\WindowsApps\`, which sits early on PATH.
 
-`home/winget.yaml.tmpl` installs worktrunk, then deletes the App
+[`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) installs worktrunk, then deletes the App
 Execution Alias file (the `wtAppAlias` xScript resource — there is no
 Windows API for managing aliases, so we delete the shim directly).
 Chezmoi then deploys `~/.local/bin/wt.exe` as a symlink to worktrunk's
@@ -65,11 +65,11 @@ from `wt.yaml`, SHA-256 verified) and symlinks it into `~/.local/bin/wt`.
 
 One shared template, two thin wrappers:
 
-- `home/.chezmoitemplates/worktrunk-config.toml` — shared template
-- `home/dot_config/worktrunk/config.toml.tmpl` → `~/.config/worktrunk/config.toml` (Linux/macOS/Android)
-- `home/AppData/Roaming/worktrunk/config.toml.tmpl` → `%APPDATA%\worktrunk\config.toml` (Windows)
+- [`home/.chezmoitemplates/worktrunk-config.toml`](../home/.chezmoitemplates/worktrunk-config.toml) — shared template
+- [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl) → `~/.config/worktrunk/config.toml` (Linux/macOS/Android)
+- [`home/AppData/Roaming/worktrunk/config.toml.tmpl`](../home/AppData/Roaming/worktrunk/config.toml.tmpl) → `%APPDATA%\worktrunk\config.toml` (Windows)
 
-`.chezmoiignore` excludes `.config/worktrunk` on Windows (the binary
+[`.chezmoiignore`](../home/.chezmoiignore) excludes `.config/worktrunk` on Windows (the binary
 reads `%APPDATA%` there). Edit the shared template to change config on
 every platform.
 

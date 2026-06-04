@@ -12,18 +12,18 @@ upstream.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh` | Native CLI install via `cli.coderabbit.ai/install.sh` (runs inside WSL on Windows) |
-| `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | `claude plugin install coderabbit` (Windows-only, alongside the LSP plugins) |
-| `home/.chezmoiignore` | Gates the Windows-only WSL wrappers off non-Windows hosts |
-| `home/dot_claude/settings.json.tmpl` | Enables `coderabbit@claude-plugins-official` |
-| `home/dot_local/bin/coderabbit` | Git Bash wrapper: forwards to WSL with `GIT_DIR`/`GIT_WORK_TREE` translation |
-| `home/dot_local/bin/coderabbit.bat` | cmd.exe wrapper: same translation for non-Bash callers |
+| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates the Windows-only WSL wrappers off non-Windows hosts |
+| [`home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh`](../home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh) | Native CLI install via `cli.coderabbit.ai/install.sh` (runs inside WSL on Windows) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | `claude plugin install coderabbit` (Windows-only, alongside the LSP plugins) |
+| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl) | Enables `coderabbit@claude-plugins-official` |
+| [`home/dot_local/bin/coderabbit`](../home/dot_local/bin/coderabbit) | Git Bash wrapper: forwards to WSL with `GIT_DIR`/`GIT_WORK_TREE` translation |
+| [`home/dot_local/bin/coderabbit.bat`](../home/dot_local/bin/coderabbit.bat) | cmd.exe wrapper: same translation for non-Bash callers |
 
 ## CLI Install
 
 On Linux and macOS the install script runs upstream's installer, which
 drops a native binary into `~/.local/bin/`. On Windows the same script
-runs **inside WSL** — it lives under `.chezmoiscripts/linux/`, which
+runs **inside WSL** — it lives under [`.chezmoiscripts/linux/`](../home/.chezmoiscripts/linux/), which
 only fires on Linux hosts, and the WSL distro counts. The Windows side
 never gets a native binary; the wrappers below forward into WSL
 instead.
@@ -47,7 +47,7 @@ problems before handing off to `wsl`:
   mechanism rewrites the exported paths from Windows form to Linux
   form when the child process starts inside WSL.
 
-The wrappers are gated off non-Windows hosts in `.chezmoiignore`
+The wrappers are gated off non-Windows hosts in [`.chezmoiignore`](../home/.chezmoiignore)
 (`.local/bin/coderabbit` is excluded everywhere except Windows;
 `**/*.bat*` is already excluded globally on non-Windows).
 
@@ -61,7 +61,7 @@ Code marketplace exposes two skills:
 - `coderabbit:autofix` — surfaces existing review-thread feedback from
   GitHub and applies fixes with per-change approval.
 
-The plugin is enabled in `home/dot_claude/settings.json.tmpl`. On
+The plugin is enabled in [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl). On
 Windows it's installed by the `claude-configure` script, which calls
 `claude plugin install coderabbit` alongside the LSP plugins (the
 `claude plugin` CLI can't be driven from `settings.json`, so it has to

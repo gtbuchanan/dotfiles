@@ -9,13 +9,13 @@ customizations.
 
 | File | Role |
 |---|---|
-| `home/dot_vimrc` | Standalone Vim entrypoint; sets `g:data_dir` and sources `config/*.vim` |
-| `home/dot_vsvimrc` | VsVim entrypoint; sources `shared.vim` only |
-| `home/private_dot_vim/private_config/packages.vim` | Loads built-in optional packages (e.g., editorconfig) |
-| `home/private_dot_vim/private_config/plug.vim.tmpl` | vim-plug plugin manifest (host-conditional) |
-| `home/private_dot_vim/private_config/shared.vim` | Settings safe for both Vim and VsVim |
-| `home/private_dot_vim/private_plugin/settings.vim.tmpl` | Vim-only settings (auto-loaded) |
-| `home/private_dot_vim/private_after/private_plugin/*.vim` | Per-plugin configuration (auto-loaded after plugins) |
+| [`home/dot_vimrc`](../home/dot_vimrc) | Standalone Vim entrypoint; sets `g:data_dir` and sources `config/*.vim` |
+| [`home/dot_vsvimrc`](../home/dot_vsvimrc) | VsVim entrypoint; sources `shared.vim` only |
+| [`home/private_dot_vim/private_after/private_plugin/*.vim`](../home/private_dot_vim/private_after/private_plugin/) | Per-plugin configuration (auto-loaded after plugins) |
+| [`home/private_dot_vim/private_config/packages.vim`](../home/private_dot_vim/private_config/packages.vim) | Loads built-in optional packages (e.g., editorconfig) |
+| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl) | vim-plug plugin manifest (host-conditional) |
+| [`home/private_dot_vim/private_config/shared.vim`](../home/private_dot_vim/private_config/shared.vim) | Settings safe for both Vim and VsVim |
+| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl) | Vim-only settings (auto-loaded) |
 
 ## Two-Entrypoint Layout
 
@@ -43,7 +43,7 @@ Vim on Windows looks for `~/vimfiles/`; everywhere else it's `~/.vim/`.
 Maintaining two parallel chezmoi source trees would be ugly. Instead,
 `dot_vimrc` forces `~/.vim/` onto `runtimepath` (and prepends its
 `after/` subdir too), overriding the platform default. The repo only
-ships `home/private_dot_vim/`.
+ships [`home/private_dot_vim/`](../home/private_dot_vim/).
 
 ## Plugin Layout Convention
 

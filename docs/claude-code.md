@@ -9,14 +9,14 @@ chain that lets desktop toasts switch focus into the right psmux pane.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl` | Termux install via the [`claude-code-termux`](https://github.com/gtbuchanan/claude-code-termux) apt package (Renovate-pinned launcher + Claude Code versions; `CLAUDE_CODE_SKIP_SETTINGS=1` so chezmoi keeps `settings.json`) |
-| `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | Plugin install, LSP `.cmd`-shim rewriting, tweakcc patching, `claude-pane://` URL-protocol registration |
-| `home/dot_claude/CLAUDE.md.tmpl` | Wrapper that includes shared user instructions + Claude-only sections |
-| `home/dot_claude/executable_statusline` | Powerline-style status bar (model, dir, worktree, git state, context %) |
-| `home/dot_claude/focus-pane.ps1.tmpl` | `claude-pane://` URL handler — switches psmux pane and brings WezTerm to front |
-| `home/dot_claude/notify-input.ps1.tmpl` | Notification hook handler — emits a BurntToast with a `Focus` button |
-| `home/dot_claude/settings.json.tmpl` | Claude config (auto-allow MCP tools, plugin enablement, hooks, env, statusLine) |
-| `home/dot_claude/symlink_skills` | `~/.claude/skills` → `~/.agents/skills` (see [`agent-config.md`](agent-config.md)) |
+| [`home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl) | Termux install via the [`claude-code-termux`](https://github.com/gtbuchanan/claude-code-termux) apt package (Renovate-pinned launcher + Claude Code versions; `CLAUDE_CODE_SKIP_SETTINGS=1` so chezmoi keeps `settings.json`) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Plugin install, LSP `.cmd`-shim rewriting, tweakcc patching, `claude-pane://` URL-protocol registration |
+| [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl) | Wrapper that includes shared user instructions + Claude-only sections |
+| [`home/dot_claude/executable_statusline`](../home/dot_claude/executable_statusline) | Powerline-style status bar (model, dir, worktree, git state, context %) |
+| [`home/dot_claude/focus-pane.ps1.tmpl`](../home/dot_claude/focus-pane.ps1.tmpl) | `claude-pane://` URL handler — switches psmux pane and brings WezTerm to front |
+| [`home/dot_claude/notify-input.ps1.tmpl`](../home/dot_claude/notify-input.ps1.tmpl) | Notification hook handler — emits a BurntToast with a `Focus` button |
+| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl) | Claude config (auto-allow MCP tools, plugin enablement, hooks, env, statusLine) |
+| [`home/dot_claude/symlink_skills`](../home/dot_claude/symlink_skills) | `~/.claude/skills` → `~/.agents/skills` (see [`agent-config.md`](agent-config.md)) |
 
 ## Settings Drift
 
@@ -93,7 +93,7 @@ vs direct-exec trade-off, and the rpath trap all live in the package — see
 its README and `bootstrap.sh` / `patch-execpath.py` for the rationale.
 
 Both the launcher release and the Claude Code binary it fetches are
-Renovate-pinned in `home/.chezmoidata/claude-code.yaml`. chezmoi keeps ownership
+Renovate-pinned in [`home/.chezmoidata/claude-code.yaml`](../home/.chezmoidata/claude-code.yaml). chezmoi keeps ownership
 of `settings.json` rather than letting the package manage it, so the Android
 branches below remain the single source for those keys.
 

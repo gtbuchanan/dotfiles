@@ -10,11 +10,11 @@ their own docs — this one focuses on everything else.
 
 | File | Role |
 |---|---|
-| `home/dot_config/private_git/executable_clean-safe` | `git clean` wrapper that respects `.cleanignore.local` |
-| `home/dot_config/private_git/executable_jira` | `git j` — resolves the JIRA key from a `jira/<key>` branch and forwards to `acli` (ewn host-type only) |
-| `home/dot_config/private_git/gpg-wrapper.bat` | Windows GPG shim (see [`gpg-signing.md`](gpg-signing.md#windows)) |
-| `home/dot_config/private_git/ignore` | Global gitignore (resolved by git's XDG default) |
-| `home/dot_gitconfig.tmpl` | Main config: aliases, opinionated defaults, per-OS branches |
+| [`home/dot_config/private_git/executable_clean-safe`](../home/dot_config/private_git/executable_clean-safe) | `git clean` wrapper that respects `.cleanignore.local` |
+| [`home/dot_config/private_git/executable_jira`](../home/dot_config/private_git/executable_jira) | `git j` — resolves the JIRA key from a `jira/<key>` branch and forwards to `acli` (ewn host-type only) |
+| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat) | Windows GPG shim (see [`gpg-signing.md`](gpg-signing.md#windows)) |
+| [`home/dot_config/private_git/ignore`](../home/dot_config/private_git/ignore) | Global gitignore (resolved by git's XDG default) |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl) | Main config: aliases, opinionated defaults, per-OS branches |
 
 ## Opinionated Defaults
 
@@ -91,7 +91,7 @@ so they're available without a manual clone:
 
 ## Global Ignore
 
-`dot_config/private_git/ignore` deploys to `~/.config/git/ignore`,
+[`dot_config/private_git/ignore`](../home/dot_config/private_git/ignore) deploys to `~/.config/git/ignore`,
 which is git's XDG default for `core.excludesFile`. No explicit
 `excludesFile` setting is needed — git picks it up automatically.
 

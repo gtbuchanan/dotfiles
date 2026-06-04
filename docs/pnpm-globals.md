@@ -1,7 +1,7 @@
 # pnpm Globals
 
 Global pnpm packages installed across machines have pinned versions in
-`package.json` at the repo root. A shared chezmoi template renders
+[`package.json`](../package.json) at the repo root. A shared chezmoi template renders
 `pnpm add -g` commands into per-script install scripts, so each script
 re-runs only when *its* packages change — not when an unrelated package
 bumps.
@@ -10,13 +10,13 @@ bumps.
 
 | File | Role |
 |---|---|
-| `package.json` | Pinned versions; Renovate-managed |
-| `pnpmfile.cjs` | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
-| `home/.chezmoitemplates/pnpm-globals` | Shared template that renders `pnpm add -g <name@version> …` |
-| `home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl` | Termux installer |
-| `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | Installs `tweakcc` + Claude plugin setup |
-| `home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl` | Installs codex + LSP servers (uses `pnpmfile.cjs`) |
-| `home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl` | Installs `@readonly-mcp/core` + Claude registration |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl) | Termux installer |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Installs `tweakcc` + Claude plugin setup |
+| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs codex + LSP servers (uses [`pnpmfile.cjs`](../pnpmfile.cjs)) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration |
+| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals) | Shared template that renders `pnpm add -g <name@version> …` |
+| [`package.json`](../package.json) | Pinned versions; Renovate-managed |
+| [`pnpmfile.cjs`](../pnpmfile.cjs) | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
 
 ## How the Template Renders
 
@@ -25,7 +25,7 @@ The template takes a `dict` with:
 - `include` — list of package names to install on this invocation
 - `pnpmfile` — optional path passed as `--config.global-pnpmfile=<path>`
 
-It iterates `package.json`'s `dependencies`, keeps entries whose name is
+It iterates [`package.json`](../package.json)'s `dependencies`, keeps entries whose name is
 in `include`, and emits `pnpm add -g`. Two version-spec branches:
 
 - `github:<owner>/<repo>#<sha>` → passed verbatim (pnpm understands the
@@ -58,7 +58,7 @@ self-contained, no ordering dependencies.
 
 ## The `pnpmfile` Option
 
-`pnpmfile.cjs` at the repo root contains a `readPackage` hook with two
+[`pnpmfile.cjs`](../pnpmfile.cjs) at the repo root contains a `readPackage` hook with two
 patches:
 
 - `volar-service-emmet@0.0.64`'s GitHub-resolved `@emmetio/css-parser`
@@ -76,15 +76,15 @@ patches:
 Both Windows scripts that pull an affected package pass the file via
 `--config.global-pnpmfile=` (rendered by the `pnpmfile` option of the
 shared template). Scripts whose packages need no patching don't set the
-flag. See the inline comments in `pnpmfile.cjs` for the upstream-issue
+flag. See the inline comments in [`pnpmfile.cjs`](../pnpmfile.cjs) for the upstream-issue
 trail.
 
 ## Adding a New Global Package
 
-1. Add the package + pinned version to `package.json`.
+1. Add the package + pinned version to [`package.json`](../package.json).
 2. Add the name to the `include` list in exactly one script.
 
-Renovate's existing `package.json` watcher picks up version bumps and
+Renovate's existing [`package.json`](../package.json) watcher picks up version bumps and
 opens PRs. The shared template handles GitHub-spec packages
 automatically — pin them as `github:<owner>/<repo>#<sha>` in
-`package.json`.
+[`package.json`](../package.json).

@@ -11,17 +11,17 @@ checked in.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/android/run_onchange_before.sh.tmpl` | Installs `openssh` from Termux's pkg repo |
-| `home/.chezmoiignore` | Gates `ssh-askpass-termux` to Android |
-| `home/dot_bash_profile.tmpl` | Starts the WSL→Windows agent bridge on WSL hosts |
-| `home/dot_config/wezterm/wezterm.lua.tmpl` | Disables WezTerm's built-in agent mux so the native agent stays in charge |
-| `home/dot_gitconfig.tmpl` | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent |
-| `home/dot_local/bin/.chezmoiignore` | Gates `ssh-agent-pipe` to WSL |
-| `home/dot_local/bin/executable_ssh-agent-pipe` | WSL→Windows agent bridge (socat + npiperelay) |
-| `home/dot_local/bin/executable_ssh-askpass-termux` | Android SSH_ASKPASS via `termux-dialog` |
-| `home/dot_profile.tmpl` | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android |
-| `home/private_dot_ssh/config.tmpl` | Top-level config: `Include ./*.conf` + macOS keychain |
-| `home/winget.yaml.tmpl` | Windows: removes built-in OpenSSH client, installs Preview build, starts agent service, sets `GIT_SSH` |
+| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates `ssh-askpass-termux` to Android |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo |
+| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl) | Starts the WSL→Windows agent bridge on WSL hosts |
+| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl) | Disables WezTerm's built-in agent mux so the native agent stays in charge |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl) | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent |
+| [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore) | Gates `ssh-agent-pipe` to WSL |
+| [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe) | WSL→Windows agent bridge (socat + npiperelay) |
+| [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux) | Android SSH_ASKPASS via `termux-dialog` |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl) | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android |
+| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl) | Top-level config: `Include ./*.conf` + macOS keychain |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows: removes built-in OpenSSH client, installs Preview build, starts agent service, sets `GIT_SSH` |
 
 ## Shared ssh_config
 
@@ -56,7 +56,7 @@ WSL just needs a way to talk to the Windows agent's named pipe;
 [Jaykul's gist](https://gist.github.com/Jaykul/19e9f18b8a68f6ab854e338f9b38ca7b)).
 `.bash_profile` sources it on WSL hosts only.
 
-The bridge is gated to WSL via `home/dot_local/bin/.chezmoiignore` so
+The bridge is gated to WSL via [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore) so
 the wrapper doesn't pollute non-WSL Linux hosts where it would do
 nothing. Its two runtime dependencies are managed here too: `socat` by
 the Linux before-script (WSL is Linux from chezmoi's perspective) and

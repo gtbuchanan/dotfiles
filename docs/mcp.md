@@ -10,13 +10,13 @@ and macOS would need install scripts added.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh` | Android: HTTP MCP registrations (microsoft-learn) |
-| `home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl` | Android: install + register `readonly-mcp` (stdio); `setsid` workaround |
-| `home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl` | Windows: HTTP MCP registrations (folded into Claude configure) |
-| `home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl` | Windows: install + register `readonly-mcp` (stdio) |
-| `home/.chezmoitemplates/vscode_settings.json` | VS Code `mcp.servers` config (shared across OSes) |
-| `home/dot_claude/settings.json.tmpl` | Claude permissions `allow` list — explicitly enumerates every MCP tool |
-| `package.json` | `@readonly-mcp/core` pin (GitHub-spec) |
+| [`home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh`](../home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh) | Android: HTTP MCP registrations (microsoft-learn) |
+| [`home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl) | Android: install + register `readonly-mcp` (stdio); `setsid` workaround |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Windows: HTTP MCP registrations (folded into Claude configure) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Windows: install + register `readonly-mcp` (stdio) |
+| [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) | VS Code `mcp.servers` config (shared across OSes) |
+| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl) | Claude permissions `allow` list — explicitly enumerates every MCP tool |
+| [`package.json`](../package.json) | `@readonly-mcp/core` pin (GitHub-spec) |
 
 ## Servers
 
@@ -33,10 +33,10 @@ Claude and VS Code:
 - **Claude**: each OS's `mcp-readonly-install` script registers the
   binary as a user-scope stdio MCP.
 - **VS Code**: a `mcp.servers.readonly` entry in the shared
-  `vscode_settings.json` template, applied to every OS that deploys
+  [`vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) template, applied to every OS that deploys
   VS Code settings.
 
-The package is pinned in `package.json` as a GitHub-spec dep. See
+The package is pinned in [`package.json`](../package.json) as a GitHub-spec dep. See
 [`pnpm-globals.md`](pnpm-globals.md) for how GitHub-spec pins flow
 through the install template.
 

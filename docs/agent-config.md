@@ -16,13 +16,13 @@ read `~/.agents/` directly like Cursor / Gemini CLI / OpenCode):
 
 | File | Role |
 |---|---|
-| `home/.chezmoiexternal.yaml.tmpl` | Skill archive URLs + host-conditional gating |
-| `home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl` | VS Code prompts wrapper (adds `applyTo: '**'` frontmatter) |
-| `home/dot_claude/CLAUDE.md.tmpl` | Claude wrapper: includes shared instructions + Claude-only sections (LSP, Worktree Sessions, Agent Teams) |
-| `home/dot_claude/symlink_skills` | `~/.claude/skills` → `~/.agents/skills` |
-| `home/dot_codex/AGENTS.md.tmpl` | Codex wrapper (pass-through) |
-| `home/dot_config/AGENTS.md.tmpl` | Shared user-level instructions (source of truth) |
-| `home/dot_copilot/copilot-instructions.md.tmpl` | Copilot wrapper (pass-through) |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | Skill archive URLs + host-conditional gating |
+| [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | VS Code prompts wrapper (adds `applyTo: '**'` frontmatter) |
+| [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl) | Claude wrapper: includes shared instructions + Claude-only sections (LSP, Worktree Sessions, Agent Teams) |
+| [`home/dot_claude/symlink_skills`](../home/dot_claude/symlink_skills) | `~/.claude/skills` → `~/.agents/skills` |
+| [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl) | Codex wrapper (pass-through) |
+| [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tmpl) | Shared user-level instructions (source of truth) |
+| [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl) | Copilot wrapper (pass-through) |
 
 ## User-Level Instructions
 
@@ -30,7 +30,7 @@ There is no cross-tool location for user-level instructions — each tool
 reads from its own path. Standardizing one is being tracked upstream at
 [agentsmd/agents.md#91](https://github.com/agentsmd/agents.md/issues/91);
 until that lands, the workaround is one source plus per-tool wrappers.
-The shared content lives in `home/dot_config/AGENTS.md.tmpl`, and each
+The shared content lives in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tmpl), and each
 tool gets a one-line wrapper that pulls it in via `includeTemplate`:
 
 ```
@@ -41,10 +41,10 @@ The wrappers deploy to each tool's expected location:
 
 | Tool | Wrapper source | Deployed path |
 |---|---|---|
-| Claude Code | `home/dot_claude/CLAUDE.md.tmpl` | `~/.claude/CLAUDE.md` |
-| Codex | `home/dot_codex/AGENTS.md.tmpl` | `~/.codex/AGENTS.md` |
-| GitHub Copilot | `home/dot_copilot/copilot-instructions.md.tmpl` | `~/.copilot/copilot-instructions.md` |
-| VS Code prompts | `home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl` | `…/personal.instructions.md` |
+| Claude Code | [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl) | `~/.claude/CLAUDE.md` |
+| Codex | [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl) | `~/.codex/AGENTS.md` |
+| GitHub Copilot | [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl) | `~/.copilot/copilot-instructions.md` |
+| VS Code prompts | [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | `…/personal.instructions.md` |
 
 The shared template itself also deploys to `~/.config/AGENTS.md`
 because of its chezmoi source path. No tool reads from there — it's
@@ -63,7 +63,7 @@ Two wrappers add tool-specific content beyond the include:
 ## Skills
 
 Skills deploy to `~/.agents/skills/<name>/` via chezmoi externals
-(archive entries in `home/.chezmoiexternal.yaml.tmpl`). That's the
+(archive entries in [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)). That's the
 cross-tool location read natively by Codex CLI, Cursor, Gemini CLI,
 OpenCode, and GitHub Copilot (in VS Code and Visual Studio 2026).
 
@@ -93,7 +93,7 @@ externals file).
 
 ### Adding a New Skill
 
-1. Add an entry to `home/.chezmoiexternal.yaml.tmpl` under
+1. Add an entry to [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) under
    `'.agents/skills/<name>':`. Pin the URL to a commit SHA or tag.
 2. Use `stripComponents` + `include` so only the target skill's
    directory unpacks. Most upstream repos either ship a single skill

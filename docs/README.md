@@ -13,7 +13,7 @@ the moving parts fit together when a single config spans multiple files.
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
 | [`mcp.md`](mcp.md) | MCP server registrations across Claude + VS Code, `readonly-mcp` install + auto-allow, microsoft-learn HTTP transport |
 | [`nerd-font.md`](nerd-font.md) | `.font` vs `.fontpack` variable split, per-OS installers (`getnf` / NerdFonts PS module), Termux's fixed-path font quirk |
-| [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, `pnpmfile.cjs` hook |
+| [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, [`pnpmfile.cjs`](../pnpmfile.cjs) hook |
 | [`powershell.md`](powershell.md) | Canonical `~/.config/powershell` profile, Windows `Documents/PowerShell` dot-source stub, `profile.d` numeric-ordered loader + `foreach`-scope rule, per-part breakdown |
 | [`ssh.md`](ssh.md) | Shared `Include ./*.conf` config, Windows-native OpenSSH as the canonical client, WSL→Windows agent bridge, Android popup askpass |
 | [`vim.md`](vim.md) | `.vimrc` + `.vsvimrc` shared-config split, `data_dir` cross-platform trick, plugin/auto-load layout, Android fauxClip, LSP via vim-lsp + ALE |

@@ -9,12 +9,12 @@ for non-interactive signing.
 
 | File | Role |
 |---|---|
-| `home/.chezmoiscripts/android/run_onchange_before.sh.tmpl` | Installs pinentry-termux's runtime dependencies |
-| `home/AppData/Roaming/gnupg/gpg-agent.conf` | Windows `gpg-agent` config (`allow-loopback-pinentry`) |
-| `home/dot_config/private_git/gpg-wrapper.bat` | Windows GPG shim; toggles loopback based on caller env |
-| `home/dot_gitconfig.tmpl` | `[gpg] program = …` hookup, per-OS |
-| `home/dot_local/bin/executable_pinentry-termux` | Termux pinentry using `termux-dialog` (Android popup) |
-| `home/private_dot_gnupg/gpg-agent.conf.tmpl` | Linux/macOS/Android `gpg-agent` config |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs pinentry-termux's runtime dependencies |
+| [`home/AppData/Roaming/gnupg/gpg-agent.conf`](../home/AppData/Roaming/gnupg/gpg-agent.conf) | Windows `gpg-agent` config (`allow-loopback-pinentry`) |
+| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat) | Windows GPG shim; toggles loopback based on caller env |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl) | `[gpg] program = …` hookup, per-OS |
+| [`home/dot_local/bin/executable_pinentry-termux`](../home/dot_local/bin/executable_pinentry-termux) | Termux pinentry using `termux-dialog` (Android popup) |
+| [`home/private_dot_gnupg/gpg-agent.conf.tmpl`](../home/private_dot_gnupg/gpg-agent.conf.tmpl) | Linux/macOS/Android `gpg-agent` config |
 
 ## The AI-Agent Convention
 
@@ -37,7 +37,7 @@ without per-project reminders.
 
 Windows GPG defaults to GUI pinentry (`pinentry-w32`), which doesn't
 work from non-interactive contexts and is wrong for terminal sessions.
-`home/dot_config/private_git/gpg-wrapper.bat` adjusts behavior by
+[`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat) adjusts behavior by
 caller environment:
 
 | Caller env | Wrapper behavior |
@@ -74,7 +74,7 @@ naturally with a native popup. TUI pinentry needs a
 password-manager-aware keyboard to fill the field, which not every
 manager supports on mobile.
 
-`home/dot_local/bin/executable_pinentry-termux` is a custom
+[`home/dot_local/bin/executable_pinentry-termux`](../home/dot_local/bin/executable_pinentry-termux) is a custom
 Assuan-protocol pinentry that speaks pinentry's line protocol to
 gpg-agent and uses `termux-dialog text -p` to prompt via a native
 Android popup (returns JSON, parsed by `jq`).
@@ -92,8 +92,8 @@ The directive applies to every Termux session, not just Claude — a
 small UX trade-off (popup instead of inline TUI prompt) for not
 having to detect the caller.
 
-The script's runtime dependencies are installed by the Termux
-before-script (`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`).
+The script's runtime dependencies are installed by the [Termux
+before-script](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl).
 The user must also install the **Termux:API** companion app from
 F-Droid for `termux-dialog` to surface UI.
 
