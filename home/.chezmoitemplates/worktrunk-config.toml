@@ -3,4 +3,4 @@
 # *.local / *.user files from the primary worktree, carry over Visual Studio
 # per-solution state, and run the project's `mise bootstrap` task (or
 # `pnpm install` as fallback). Idempotent; safe to re-run.
-bootstrap = "wt-bootstrap {{ "{{" }} worktree_path {{ "}}" }} {{ "{{" }} primary_worktree_path {{ "}}" }} {{ "{{" }} branch {{ "}}" }}"
+bootstrap = "wt-bootstrap {{ "{{" }} worktree_path {{ "}}" }} {{ "{{" }} primary_worktree_path {{ "}}" }} {{ "{{" }} branch {{ "}}" }} {{ "{{" }} pr_number | default('') {{ "}}" }}"

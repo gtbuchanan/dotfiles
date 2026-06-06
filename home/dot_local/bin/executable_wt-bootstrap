@@ -5,10 +5,12 @@
 # Add more bootstrap steps below as needed (mise install, uv sync, etc.).
 #
 # Args: $1=worktree_path  $2=primary_worktree_path  $3=branch
+#       $4=pr_number (empty unless the worktree was created via `wt switch pr:`)
 
 WT_PATH="$1"
 WT_MAIN="$2"
 WT_BRANCH="$3"
+WT_PR="$4"
 
 # Mirror untracked per-checkout files from $WT_MAIN, preserving subdirs:
 #   *.local      .env.local, .cleanignore.local
@@ -37,6 +39,41 @@ for pattern in '.vs/*/config/applicationhost.config' '.vs/*/v*/.suo'; do
     cp "$src" "$dst"
   done
 done
+
+# A fresh worktree's mise config lives at a new path, so it's untrusted even
+# when the primary worktree's copy is trusted — mise tracks trust per
+# config-file path. Auto-trust it so the bootstrap task below runs without an
+# interactive prompt, but only when all three hold:
+#   1. The worktree actually has a mise config (skip the mise call otherwise).
+#   2. origin belongs to a repo you own (github.com/gtbuchanan/*) — never
+#      auto-trust a third-party clone.
+#   3. It isn't a fork PR. Trust maps to push access: a same-repo PR branch
+#      was pushed by someone with commit rights, so it's as trusted as any
+#      branch; a fork PR checks out attacker-controllable content
+#      (refs/pull/N/head) while origin still points at your repo, so the owner
+#      check alone can't catch it. WT_PR is set only at PR creation — exactly
+#      when this one-shot post-start hook fires — and gh is already required
+#      and authenticated for `wt switch pr:`. Fail closed: an unresolvable
+#      lookup is treated as a fork (no trust, manual review).
+if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
+   [ -f "$WT_PATH/.config/mise/config.toml" ]; then
+  is_fork=false
+  if [ -n "$WT_PR" ]; then
+    case "$(cd "$WT_PATH" && gh pr view "$WT_PR" --json isCrossRepository \
+              --jq .isCrossRepository 2>/dev/null)" in
+      false) is_fork=false ;;
+      *) is_fork=true ;;
+    esac
+  fi
+  origin=$(git -C "$WT_PATH" remote get-url origin 2>/dev/null || true)
+  case "$origin" in
+    *github.com[:/]gtbuchanan/*)
+      if [ "$is_fork" = false ]; then
+        mise -C "$WT_PATH" trust >/dev/null 2>&1 || true
+      fi
+      ;;
+  esac
+fi
 
 # Prefer the project's mise bootstrap task when defined — it owns the
 # canonical setup (pnpm install, codegen, db prep, etc.) and mise
