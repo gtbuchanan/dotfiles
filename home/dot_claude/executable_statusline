@@ -128,24 +128,30 @@ if [ -z "$WORKTREE_NAME" ] && [ "$IS_WORKTREE" = "1" ]; then
 fi
 
 # --- Worktree segment (wt_bg, only when current branch differs from worktree name) ---
-# Equivalence checks:
+# Worktrunk's default layout names the worktree dir `<repo>.<sanitize(branch)>`,
+# so the leaf carries a redundant `<repo>.` prefix that already shows in the DIR
+# segment. Strip it for both the display and the equivalence check, leaving just
+# the branch-derived suffix. This also keeps the segment informative when the
+# branch was renamed after the worktree was created (dir leaf no longer matches
+# the current branch) -- only the redundant repo prefix is dropped.
+WT_DISPLAY="$WORKTREE_NAME"
+[ -n "$DIR" ] && WT_DISPLAY="${WT_DISPLAY#"${DIR}."}"
+# Equivalence checks (pure repetition of the DIR + git segments):
 #   1. Claude Code-managed: replaces / with + in worktree names, so compare
 #      after normalizing both sides.
-#   2. Worktrunk default layout: worktree dir is `<repo>.<sanitize(branch)>`,
-#      where sanitize replaces `/` and `\` with `-`. The repo name appears in
-#      the DIR segment and the sanitized branch in BRANCH -- so when this
-#      pattern matches, the worktree segment is pure repetition.
-WT_NAME_NORM="${WORKTREE_NAME//\//+}"
+#   2. Worktrunk default layout: the stripped suffix equals the sanitized
+#      branch (sanitize replaces `/` and `\` with `-`).
+WT_NAME_NORM="${WT_DISPLAY//\//+}"
 GIT_BRANCH_NORM="${BRANCH_STRIPPED//\//+}"
 BRANCH_SANITIZED="${BRANCH_STRIPPED//\//-}"
 BRANCH_SANITIZED="${BRANCH_SANITIZED//\\/-}"
 WT_EQUIV_BRANCH=0
 if [ -n "$WORKTREE_NAME" ]; then
     [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && WT_EQUIV_BRANCH=1
-    [ "$WORKTREE_NAME" = "${DIR}.${BRANCH_SANITIZED}" ] && WT_EQUIV_BRANCH=1
+    [ "$WT_DISPLAY" = "$BRANCH_SANITIZED" ] && WT_EQUIV_BRANCH=1
 fi
 if [ -n "$WORKTREE_NAME" ] && [ "$WT_EQUIV_BRANCH" = "0" ]; then
-    LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WORKTREE_NAME} ${RESET}"
+    LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WT_DISPLAY} ${RESET}"
     PREV_BG_FG="${WT_FG}"
 fi
 
