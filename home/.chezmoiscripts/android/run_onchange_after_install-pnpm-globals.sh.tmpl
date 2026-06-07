@@ -1,4 +1,4 @@
-{{- $include := list "@openai/codex" -}}
+{{- $include := list "@j178/prek" "@openai/codex" -}}
 {{- if eq .hosttype "personal" }}{{ $include = append $include "@bitwarden/cli" }}{{ end -}}
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
