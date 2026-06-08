@@ -1,0 +1,77 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  hk pre-commit toolchain for Termux/Android.
+
+  Termux-native mise can't install hk, pkl, or actionlint via aqua — its
+  OS detection is compile-time, so it always resolves android/arm64, for
+  which aqua has no assets (see dot_config/mise/config.toml's disable_tools
+  and the per-tool rationale there). This installs the two tools hk needs
+  to run locally out of band.
+
+  hk:  static musl aarch64 release tarball, runs unmodified on bionic.
+  pkl: glibc-dynamic `pkl-linux-aarch64`, launched through glibc-runner
+       (`grun`, provided by the claude-code-termux package installed in
+       run_onchange_after_claude-code-install.sh, which sorts earlier).
+
+  Versions pinned in `home/.chezmoidata/hk.yaml` (Renovate-tracked) and
+  kept in sync with gtbuchanan/tooling's mise.toml so local runs match CI.
+  Both are embedded so a bump to either re-fires this run_onchange script.
+*/}}
+set -euo pipefail
+
+HK_VERSION='{{ .hk_version }}'
+PKL_VERSION='{{ .pkl_version }}'
+
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
+
+# --- hk -------------------------------------------------------------------
+# jdx/hk publishes no per-asset .sha256 (its release-level checksum doesn't
+# cover the platform tarballs), so we pin by version rather than verify.
+HK_ARCHIVE="hk-aarch64-unknown-linux-musl.tar.gz"
+HK_URL="https://github.com/jdx/hk/releases/download/v${HK_VERSION}/${HK_ARCHIVE}"
+HK_DIR="$HOME/.local/share/hk"
+HK_BINARY="$HK_DIR/hk-$HK_VERSION"
+
+mkdir -p "$HK_DIR"
+if [ ! -x "$HK_BINARY" ]; then
+  echo "Installing hk $HK_VERSION..."
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  # Tarball contains a single top-level `hk` binary.
+  curl -fsSL "$HK_URL" | tar -xz -C "$tmp" hk
+  chmod +x "$tmp/hk"
+  mv "$tmp/hk" "$HK_BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+ln -sf "$HK_BINARY" "$BIN_DIR/hk"
+find "$HK_DIR" -mindepth 1 -maxdepth 1 -type f -name 'hk-*' ! -name "hk-$HK_VERSION" -delete
+
+# --- pkl ------------------------------------------------------------------
+# `pkl-linux-aarch64` is a single glibc-dynamic binary; `grun -c` patches
+# its ELF interpreter to Termux's glibc loader, and a wrapper launches it
+# through grun (direct exec still fails on bionic's libc.so).
+PKL_URL="https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-linux-aarch64"
+PKL_DIR="$HOME/.local/share/pkl"
+PKL_BINARY="$PKL_DIR/pkl-$PKL_VERSION"
+
+mkdir -p "$PKL_DIR"
+if [ ! -x "$PKL_BINARY" ]; then
+  echo "Installing pkl $PKL_VERSION..."
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$PKL_URL" -o "$tmp/pkl"
+  chmod +x "$tmp/pkl"
+  grun -c "$tmp/pkl"
+  mv "$tmp/pkl" "$PKL_BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+
+cat > "$BIN_DIR/pkl" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+exec grun "$PKL_BINARY" "\$@"
+EOF
+chmod +x "$BIN_DIR/pkl"
+find "$PKL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'pkl-*' ! -name "pkl-$PKL_VERSION" -delete

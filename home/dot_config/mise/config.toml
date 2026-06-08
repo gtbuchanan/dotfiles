@@ -12,10 +12,15 @@
 # no android/arm64. Install via `npm i -g pnpm` instead (also in
 # run_onchange_before.sh).
 #
-# prek: `aqua:j178/prek` pulls GitHub release tarballs named
-# `prek-{arch}-{os}` for linux/darwin/windows only — there is no android
-# asset (android binaries ship solely via the `@j178/prek-android-arm64`
-# npm package). Install via `pnpm add -g @j178/prek` instead (in
-# run_onchange_after_install-pnpm-globals.sh).
+# hk: `aqua:jdx/hk` ships release tarballs for linux/darwin/windows only;
+# its aqua manifest rejects android/arm64 ("unsupported env"). hk is a
+# static musl aarch64 binary that runs unmodified on bionic, so install
+# the release tarball directly (in run_onchange_after_install-hk.sh).
+#
+# pkl: `aqua:apple/pkl` has no android asset — it keys off `android` while
+# only `pkl-linux-aarch64` exists. That binary is glibc-dynamic and needs
+# the glibc-runner (`grun`) loader shim to run on bionic, so install it and
+# a grun wrapper out of band (same run_onchange_after_install-hk.sh). hk
+# only invokes pkl for validate/check/fix/install.
 [settings]
-disable_tools = ["node", "pnpm", "prek"]
+disable_tools = ["node", "pnpm", "hk", "pkl"]
