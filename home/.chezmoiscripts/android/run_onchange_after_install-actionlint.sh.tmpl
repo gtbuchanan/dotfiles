@@ -1,0 +1,57 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  actionlint install for Termux/Android.
+
+  actionlint is aqua-backed in gtbuchanan/tooling's mise.toml (hk runs it
+  as a workflow-lint step), but Termux-native mise resolves android/arm64,
+  for which aqua has no asset (see dot_config/mise/config.toml). actionlint
+  is a static Go binary, so the prebuilt linux_arm64 release runs unmodified
+  on bionic — no loader shim, unlike pkl.
+
+  It's a standalone linter that hk merely orchestrates, not an hk runtime
+  dependency (cf. pkl in install-hk.sh), so it's installed on its own and
+  version-pinned separately in `home/.chezmoidata/actionlint.yaml`
+  (Renovate-tracked), kept in sync with tooling's mise.toml.
+*/}}
+set -euo pipefail
+
+VERSION='{{ .actionlint_version }}'
+ARCHIVE="actionlint_${VERSION}_linux_arm64.tar.gz"
+DL_BASE="https://github.com/rhysd/actionlint/releases/download/v${VERSION}"
+
+INSTALL_DIR="$HOME/.local/share/actionlint"
+BINARY="$INSTALL_DIR/actionlint-$VERSION"
+WRAPPER="$HOME/.local/bin/actionlint"
+
+mkdir -p "$INSTALL_DIR" "$(dirname "$WRAPPER")"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Installing actionlint $VERSION..."
+  checksum=$(curl -fsSL "$DL_BASE/actionlint_${VERSION}_checksums.txt" \
+    | awk -v f="$ARCHIVE" '$2 == f { print $1 }')
+  if [ -z "$checksum" ]; then
+    echo "Could not find checksum for $ARCHIVE" >&2
+    exit 1
+  fi
+
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$DL_BASE/$ARCHIVE" -o "$tmp/$ARCHIVE"
+
+  actual=$(sha256sum "$tmp/$ARCHIVE" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $ARCHIVE: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  # Tarball bundles docs/man/LICENSE alongside the `actionlint` binary.
+  tar -xzf "$tmp/$ARCHIVE" -C "$tmp" actionlint
+  chmod +x "$tmp/actionlint"
+  mv "$tmp/actionlint" "$BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+
+ln -sf "$BINARY" "$WRAPPER"
+
+find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'actionlint-*' ! -name "actionlint-$VERSION" -delete

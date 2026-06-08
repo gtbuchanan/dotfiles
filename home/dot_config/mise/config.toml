@@ -22,5 +22,11 @@
 # the glibc-runner (`grun`) loader shim to run on bionic, so install it and
 # a grun wrapper out of band (same run_onchange_after_install-hk.sh). hk
 # only invokes pkl for validate/check/fix/install.
+#
+# actionlint: `aqua:rhysd/actionlint` has no android asset (only
+# linux_arm64 exists). It's a static Go binary that runs unmodified on
+# bionic, so the prebuilt linux_arm64 release is installed directly (in
+# run_onchange_after_install-actionlint.sh). Unlike pkl it isn't an hk
+# runtime dependency — hk just orchestrates it as a workflow-lint step.
 [settings]
-disable_tools = ["node", "pnpm", "hk", "pkl"]
+disable_tools = ["node", "pnpm", "hk", "pkl", "actionlint"]
