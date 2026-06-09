@@ -45,8 +45,8 @@ done
 # config-file path. Auto-trust it so the bootstrap task below runs without an
 # interactive prompt, but only when all three hold:
 #   1. The worktree actually has a mise config (skip the mise call otherwise).
-#   2. origin belongs to a repo you own (github.com/gtbuchanan/*) — never
-#      auto-trust a third-party clone.
+#   2. origin belongs to a repo you trust (github.com/gtbuchanan/* or
+#      github.com/energyworldnet/*) — never auto-trust a third-party clone.
 #   3. It isn't a fork PR. Trust maps to push access: a same-repo PR branch
 #      was pushed by someone with commit rights, so it's as trusted as any
 #      branch; a fork PR checks out attacker-controllable content
@@ -67,7 +67,7 @@ if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
   fi
   origin=$(git -C "$WT_PATH" remote get-url origin 2>/dev/null || true)
   case "$origin" in
-    *github.com[:/]gtbuchanan/*)
+    *github.com[:/]gtbuchanan/* | *github.com[:/]energyworldnet/*)
       if [ "$is_fork" = false ]; then
         mise -C "$WT_PATH" trust >/dev/null 2>&1 || true
       fi
