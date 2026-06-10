@@ -120,6 +120,11 @@
 ## Worktrees
 
 - We use [worktrunk](https://worktrunk.dev) for worktree management.
+- Prefer creating a worktree over a plain branch. When new work would
+  otherwise start with `git checkout -b` / `git branch` / `git switch -c`,
+  create a worktree with `wt switch --create <branch>` instead. Reserve
+  plain in-place branches for cases where a worktree is clearly unwarranted
+  (e.g., a throwaway local experiment you'll discard in the same session).
 - Prefer `wt` commands over raw `git worktree add` / `git checkout` /
   `git worktree remove`:
   - `wt switch --create <branch>` — new branch + worktree
