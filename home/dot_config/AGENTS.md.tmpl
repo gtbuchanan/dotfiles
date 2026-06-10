@@ -139,6 +139,10 @@
   The merge detection is robust (same-commit, ancestor, three-dot diff,
   tree match, simulated merge, patch-id) but a local fetch may be stale.
   Confirm with the user before removing.
+  - Exception: when you merged the PR for the current worktree's branch
+    yourself this session (e.g., `gh pr merge`), the merge is a known
+    fact — the staleness concern that motivates the prompt doesn't apply.
+    Clean up that worktree without prompting.
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
