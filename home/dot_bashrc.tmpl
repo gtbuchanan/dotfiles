@@ -63,11 +63,6 @@ fi
 # reads the directive file written by the binary and `cd`s the host shell.
 command -v wt >/dev/null && eval "$(wt config shell init bash)"
 
-# Configure Node Version Manager (nvm)
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
-[[ -r $NVM_DIR/bash_completion ]] && \. $NVM_DIR/bash_completion
-
 # Activate mise (tool version + env + task manager); prepends real tool
 # paths, overriding the shims that .profile adds for non-interactive use
 command -v mise >/dev/null && eval "$(mise activate bash)"

@@ -78,7 +78,7 @@ handing off.
 
 `.bashrc` is where the interactive surface lives — every shell
 integration (Starship, fzf, delta completion, worktrunk's `wt`
-function, nvm, mise activation, wezterm shell integration) is wired up here so
+function, mise activation, wezterm shell integration) is wired up here so
 individual tool docs don't have to.
 
 ## Auto-tmux
