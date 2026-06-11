@@ -17,7 +17,7 @@ there.
 | [`home/dot_config/powershell/profile.d/10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl) | `ccc`, `cmcd`, and Windows-only `ls`/`su`/`refreshenv` |
 | [`home/dot_config/powershell/profile.d/20-prompt.ps1`](../home/dot_config/powershell/profile.d/20-prompt.ps1) | Starship init + OSC 7, PSReadLine vi-mode |
 | [`home/dot_config/powershell/profile.d/30-modules.ps1`](../home/dot_config/powershell/profile.d/30-modules.ps1) | PowerShellGet, PSFzf + keybindings, posh-git |
-| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | `GPG_TTY`, worktrunk shell init, delta completion |
+| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | `GPG_TTY`, mise activation, worktrunk shell init, delta completion |
 | [`home/dot_config/powershell/profile.d/50-ewn.ps1.tmpl`](../home/dot_config/powershell/profile.d/50-ewn.ps1.tmpl) | PSRSA + Cloudflare token (ewn+Windows only) |
 | [`home/readonly_Documents/PowerShell/Microsoft.PowerShell_profile.ps1`](../home/readonly_Documents/PowerShell/Microsoft.PowerShell_profile.ps1) | Windows stub: dot-sources the `~/.config` profile |
 

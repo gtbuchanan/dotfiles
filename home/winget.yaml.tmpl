@@ -474,6 +474,31 @@ properties:
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
+        description: Install mise
+      id: mise
+      settings:
+        id: jdx.mise
+        source: winget
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [mise]
+      directives:
+        allowPrerelease: true
+        description: Add mise shims to user PATH
+      id: miseShimsPath
+      settings:
+        GetScript: |
+          @{ Result = [Environment]::GetEnvironmentVariable('Path', 'User') }
+        TestScript: |
+          $miseShims = Join-Path $env:LOCALAPPDATA 'mise\shims'
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          ($userPath -split ';') -contains $miseShims
+        SetScript: |
+          $miseShims = Join-Path $env:LOCALAPPDATA 'mise\shims'
+          $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+          $newPath = (($userPath -split ';') + $miseShims) -join ';'
+          [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
         description: Install mRemoteNG
       id: mremoteng
       settings:

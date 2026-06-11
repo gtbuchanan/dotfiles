@@ -68,6 +68,10 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh" # This loads nvm
 [[ -r $NVM_DIR/bash_completion ]] && \. $NVM_DIR/bash_completion
 
+# Activate mise (tool version + env + task manager); prepends real tool
+# paths, overriding the shims that .profile adds for non-interactive use
+command -v mise >/dev/null && eval "$(mise activate bash)"
+
 # Add aliases
 . "$HOME/.bash_aliases"
 
@@ -79,7 +83,4 @@ case ":$PATH:" in
   *":$PNPM_HOME/bin:"*) ;;
   *) export PATH="$PNPM_HOME/bin:$PATH" ;;
 esac
-
-# Activate mise (tool version + env + task manager).
-eval "$(mise activate bash)"
 {{- end }}

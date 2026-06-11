@@ -20,17 +20,16 @@ export UV_LIBC=none
 [ -d "$HOME/bin" ] && PATH="$HOME/bin:$PATH"
 [ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH"
 
-{{- if eq .chezmoi.os "android" }}
-
-# Add mise shims for non-interactive contexts (interactive shells use
-# `mise activate` from bashrc instead, which prepends real tool paths)
-[ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"
-{{- end }}
-
 {{- if eq .chezmoi.os "darwin" }}
+
 # Add Homebrew to PATH early to override built-in tool versions
 PATH="/opt/homebrew/bin:$PATH"
 
 # Add Node 20 to PATH since it's excluded by default
 PATH="$(brew --prefix node@20)/bin:$PATH"
 {{- end }}
+
+# Add mise shims for non-interactive contexts (interactive shells use
+# `mise activate` from bashrc instead, which prepends real tool paths).
+# Prepended last so mise-pinned tool versions win over system/Homebrew.
+[ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"

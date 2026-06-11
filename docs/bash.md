@@ -20,7 +20,7 @@ divergence.
 | [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl) | Login-shell entry: sources `.profile`, WSL agent bridge, `.bashrc` |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | Interactive shell setup (sourced by `.bash_profile`) |
 | [`home/dot_blerc`](../home/dot_blerc) | ble.sh config: vi mode, prompt mode-indicator hook, `progcomp_alias` |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl) | POSIX-shell env vars (PATH additions, Android `SSH_ASKPASS` and friends, macOS Homebrew prepends) |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl) | POSIX-shell env vars (PATH additions incl. mise shims, Android `SSH_ASKPASS` and friends, macOS Homebrew prepends) |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows: installs Git for Windows (which provides Git Bash) and prepends `Git\bin` to PATH for pre-commit |
 
 ## Bash Source
@@ -78,7 +78,7 @@ handing off.
 
 `.bashrc` is where the interactive surface lives — every shell
 integration (Starship, fzf, delta completion, worktrunk's `wt`
-function, nvm, wezterm shell integration) is wired up here so
+function, nvm, mise activation, wezterm shell integration) is wired up here so
 individual tool docs don't have to.
 
 ## Auto-tmux
