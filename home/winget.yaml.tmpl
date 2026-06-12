@@ -387,6 +387,7 @@ properties:
       settings:
         id: GnuPG.Gpg4win
         source: winget
+{{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Grammarly
@@ -394,6 +395,7 @@ properties:
       settings:
         id: Grammarly.Grammarly
         source: winget
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Handbrake
