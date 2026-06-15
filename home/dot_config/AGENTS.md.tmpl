@@ -60,6 +60,27 @@
   - Once published, treat header text as immutable. If the content
     evolves, add a new section rather than renaming an existing one.
 
+## Durable Writing
+
+- Avoid volatile specifics in text that outlives the moment it was written —
+  commit messages, PR/issue descriptions, docs, code comments. Exact counts
+  (test runs, number of commits/files/lines changed), version numbers,
+  timings, and benchmark figures drift the instant the underlying thing
+  changes, and nothing keeps them in sync. The reader then trusts a stale
+  number with no signal that it's wrong.
+- This targets numbers that describe a *current* state. Values that record
+  *when or what happened* are immutable historical facts, not drift — a date
+  in a date-keyed log (RCA, post-mortem, changelog, decision record) is the
+  whole point, so keep it. Likewise a commit/PR reference or a pinned version
+  that documents the state at that moment.
+- Prefer qualitative phrasing ("the full suite passes", "several commits",
+  "added a few cases") over a hardcoded count. When a number genuinely adds
+  value, anchor it to a live source the reader can re-check (link the CI run,
+  cite the file/section) rather than transcribing it.
+- Hardcode a specific figure only when it is verifiable at read-time (it's in
+  the same diff/artifact) or is intentionally a point-in-time snapshot that's
+  labeled as such (e.g., "as of 2026-01").
+
 ## Configuration
 
 - Always update user-level configuration in `{{ .chezmoi.workingTree }}` and run
