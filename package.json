@@ -3,7 +3,7 @@
   "dependencies": {
     "@bitwarden/cli": "2026.5.0",
     "@openai/codex": "0.137.0",
-    "@playwright/cli": "0.1.13",
+    "@playwright/cli": "0.1.14",
     "@readonly-mcp/core": "github:readonly-mcp/core#1ff05ccedbe3a589decdbd67e73f98a5884f3286",
     "@vtsls/language-server": "0.3.0",
     "@vue/language-server": "2.2.12",
