@@ -1,16 +1,18 @@
 #!/bin/sh
-# Invoked by worktrunk's post-start hook to bring a new worktree up to a
-# usable state. Worktrunk runs hooks through `sh` on every platform
-# (Git Bash on Windows), so this single POSIX script covers everything.
-# Add more bootstrap steps below as needed (mise install, uv sync, etc.).
+# worktrunk pre-start hook: blocking, prerequisite setup for a fresh worktree.
+# Runs before creation returns so the worktree is usable immediately and the
+# post-start bootstrap's `mise run` isn't blocked on an untrusted-config prompt.
 #
-# Args: $1=worktree_path  $2=primary_worktree_path  $3=branch
-#       $4=pr_number (empty unless the worktree was created via `wt switch pr:`)
+# Mirrors untracked per-checkout files and Visual Studio state from the primary
+# worktree, then trusts the worktree's mise config. Worktrunk runs hooks
+# through `sh` on every platform (Git Bash on Windows). Idempotent.
+#
+# Args: $1=worktree_path  $2=primary_worktree_path
+#       $3=pr_number (empty unless created via `wt switch pr:`)
 
 WT_PATH="$1"
 WT_MAIN="$2"
-WT_BRANCH="$3"
-WT_PR="$4"
+WT_PR="$3"
 
 # Mirror untracked per-checkout files from $WT_MAIN, preserving subdirs:
 #   *.local      .env.local, .cleanignore.local
@@ -42,7 +44,7 @@ done
 
 # A fresh worktree's mise config lives at a new path, so it's untrusted even
 # when the primary worktree's copy is trusted — mise tracks trust per
-# config-file path. Auto-trust it so the bootstrap task below runs without an
+# config-file path. Auto-trust it so the post-start bootstrap runs without an
 # interactive prompt, but only when all three hold:
 #   1. The worktree actually has a mise config (skip the mise call otherwise).
 #   2. origin belongs to a repo you trust (github.com/gtbuchanan/* or
@@ -52,7 +54,7 @@ done
 #      branch; a fork PR checks out attacker-controllable content
 #      (refs/pull/N/head) while origin still points at your repo, so the owner
 #      check alone can't catch it. WT_PR is set only at PR creation — exactly
-#      when this one-shot post-start hook fires — and gh is already required
+#      when this one-shot pre-start hook fires — and gh is already required
 #      and authenticated for `wt switch pr:`. Fail closed: an unresolvable
 #      lookup is treated as a fork (no trust, manual review).
 if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
@@ -73,14 +75,4 @@ if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
       fi
       ;;
   esac
-fi
-
-# Prefer the project's mise bootstrap task when defined — it owns the
-# canonical setup (pnpm install, codegen, db prep, etc.) and mise
-# auto-installs its tool prerequisites. Fall back to a bare pnpm
-# install for projects that haven't adopted mise tasks yet.
-if mise -C "$WT_PATH" tasks info bootstrap >/dev/null 2>&1; then
-  mise -C "$WT_PATH" run bootstrap
-elif [ -f "$WT_PATH/pnpm-lock.yaml" ]; then
-  pnpm -C "$WT_PATH" install --frozen-lockfile
 fi

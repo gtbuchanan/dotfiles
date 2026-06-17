@@ -1,0 +1,20 @@
+#!/bin/sh
+# worktrunk post-start hook: slow, background project setup for a fresh
+# worktree. Runs after creation returns, once wt-pre-start has mirrored the
+# per-checkout files and trusted the worktree's mise config.
+#
+# Prefer the project's mise bootstrap task when defined — it owns the canonical
+# setup (pnpm install, codegen, db prep, etc.) and mise auto-installs its tool
+# prerequisites. Fall back to a bare pnpm install for projects that haven't
+# adopted mise tasks yet. Worktrunk runs hooks through `sh` on every platform
+# (Git Bash on Windows). Idempotent; safe to re-run.
+#
+# Args: $1=worktree_path
+
+WT_PATH="$1"
+
+if mise -C "$WT_PATH" tasks info bootstrap >/dev/null 2>&1; then
+  mise -C "$WT_PATH" run bootstrap
+elif [ -f "$WT_PATH/pnpm-lock.yaml" ]; then
+  pnpm -C "$WT_PATH" install --frozen-lockfile
+fi
