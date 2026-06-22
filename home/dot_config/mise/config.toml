@@ -1,5 +1,15 @@
 # Termux/Android-only mise global config.
-#
+
+# hk 1.48.0 defaults to an embedded pkl evaluator; on Termux its bundled
+# rustls/reqwest client can't build without a system CA bundle and, even given
+# one, hangs fetching the remote pkl package over HTTPS. Route pkl through the
+# external CLI (installed + grun-wrapped out of band; see the `pkl` note under
+# [settings]) instead. Scoped here because the embedded backend works fine on
+# glibc Linux/CI — this config is android-only — so downstream repos stay
+# platform-pure.
+[env]
+HK_PKL_BACKEND = "pkl"
+
 # mise itself is packaged by Termux (installed via run_onchange_before.sh),
 # but mise's tool-install backends don't have Android targets for these:
 #
@@ -28,5 +38,16 @@
 # bionic, so the prebuilt linux_arm64 release is installed directly (in
 # run_onchange_after_install-actionlint.sh). Unlike pkl it isn't an hk
 # runtime dependency — hk just orchestrates it as a workflow-lint step.
+#
+# shellcheck / shfmt / ruff: `aqua` keys off android/arm64, for which these
+# projects publish no asset (only linux/darwin/windows). Termux packages all
+# three, native to bionic, so install them from `pkg` (run_onchange_before.sh)
+# and let hk resolve them from PATH.
+#
+# clang-format (`pipx:clang-format`): the pipx/uv install path has no
+# bionic-compatible wheel, and `uv` itself has no android asset. Termux's
+# `clang` package supplies clang-format natively (same source), so `uv` is
+# disabled too — clang-format was its only consumer here. clang-format then
+# tracks Termux's clang release, which may lag a downstream project's pin.
 [settings]
-disable_tools = ["node", "pnpm", "hk", "pkl", "actionlint"]
+disable_tools = ["node", "pnpm", "hk", "pkl", "actionlint", "shellcheck", "shfmt", "ruff", "uv", "pipx:clang-format"]
