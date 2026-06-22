@@ -12,6 +12,7 @@ the moving parts fit together when a single config spans multiple files.
 | [`git.md`](git.md) | Opinionated push/pull/merge defaults, delta + KDiff3 wiring, helper scripts (`clean-safe`, `git j`, gist-backed `git unpicked` / `git amt`), per-OS quirks |
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
 | [`mcp.md`](mcp.md) | MCP server registrations across Claude + VS Code, `readonly-mcp` install + auto-allow, microsoft-learn HTTP transport |
+| [`mise.md`](mise.md) | mise install + activation per platform, Android-only global config, the Termux out-of-band hk/pkl/actionlint lint toolchain, version pinning |
 | [`nerd-font.md`](nerd-font.md) | `.font` vs `.fontpack` variable split, per-OS installers (`getnf` / NerdFonts PS module), Termux's fixed-path font quirk |
 | [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, [`pnpmfile.cjs`](../pnpmfile.cjs) hook |
 | [`powershell.md`](powershell.md) | Canonical `~/.config/powershell` profile, Windows `Documents/PowerShell` dot-source stub, `profile.d` numeric-ordered loader + `foreach`-scope rule, per-part breakdown |
