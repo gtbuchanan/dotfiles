@@ -50,4 +50,15 @@ HK_PKL_BACKEND = "pkl"
 # disabled too — clang-format was its only consumer here. clang-format then
 # tracks Termux's clang release, which may lag a downstream project's pin.
 [settings]
-disable_tools = ["node", "pnpm", "hk", "pkl", "actionlint", "shellcheck", "shfmt", "ruff", "uv", "pipx:clang-format"]
+disable_tools = [
+  "actionlint",
+  "hk",
+  "node",
+  "pipx:clang-format",
+  "pkl",
+  "pnpm",
+  "ruff",
+  "shellcheck",
+  "shfmt",
+  "uv",
+]
