@@ -2,10 +2,16 @@ $ErrorActionPreference = 'Stop'
 {{ template "pnpm-globals" dict
   "pnpmfile" (printf "%s/pnpmfile.cjs" (.chezmoi.workingTree | replace "\\" "/"))
   "include" (list
-    "@openai/codex"
     "@playwright/cli"
     "@vtsls/language-server"
     "@vue/language-server"
     "vscode-langservers-extracted"
   )
 }}
+
+# Codex CLI is now installed via winget (OpenAI.Codex). Remove the legacy
+# pnpm-managed global so the two don't shadow each other on PATH. Idempotent --
+# `pnpm remove` errors on a missing dep, so guard on its presence.
+if (pnpm ls -g --depth 0 2>$null | Select-String -SimpleMatch '@openai/codex') {
+  pnpm remove -g '@openai/codex'
+}

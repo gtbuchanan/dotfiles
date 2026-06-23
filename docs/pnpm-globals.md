@@ -12,7 +12,7 @@ bumps.
 |---|---|
 | [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl) | Termux installer |
 | [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Installs `tweakcc` + Claude plugin setup |
-| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs codex + LSP servers (uses [`pnpmfile.cjs`](../pnpmfile.cjs)) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages (uses [`pnpmfile.cjs`](../pnpmfile.cjs)) |
 | [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration |
 | [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals) | Shared template that renders `pnpm add -g <name@version> …` |
 | [`package.json`](../package.json) | Pinned versions; Renovate-managed |

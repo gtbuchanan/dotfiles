@@ -212,6 +212,13 @@ properties:
         id: Google.Chrome.EXE
         ensure: Absent
         source: winget
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Codex CLI
+      id: codex
+      settings:
+        id: OpenAI.Codex
+        source: winget
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
