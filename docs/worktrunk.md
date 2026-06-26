@@ -19,7 +19,8 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | Bash shell integration |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | PowerShell shell integration |
 | [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl) | Renders shared config on Linux/macOS/Android (XDG) |
-| [`home/dot_local/bin/executable_wt-bootstrap`](../home/dot_local/bin/executable_wt-bootstrap) | `post-start` hook script |
+| [`home/dot_local/bin/executable_wt-pre-start`](../home/dot_local/bin/executable_wt-pre-start) | `pre-start` hook script |
+| [`home/dot_local/bin/executable_wt-post-start`](../home/dot_local/bin/executable_wt-post-start) | `post-start` hook script |
 | [`home/dot_local/bin/symlink_wt.exe.tmpl`](../home/dot_local/bin/symlink_wt.exe.tmpl) | Windows symlink → winget-installed `wt.exe` |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows install + App Execution Alias removal |
 
@@ -73,13 +74,15 @@ One shared template, two thin wrappers:
 reads `%APPDATA%` there). Edit the shared template to change config on
 every platform.
 
-## Post-Start Bootstrap
+### Pre-Start
 
-The shared config wires `post-start` to invoke `wt-bootstrap` (a single
-POSIX `sh` script — worktrunk dispatches hooks through `sh` on every
-platform, including Git Bash on Windows). The script is
-self-documenting; add new bootstrap steps there and every platform picks
-them up.
+The config wires worktrunk `pre-start` to our `wt-pre-start` shell script. Add new blocking steps
+there (e.g., `mise trust`).
+
+### Post-Start
+
+The config wires worktrunk `post-start` to our `wt-post-start` shell script. Add new slow,
+non-blocking steps there (e.g., dependency installation).
 
 ## Skill
 
