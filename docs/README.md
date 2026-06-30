@@ -1,7 +1,6 @@
 # Reference Docs
 
-Deep-dive references for cross-file configurations in this repo — how
-the moving parts fit together when a single config spans multiple files.
+Deep-dive references for this repo — how the moving parts fit together, from configs that span multiple files to the physical desk hardware behind them.
 
 | Doc | Topic |
 |---|---|
@@ -9,6 +8,7 @@ the moving parts fit together when a single config spans multiple files.
 | [`bash.md`](bash.md) | Per-OS bash source (Homebrew on macOS, Git Bash on Windows), ble.sh nightly install + vi mode, `.bash_profile` → `.profile` → `.bashrc` load order, auto-tmux |
 | [`claude-code.md`](claude-code.md) | settings.json drift, Windows LSP plugin + `.cmd`-shim fixes, notification → pane-focus chain, Android native install |
 | [`coderabbit.md`](coderabbit.md) | CLI install (native on Linux/macOS, via WSL on Windows), Windows wrappers for worktree + path translation, Claude Code plugin |
+| [`desk-setup.md`](desk-setup.md) | Physical desk hardware — hosts → docks → KVM → ultrawide topology, the portable lapdesk input cluster, generic Mermaid diagram nodes with per-product reference tables |
 | [`git.md`](git.md) | Opinionated push/pull/merge defaults, delta + KDiff3 wiring, helper scripts (`clean-safe`, `git j`, gist-backed `git unpicked` / `git amt`), per-OS quirks |
 | [`gpg-signing.md`](gpg-signing.md) | Per-OS GPG pinentry wiring (Windows wrapper, Linux/macOS native, Termux popup), AI-agent bypass via `AI_AGENT`/`CLAUDE_CODE` |
 | [`mcp.md`](mcp.md) | MCP server registrations across Claude + VS Code, `readonly-mcp` install + auto-allow, microsoft-learn HTTP transport |
