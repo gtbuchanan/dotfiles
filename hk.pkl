@@ -1,0 +1,28 @@
+/// Pre-commit config for developing this chezmoi repo. Adopts the shared
+/// @gtbuchanan/hk-config `recommended` preset and adds a guard that mise's
+/// generated tasks stay in sync. Tool versions come from mise.toml.
+amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+
+import "package://github.com/gtbuchanan/tooling/releases/download/hk-config@0.2.0/hk-config@0.2.0#/Defaults.pkl"
+
+// chezmoi source templates embed Go template syntax ({{ ... }}) that shfmt and
+// shellcheck can't parse as shell, so drop .tmpl from the shell steps (hk types
+// them as shell via their shebang). Plain scripts stay covered; linting the
+// rendered output is deferred to a future render-first step.
+local shellExclude: Regex = Regex("\(Defaults.defaultExclude.pattern)|\\.tmpl$")
+
+local allSteps = new Mapping<String, Step> {
+  ...Defaults.recommended
+
+  ["shellcheck"] = (Defaults.shellcheck) { exclude = shellExclude }
+  ["shfmt"] = (Defaults.shfmt) { exclude = shellExclude }
+
+  // `gtb sync mise` generates mise.tasks.toml; guard the loader include and
+  // generated content against drift.
+  ["verify-mise"] {
+    glob = List("mise.toml", "mise.tasks.toml")
+    check = "gtb verify mise"
+  }
+}
+
+hooks = Defaults.hooksFor(allSteps)
