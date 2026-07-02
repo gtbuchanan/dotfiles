@@ -1,10 +1,14 @@
 {{- if eq .chezmoi.os "windows" }}
-" Use PowerShell
-" TODO: This appears to break vim-plug
-"set shell=pwsh
-"set shellcmdflag=-NoLogo -Command
-"set shellquote=\"
-"set shellxquote=
+" Use Git Bash as the shell so vim-tmux-navigator's edge-forwarding works.
+" At a split edge the plugin runs `system('tmux … select-pane')` after forcing
+" shellcmdflag '-c'; cmd.exe (the default when vim is launched from a pwsh
+" pane) doesn't understand '-c' and just prints its banner, wedging navigation.
+" bash handles the tmux shim's args (%N pane ids, socket paths) cleanly, which
+" pwsh does not. shellxquote='"' makes vim wrap the command in double quotes so
+" bash runs it as a single string rather than treating trailing args as $0/$1.
+set shell=bash.exe
+set shellcmdflag=-c
+set shellxquote=\"
 {{- end }}
 
 " Show length guide at textwidth+1
