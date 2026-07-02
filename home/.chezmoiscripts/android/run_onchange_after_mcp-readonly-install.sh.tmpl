@@ -1,6 +1,6 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
-{{ template "pnpm-globals" dict "include" (list "@readonly-mcp/core") }}
+{{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" (list "@readonly-mcp/core") }}
 # `claude mcp` signals its own process group on exit (Android-only bug),
 # killing the calling script. `setsid` runs each call in a fresh session
 # so the signal stays contained.

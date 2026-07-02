@@ -1,3 +1,10 @@
+---
+jobs:
+  pre-commit:
+    name: Pre-Commit
+    uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@main
+    with:
+      use-pnpm: true
 name: CI
 
 on:
@@ -6,8 +13,3 @@ on:
 
 permissions:
   contents: read
-
-jobs:
-  pre-commit:
-    name: Pre-Commit
-    uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@main

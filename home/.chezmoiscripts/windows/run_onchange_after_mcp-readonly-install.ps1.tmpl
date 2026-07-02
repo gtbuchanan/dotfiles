@@ -1,4 +1,4 @@
 $ErrorActionPreference = 'Stop'
-{{ template "pnpm-globals" dict "include" (list "@readonly-mcp/core") }}
+{{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" (list "@readonly-mcp/core") }}
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- readonly-mcp

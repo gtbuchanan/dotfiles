@@ -9,9 +9,14 @@
  * which Claude Code doesn't implement
  * (https://github.com/Piebald-AI/claude-code-lsps/issues/43).
  */
+
+/** @param {import('@pnpm/types').PackageManifest} pkg */
 function readPackage(pkg) {
   if (pkg.name === 'volar-service-emmet' && pkg.dependencies?.['@emmetio/css-parser']) {
-    pkg.dependencies['@emmetio/css-parser'] = '^0.4.1';
+    return {
+      ...pkg,
+      dependencies: { ...pkg.dependencies, '@emmetio/css-parser': '^0.4.1' },
+    };
   }
   /* ink-link@4.1.0 imports react in its compiled output but declares it
    * neither as a dependency nor a peerDependency (only `ink` is a peer). Under
@@ -26,7 +31,7 @@ function readPackage(pkg) {
    * Drop this patch once ink-link declares react.
    */
   if (pkg.name === 'ink-link' && !pkg.dependencies?.react) {
-    pkg.dependencies = { ...pkg.dependencies, react: '^19' };
+    return { ...pkg, dependencies: { ...pkg.dependencies, react: '^19' } };
   }
   return pkg;
 }

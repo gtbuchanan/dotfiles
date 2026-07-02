@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "extends": [
+    "@gtbuchanan/tsconfig/node.json"
+  ],
+  "include": [
+    ".pnpmfile.cjs",
+    "eslint.config.mjs"
+  ]
+}

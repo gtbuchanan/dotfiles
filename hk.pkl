@@ -17,6 +17,11 @@ local allSteps = new Mapping<String, Step> {
   ["shellcheck"] = (Defaults.shellcheck) { exclude = shellExclude }
   ["shfmt"] = (Defaults.shfmt) { exclude = shellExclude }
 
+  ["eslint"] {
+    check = "pnpm exec eslint --max-warnings=0 --no-warn-ignored {{files}}"
+    fix = "pnpm exec eslint --fix --max-warnings=0 --no-warn-ignored {{files}}"
+  }
+
   // `gtb sync mise` generates mise.tasks.toml; guard the loader include and
   // generated content against drift.
   ["verify-mise"] {

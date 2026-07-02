@@ -2,4 +2,4 @@
 {{- if eq .hosttype "personal" }}{{ $include = append $include "@bitwarden/cli" }}{{ end -}}
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
-{{ template "pnpm-globals" dict "include" $include }}
+{{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" $include }}

@@ -1,17 +1,21 @@
-{{- $deps := (include "../package.json" | mustFromJson).dependencies -}}
+{{- /*
+  Renders a `pnpm add -g` command for the packages named in the caller's
+  `include` list. Versions come from the `globals` catalog in the repo-root
+  pnpm-workspace.yaml (single source of truth, Renovate-managed). The root
+  .pnpmfile.cjs is always wired via --config.global-pnpmfile (its readPackage
+  patches are name-guarded no-ops for packages that don't need them), so the
+  caller only passes its `workingTree` and `include` list.
+*/ -}}
+{{- $catalog := (include "../pnpm-workspace.yaml" | fromYaml).catalogs.globals -}}
 {{- $include := index . "include" -}}
-{{- $pnpmfile := index . "pnpmfile" | default "" -}}
-{{- $args := "" -}}
-{{- if $pnpmfile -}}
-{{-   $args = printf " --config.global-pnpmfile=%s" $pnpmfile -}}
-{{- end -}}
-{{- range $name, $version := $deps -}}
-{{-   if has $name $include -}}
-{{-     if hasPrefix "github:" $version -}}
-{{-       $args = printf "%s %s" $args $version -}}
-{{-     else -}}
-{{-       $args = printf "%s %s@%s" $args $name $version -}}
-{{-     end -}}
+{{- $wt := index . "workingTree" | replace "\\" "/" -}}
+{{- $args := printf " --config.global-pnpmfile=%s/.pnpmfile.cjs" $wt -}}
+{{- range $i, $name := $include -}}
+{{-   $version := index $catalog $name -}}
+{{-   if hasPrefix "github:" $version -}}
+{{-     $args = printf "%s %s" $args $version -}}
+{{-   else -}}
+{{-     $args = printf "%s %s@%s" $args $name $version -}}
 {{-   end -}}
 {{- end -}}
 pnpm add -g{{ $args }}
