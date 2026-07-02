@@ -17,12 +17,13 @@ fi
 # Commands that accept positional key args
 positional="view"
 
-cmd="$1"; shift
+cmd="$1"
+shift
 case " $positional " in
-  *" $cmd "*)
-    exec acli jira workitem "$cmd" "$issue" "$@"
-    ;;
-  *)
-    exec acli jira workitem "$cmd" "$@" --key "$issue"
-    ;;
+*" $cmd "*)
+  exec acli jira workitem "$cmd" "$issue" "$@"
+  ;;
+*)
+  exec acli jira workitem "$cmd" "$@" --key "$issue"
+  ;;
 esac
