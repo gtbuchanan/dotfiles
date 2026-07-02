@@ -35,6 +35,9 @@ includes = ["mise.tasks.toml"]
 
 [tools]
 actionlint = "1.7.12"
+# Backs the hk render-templates step; also lets CI render templates without a
+# separate chezmoi install.
+chezmoi = "2.70.5"
 hk = "1.48.0"
 node = "24.18.0"
 "npm:@gtbuchanan/cli" = "0.2.0"
