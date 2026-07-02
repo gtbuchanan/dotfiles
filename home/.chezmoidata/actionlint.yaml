@@ -4,4 +4,5 @@
 # hk pipeline orchestrates as one step; kept in sync with tooling's mise.toml.
 #
 # renovate: datasource=github-releases depName=rhysd/actionlint
-actionlint_version: "1.7.12"
+---
+actionlint_version: '1.7.12'

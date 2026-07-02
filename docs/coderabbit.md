@@ -10,14 +10,14 @@ upstream.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates the Windows-only WSL wrappers off non-Windows hosts |
-| [`home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh`](../home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh) | Native CLI install via `cli.coderabbit.ai/install.sh` (runs inside WSL on Windows) |
-| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | `claude plugin install coderabbit` (Windows-only, alongside the LSP plugins) |
-| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl) | Enables `coderabbit@claude-plugins-official` |
-| [`home/dot_local/bin/coderabbit`](../home/dot_local/bin/coderabbit) | Git Bash wrapper: forwards to WSL with `GIT_DIR`/`GIT_WORK_TREE` translation |
-| [`home/dot_local/bin/coderabbit.bat`](../home/dot_local/bin/coderabbit.bat) | cmd.exe wrapper: same translation for non-Bash callers |
+| File                                                                                                                                                        | Role                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                             | Gates the Windows-only WSL wrappers off non-Windows hosts                          |
+| [`home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh`](../home/.chezmoiscripts/linux/run_onchange_after_coderabbit-install.sh)             | Native CLI install via `cli.coderabbit.ai/install.sh` (runs inside WSL on Windows) |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | `claude plugin install coderabbit` (Windows-only, alongside the LSP plugins)       |
+| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                               | Enables `coderabbit@claude-plugins-official`                                       |
+| [`home/dot_local/bin/coderabbit`](../home/dot_local/bin/coderabbit)                                                                                         | Git Bash wrapper: forwards to WSL with `GIT_DIR`/`GIT_WORK_TREE` translation       |
+| [`home/dot_local/bin/coderabbit.bat`](../home/dot_local/bin/coderabbit.bat)                                                                                 | cmd.exe wrapper: same translation for non-Bash callers                             |
 
 ## CLI Install
 
@@ -35,8 +35,8 @@ need to cross into WSL to reach the binary. One wrapper covers Git Bash
 callers, one covers cmd.exe / PowerShell. Both solve the same two
 problems before handing off to `wsl`:
 
-- **Worktree detection.** The CLI doesn't follow the `.git` *file*
-  that linked worktrees use in place of a `.git` *directory*, so it
+- **Worktree detection.** The CLI doesn't follow the `.git` _file_
+  that linked worktrees use in place of a `.git` _directory_, so it
   can't locate the real gitdir from inside a worktree on its own. The
   wrappers resolve the worktree and gitdir on the Windows side via
   `git rev-parse` and pass them in as env vars so the CLI uses them

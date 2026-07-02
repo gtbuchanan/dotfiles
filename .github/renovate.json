@@ -1,10 +1,11 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["local>gtbuchanan/tooling"],
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": ["/^home/\\.chezmoidata/.+\\.ya?ml$/"],
+      "managerFilePatterns": [
+        "/^home/\\.chezmoidata/.+\\.ya?ml$/"
+      ],
       "matchStrings": [
         "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s*\\n[ \\t]*\\S+:\\s*[\"']?(?<currentValue>[^\"'\\s]+)[\"']?"
       ]
@@ -12,7 +13,9 @@
     {
       "customType": "regex",
       "datasourceTemplate": "github-releases",
-      "managerFilePatterns": ["/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"],
+      "managerFilePatterns": [
+        "/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"
+      ],
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/archive/refs/tags/(?<currentValue>[\\w.-]+)\\.tar\\.gz"
       ]
@@ -22,19 +25,30 @@
       "customType": "regex",
       "datasourceTemplate": "git-refs",
       "depNameTemplate": "https://github.com/{{depName}}",
-      "managerFilePatterns": ["/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"],
+      "managerFilePatterns": [
+        "/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"
+      ],
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/archive/(?<currentDigest>[a-f0-9]{40})\\.tar\\.gz"
       ]
     }
   ],
+  "extends": [
+    "local>gtbuchanan/tooling"
+  ],
   "packageRules": [
     {
       "description": "Restrict noisy agent-skill digest updates to a single early-morning window on the 1st and 15th (America/Chicago). The narrow window keeps the snapshot of `main` to one PR per dep per cycle: daytime merges fall outside it, so a freshly-advanced `main` can't trigger a same-day follow-up PR.",
-      "matchDatasources": ["git-refs"],
-      "matchFileNames": ["home/.chezmoiexternal.yaml.tmpl"],
+      "matchDatasources": [
+        "git-refs"
+      ],
+      "matchFileNames": [
+        "home/.chezmoiexternal.yaml.tmpl"
+      ],
       "minimumReleaseAge": "0 days",
-      "schedule": ["* 0-5 1,15 * *"]
+      "schedule": [
+        "* 0-5 1,15 * *"
+      ]
     }
   ]
 }

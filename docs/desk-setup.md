@@ -52,24 +52,24 @@ flowchart LR
 
 ### Workstation Hardware
 
-| Diagram node | Device | Product |
-|---|---|---|
-| Camera | Logitech C920S HD Pro (1080p, privacy shutter) | [Amazon][camera] |
-| Desktop (Work) | _Intentionally omitted_ | — |
-| Dock (Personal) | Anker PowerExpand+ 11-in-1 | [Amazon][anker11] |
-| Dock (Work) | _Intentionally omitted_ | — |
-| Headset | Plantronics Blackwire 3210 (mono, USB-C w/ USB-A adapter) | [Amazon][headset] |
-| KVM Switch | Level1Techs DisplayPort 1.4 KVM (single monitor, four computer) | [Level1Techs][kvm] |
-| Laptop (Personal) | Microsoft Surface Book 2 | [Microsoft Support][surfacebook2] |
-| Laptop (Work) | _Intentionally omitted_ | — |
-| Light | Melifo Curved Monitor Light Bar | [Amazon][light] |
-| Monitor | Deco Gear 43" Curved Ultrawide (DGVIEW430) | [Amazon][ultrawide] |
-| Optical Drive | LG WH12LS39 + Fideco S3G-PL03 USB adapter | [Newegg][optical] + [Amazon][fideco] |
-| Scanner | Brother ADS-1200 | [Amazon][scanner] |
-| SD Card Adapter | Rocketek USB 3.0 4-Slot SD Card Reader | [Amazon][sdreader] |
-| Speaker | Yamaha SR-C20A | [Amazon][speaker] |
-| USB Hub | Plugable USB 2.0 10-Port Hub | [Amazon][usbhub] |
-| — | Brother HL-2270DW (Wi-Fi printer) | [Amazon][printer] |
+| Diagram node      | Device                                                          | Product                              |
+| ----------------- | --------------------------------------------------------------- | ------------------------------------ |
+| Camera            | Logitech C920S HD Pro (1080p, privacy shutter)                  | [Amazon][camera]                     |
+| Desktop (Work)    | _Intentionally omitted_                                         | —                                    |
+| Dock (Personal)   | Anker PowerExpand+ 11-in-1                                      | [Amazon][anker11]                    |
+| Dock (Work)       | _Intentionally omitted_                                         | —                                    |
+| Headset           | Plantronics Blackwire 3210 (mono, USB-C w/ USB-A adapter)       | [Amazon][headset]                    |
+| KVM Switch        | Level1Techs DisplayPort 1.4 KVM (single monitor, four computer) | [Level1Techs][kvm]                   |
+| Laptop (Personal) | Microsoft Surface Book 2                                        | [Microsoft Support][surfacebook2]    |
+| Laptop (Work)     | _Intentionally omitted_                                         | —                                    |
+| Light             | Melifo Curved Monitor Light Bar                                 | [Amazon][light]                      |
+| Monitor           | Deco Gear 43" Curved Ultrawide (DGVIEW430)                      | [Amazon][ultrawide]                  |
+| Optical Drive     | LG WH12LS39 + Fideco S3G-PL03 USB adapter                       | [Newegg][optical] + [Amazon][fideco] |
+| Scanner           | Brother ADS-1200                                                | [Amazon][scanner]                    |
+| SD Card Adapter   | Rocketek USB 3.0 4-Slot SD Card Reader                          | [Amazon][sdreader]                   |
+| Speaker           | Yamaha SR-C20A                                                  | [Amazon][speaker]                    |
+| USB Hub           | Plugable USB 2.0 10-Port Hub                                    | [Amazon][usbhub]                     |
+| —                 | Brother HL-2270DW (Wi-Fi printer)                               | [Amazon][printer]                    |
 
 _The Wi-Fi printer (—) isn't in the diagram — it reaches any host over the LAN, not through the KVM._
 
@@ -114,13 +114,13 @@ flowchart LR
 
 ### Portable Lapdesk Hardware
 
-| Diagram node | Device | Product |
-|---|---|---|
-| Fingerprint Reader | Kensington VeriMark Desktop | [Amazon][verimark] |
-| Keyboard + Trackball | ZSA Voyager + Navigator | [Voyager][voyager] + [Navigator][navigator] |
-| Phone | Google Pixel 10 Pro Fold | [Google Store][pixel] |
-| Power Bank | INIU MagSafe Power Bank | [Amazon][iniu] |
-| USB-C Hub | VANGREE 4-Port USB-C Hub | [Amazon][vangree] |
+| Diagram node         | Device                      | Product                                     |
+| -------------------- | --------------------------- | ------------------------------------------- |
+| Fingerprint Reader   | Kensington VeriMark Desktop | [Amazon][verimark]                          |
+| Keyboard + Trackball | ZSA Voyager + Navigator     | [Voyager][voyager] + [Navigator][navigator] |
+| Phone                | Google Pixel 10 Pro Fold    | [Google Store][pixel]                       |
+| Power Bank           | INIU MagSafe Power Bank     | [Amazon][iniu]                              |
+| USB-C Hub            | VANGREE 4-Port USB-C Hub    | [Amazon][vangree]                           |
 
 [iniu]: https://www.amazon.com/INIU-Slimmest-10000mAh-Certified-Magnetic/dp/B0G4W34KG5
 [navigator]: https://www.zsa.io/voyager/navigator
@@ -137,8 +137,8 @@ flowchart LR
 
 The desk runs off a single UPS for battery backup and surge protection. (The lapdesk's away mode runs on its own power bank, not the UPS.)
 
-| Device | Product |
-|---|---|
+| Device                          | Product       |
+| ------------------------------- | ------------- |
 | APC Back-UPS Pro 1500 (BX1500M) | [Amazon][ups] |
 
 [ups]: https://www.amazon.com/APC-Battery-Protector-BackUPS-BX1500M/dp/B06VY6FXMM

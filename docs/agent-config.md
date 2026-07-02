@@ -14,15 +14,15 @@ read `~/.agents/` directly like Cursor / Gemini CLI / OpenCode):
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | Skill archive URLs + host-conditional gating |
-| [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | VS Code prompts wrapper (adds `applyTo: '**'` frontmatter) |
-| [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl) | Claude wrapper: includes shared instructions + Claude-only sections (LSP, Worktree Sessions, Agent Teams) |
-| [`home/dot_claude/symlink_skills`](../home/dot_claude/symlink_skills) | `~/.claude/skills` → `~/.agents/skills` |
-| [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl) | Codex wrapper (pass-through) |
-| [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tmpl) | Shared user-level instructions (source of truth) |
-| [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl) | Copilot wrapper (pass-through) |
+| File                                                                                                                                              | Role                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                           | Skill archive URLs + host-conditional gating                                                              |
+| [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | VS Code prompts wrapper (adds `applyTo: '**'` frontmatter)                                                |
+| [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl)                                                                             | Claude wrapper: includes shared instructions + Claude-only sections (LSP, Worktree Sessions, Agent Teams) |
+| [`home/dot_claude/symlink_skills`](../home/dot_claude/symlink_skills)                                                                             | `~/.claude/skills` → `~/.agents/skills`                                                                   |
+| [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl)                                                                               | Codex wrapper (pass-through)                                                                              |
+| [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tmpl)                                                                             | Shared user-level instructions (source of truth)                                                          |
+| [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl)                                               | Copilot wrapper (pass-through)                                                                            |
 
 ## User-Level Instructions
 
@@ -33,18 +33,18 @@ until that lands, the workaround is one source plus per-tool wrappers.
 The shared content lives in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tmpl), and each
 tool gets a one-line wrapper that pulls it in via `includeTemplate`:
 
-```
+```text
 {{ includeTemplate "dot_config/AGENTS.md.tmpl" . }}
 ```
 
 The wrappers deploy to each tool's expected location:
 
-| Tool | Wrapper source | Deployed path |
-|---|---|---|
-| Claude Code | [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl) | `~/.claude/CLAUDE.md` |
-| Codex | [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl) | `~/.codex/AGENTS.md` |
-| GitHub Copilot | [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl) | `~/.copilot/copilot-instructions.md` |
-| VS Code prompts | [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | `…/personal.instructions.md` |
+| Tool            | Wrapper source                                                                                                                                    | Deployed path                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| Claude Code     | [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl)                                                                             | `~/.claude/CLAUDE.md`                |
+| Codex           | [`home/dot_codex/AGENTS.md.tmpl`](../home/dot_codex/AGENTS.md.tmpl)                                                                               | `~/.codex/AGENTS.md`                 |
+| GitHub Copilot  | [`home/dot_copilot/copilot-instructions.md.tmpl`](../home/dot_copilot/copilot-instructions.md.tmpl)                                               | `~/.copilot/copilot-instructions.md` |
+| VS Code prompts | [`home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl`](../home/AppData/Roaming/Code/user/prompts/personal.instructions.md.tmpl) | `…/personal.instructions.md`         |
 
 The shared template itself also deploys to `~/.config/AGENTS.md`
 because of its chezmoi source path. No tool reads from there — it's
@@ -70,7 +70,7 @@ OpenCode, and GitHub Copilot (in VS Code and Visual Studio 2026).
 Claude Code only reads `~/.claude/skills`, so a single chezmoi-managed
 symlink redirects it:
 
-```
+```text
 ~/.agents/skills/         ← chezmoi externals land here
     atlassian-cli/SKILL.md
     worktrunk/SKILL.md

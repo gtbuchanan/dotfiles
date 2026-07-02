@@ -10,18 +10,18 @@ divergence.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates `.bash*`, `.blerc`, `.profile`, `*.sh*` off non-bash platforms |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Termux: installs `bash-completion`, downloads ble.sh nightly |
-| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl) | macOS: installs Homebrew bash + bash-completion, `chsh`'s the login shell, downloads ble.sh nightly |
-| [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl) | apt-installs `bash-completion`, downloads ble.sh nightly |
-| [`home/dot_bash_aliases.tmpl`](../home/dot_bash_aliases.tmpl) | Shortcuts + worktree-cd helper |
-| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl) | Login-shell entry: sources `.profile`, WSL agent bridge, `.bashrc` |
-| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | Interactive shell setup (sourced by `.bash_profile`) |
-| [`home/dot_blerc`](../home/dot_blerc) | ble.sh config: vi mode, prompt mode-indicator hook, `progcomp_alias` |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl) | POSIX-shell env vars (PATH additions incl. mise shims, Android `SSH_ASKPASS` and friends, macOS Homebrew prepends) |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows: installs Git for Windows (which provides Git Bash) and prepends `Git\bin` to PATH for pre-commit |
+| File                                                                                                                      | Role                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `.bash*`, `.blerc`, `.profile`, `*.sh*` off non-bash platforms                                               |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Termux: installs `bash-completion`, downloads ble.sh nightly                                                       |
+| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)   | macOS: installs Homebrew bash + bash-completion, `chsh`'s the login shell, downloads ble.sh nightly                |
+| [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)     | apt-installs `bash-completion`, downloads ble.sh nightly                                                           |
+| [`home/dot_bash_aliases.tmpl`](../home/dot_bash_aliases.tmpl)                                                             | Shortcuts + worktree-cd helper                                                                                     |
+| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Login-shell entry: sources `.profile`, WSL agent bridge, `.bashrc`                                                 |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                         | Interactive shell setup (sourced by `.bash_profile`)                                                               |
+| [`home/dot_blerc`](../home/dot_blerc)                                                                                     | ble.sh config: vi mode, prompt mode-indicator hook, `progcomp_alias`                                               |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | POSIX-shell env vars (PATH additions incl. mise shims, Android `SSH_ASKPASS` and friends, macOS Homebrew prepends) |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: installs Git for Windows (which provides Git Bash) and prepends `Git\bin` to PATH for pre-commit          |
 
 ## Bash Source
 

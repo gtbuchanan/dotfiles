@@ -2,7 +2,7 @@
 
 [mise](https://mise.jdx.dev) is the tool-version / env / task manager
 installed on every platform this repo supports. [hk](https://hk.jdx.dev) is
-jdx's git-hook lint orchestrator that downstream project repos drive *through*
+jdx's git-hook lint orchestrator that downstream project repos drive _through_
 mise (it resolves hk, pkl, actionlint, and the linters from mise-managed
 tools).
 
@@ -16,31 +16,31 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoidata/actionlint.yaml`](../home/.chezmoidata/actionlint.yaml) | Pinned `actionlint` version for the Termux install (Renovate-tracked) |
-| [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml) | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked) |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | `mise-guide` skill archive → `~/.agents/skills/mise-guide/` |
-| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates `.config/mise` (and the android scripts) to Termux only |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl) | Termux out-of-band `actionlint` install |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl) | Termux out-of-band `hk` + `pkl` install |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Termux mise + native-bionic linters (`pkg`) |
-| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl) | macOS mise install (Homebrew formula) |
-| [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl) | Linux mise install (`mise.run`) |
-| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | `mise activate bash` (interactive) |
-| [`home/dot_config/mise/config.toml`](../home/dot_config/mise/config.toml) | Global mise config — **Android-only** (Termux backend workarounds) |
-| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | `mise activate pwsh` |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl) | Shims dir on PATH (non-interactive) |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows mise install + shims-dir PATH entry |
+| File                                                                                                                                                          | Role                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [`home/.chezmoidata/actionlint.yaml`](../home/.chezmoidata/actionlint.yaml)                                                                                   | Pinned `actionlint` version for the Termux install (Renovate-tracked)  |
+| [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                   | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked) |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                       | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`            |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                               | Gates `.config/mise` (and the android scripts) to Termux only          |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl) | Termux out-of-band `actionlint` install                                |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                 | Termux out-of-band `hk` + `pkl` install                                |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                     | Termux mise + native-bionic linters (`pkg`)                            |
+| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                       | macOS mise install (Homebrew formula)                                  |
+| [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)                                         | Linux mise install (`mise.run`)                                        |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                     |
+| [`home/dot_config/mise/config.toml`](../home/dot_config/mise/config.toml)                                                                                     | Global mise config — **Android-only** (Termux backend workarounds)     |
+| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)                           | `mise activate pwsh`                                                   |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                           | Shims dir on PATH (non-interactive)                                    |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Windows mise install + shims-dir PATH entry                            |
 
 ## mise Installation Per Platform
 
-| Platform | Source | mise binary | Resolution path |
-|---|---|---|---|
-| Windows | winget `jdx.mise` | WinGet packages dir | shims at `%LOCALAPPDATA%\mise\shims` |
-| Linux | `curl https://mise.run \| sh` | `~/.local/bin` | `mise activate` / shims |
-| macOS | Homebrew formula `mise` | Homebrew prefix | `mise activate` / shims |
-| Android (Termux) | `pkg install mise` | Termux prefix | `mise activate` / shims |
+| Platform         | Source                        | mise binary         | Resolution path                      |
+| ---------------- | ----------------------------- | ------------------- | ------------------------------------ |
+| Windows          | winget `jdx.mise`             | WinGet packages dir | shims at `%LOCALAPPDATA%\mise\shims` |
+| Linux            | `curl https://mise.run \| sh` | `~/.local/bin`      | `mise activate` / shims              |
+| macOS            | Homebrew formula `mise`       | Homebrew prefix     | `mise activate` / shims              |
+| Android (Termux) | `pkg install mise`            | Termux prefix       | `mise activate` / shims              |
 
 On Windows the winget config also appends `%LOCALAPPDATA%\mise\shims` to the
 **user** PATH (the `miseShimsPath` xScript resource), so mise-managed tools

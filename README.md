@@ -4,75 +4,75 @@ A [dotfiles] configuration using [chezmoi].
 
 ## Features
 
-* A _mostly_ consistent cross-platform terminal emulator using [Wezterm]
+- A _mostly_ consistent cross-platform terminal emulator using [Wezterm]
 
-  * Android uses [Termux], for [reasons](https://wiki.termux.com/wiki/Getting_started)
+  - Android uses [Termux], for [reasons](https://wiki.termux.com/wiki/Getting_started)
 
-* A _mostly_ consistent cross-platform terminal multiplexer using [tmux] and
+- A _mostly_ consistent cross-platform terminal multiplexer using [tmux] and
   [psmux] (Windows)
 
-  * Android and non-GUI Linux use tmux directly
+  - Android and non-GUI Linux use tmux directly
 
-* A consistent nerd font, [Caskaydia Cove]
+- A consistent nerd font, [Caskaydia Cove]
 
-* A consistent cross-shell prompt using [Starship]
+- A consistent cross-shell prompt using [Starship]
 
-* A _mostly_ consistent cross-shell Vi mode using [ble.sh] and [PSReadLine]
+- A _mostly_ consistent cross-shell Vi mode using [ble.sh] and [PSReadLine]
 
-  * [PSReadLine] lacks many Vi mode features, [but you can edit the current command
+  - [PSReadLine] lacks many Vi mode features, [but you can edit the current command
     externally](https://github.com/PowerShell/PowerShell/issues/21525#issuecomment-2078215370)
 
-* Bash autocomplete, syntax highlighting, and more with [ble.sh]
+- Bash autocomplete, syntax highlighting, and more with [ble.sh]
 
-* Latest vanilla Vim with autocomplete, syntax highlighting, LSP support, and more
+- Latest vanilla Vim with autocomplete, syntax highlighting, LSP support, and more
 
-* Native cross-platform SSH agent configurations
+- Native cross-platform SSH agent configurations
 
-  * macOS uses Keychain to persist restarts
+  - macOS uses Keychain to persist restarts
 
-* Consistent cross-tool [AI agent preferences][AGENTS.md] and [skills][Agent Skills]
+- Consistent cross-tool [AI agent preferences][AGENTS.md] and [skills][Agent Skills]
 
-  * [Claude Code]
-  * [Codex CLI]
-  * [GitHub Copilot CLI]
-  * [VS Code Copilot]
+  - [Claude Code]
+  - [Codex CLI]
+  - [GitHub Copilot CLI]
+  - [VS Code Copilot]
 
-* Windows Subsystem for Linux (WSL) support
+- Windows Subsystem for Linux (WSL) support
 
-  * SSH agent forwarding to host
+  - SSH agent forwarding to host
 
-  * Git GPG forwarding to host (no global forwarding **yet**)
+  - Git GPG forwarding to host (no global forwarding **yet**)
 
-  * Shellception: `win pwsh` -> `wsl bash` -> `wsl pwsh`
+  - Shellception: `win pwsh` -> `wsl bash` -> `wsl pwsh`
 
 ## Limitations
 
-* Only Android, Windows, Linux, and macOS platforms are supported
+- Only Android, Windows, Linux, and macOS platforms are supported
 
-  * I don't use iOS, and it's too limited for terminal emulation (AFAIK)
+  - I don't use iOS, and it's too limited for terminal emulation (AFAIK)
 
-  * Linux support only tested on Ubuntu WSL (for now)
+  - Linux support only tested on Ubuntu WSL (for now)
 
-* Only Bash and [PowerShell] (`pwsh.exe`) shells are supported
+- Only Bash and [PowerShell] (`pwsh.exe`) shells are supported
 
-  * Bash is available almost everywhere, and [ble.sh] makes it just as good as other shells
+  - Bash is available almost everywhere, and [ble.sh] makes it just as good as other shells
 
-  * CMD and Windows PowerShell are effectively in maintenance mode. Long live [PowerShell]!
+  - CMD and Windows PowerShell are effectively in maintenance mode. Long live [PowerShell]!
 
-  * On macOS, ZSH is replaced by the latest Bash for consistency
+  - On macOS, ZSH is replaced by the latest Bash for consistency
 
 ## Getting Started
 
 ### Prerequisites
 
-* [Chezmoi][chezmoi]
-  * Windows: `winget install -e --id twpayne.chezmoi`
-  * macOS: `brew install chezmoi`
-  * Ubuntu/Snap: `snap install --classic chezmoi`
-* [Chezmoi Modify Manager]: Unzip [release][Chezmoi Modify Manager Release] and add to PATH
-  * macOS: `xattr -d com.apple.quarantine "$HOME/bin/chezmoi_modify_manager"`
-* [PowerShell] (Windows only): `winget install -e --id Microsoft.PowerShell`
-* [Dashlane CLI] (Work only): Unzip [release][Dashlane CLI Release] and add to PATH
+- [Chezmoi][chezmoi]
+  - Windows: `winget install -e --id twpayne.chezmoi`
+  - macOS: `brew install chezmoi`
+  - Ubuntu/Snap: `snap install --classic chezmoi`
+- [Chezmoi Modify Manager]: Unzip [release][Chezmoi Modify Manager Release] and add to PATH
+  - macOS: `xattr -d com.apple.quarantine "$HOME/bin/chezmoi_modify_manager"`
+- [PowerShell] (Windows only): `winget install -e --id Microsoft.PowerShell`
+- [Dashlane CLI] (Work only): Unzip [release][Dashlane CLI Release] and add to PATH
 
 ### Install
 
@@ -95,13 +95,13 @@ A [dotfiles] configuration using [chezmoi].
 WinGet intermittently fails with RPC errors. To retry from the repo root
 (`cmcd`):
 
-```
+```sh
 winget configure -f dist/winget.yaml --suppress-initial-details --accept-configuration-agreements
 ```
 
 Alternatively, clear the script cache and re-run `chezmoi apply`:
 
-```
+```sh
 chezmoi state delete-bucket --bucket=scriptState
 ```
 

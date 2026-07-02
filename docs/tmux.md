@@ -13,14 +13,14 @@ where the backends diverge.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | Fetches TPM Redux (non-Windows plugin manager) |
-| [`home/.chezmoiignore`](../home/.chezmoiignore) | Gates `dot_psmux` off non-Windows |
-| [`home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf`](../home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf) | Windows-only psmux plugin: Vim-aware `C-h/j/k/l` binds |
-| [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl) | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations |
-| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl) | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms |
-| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl) | Windows-only Vim shell override so edge-forwarding runs `tmux` |
+| File                                                                                                                  | Role                                                                           |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                               | Fetches TPM Redux (non-Windows plugin manager)                                 |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                       | Gates `dot_psmux` off non-Windows                                              |
+| [`home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf`](../home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf) | Windows-only psmux plugin: Vim-aware `C-h/j/k/l` binds                         |
+| [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl)                                                               | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations |
+| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)           | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms        |
+| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl)   | Windows-only Vim shell override so edge-forwarding runs `tmux`                 |
 
 ## Prefix and Splits
 
@@ -43,8 +43,8 @@ set of keys crosses both boundaries. This is a two-sided design
 ([`christoomey/vim-tmux-navigator`][vtn]):
 
 - The **multiplexer side** decides, per keypress, whether the active pane runs
-  Vim. If so it forwards the key *into* Vim; otherwise it switches panes.
-- The **Vim side** moves between splits, and *at a layout edge* forwards the key
+  Vim. If so it forwards the key _into_ Vim; otherwise it switches panes.
+- The **Vim side** moves between splits, and _at a layout edge_ forwards the key
   back to the multiplexer.
 
 Both halves must agree, or navigation can't enter Vim's splits or can't escape
@@ -87,7 +87,7 @@ workaround registers a `<C-l>` entry in `g:Netrw_UserMaps` whose value is a
 command string, but this netrw version expects a function name there, so the
 resulting mapping misfires.
 
-Disabling the workaround is *not* a fix: netrw has other `C-l` handling that
+Disabling the workaround is _not_ a fix: netrw has other `C-l` handling that
 then wedges the key outright — strictly worse than the bell/jump. The workaround
 is left enabled and the netrw quirk accepted; ordinary file buffers are
 unaffected.

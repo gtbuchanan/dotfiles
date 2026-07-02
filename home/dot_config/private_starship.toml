@@ -36,9 +36,9 @@ format = '$env_value'
 [custom.vi_mode_bash]
 command = 'echo "\q{blerc/vim-mode}"'
 format = '$output'
-ignore_timeout = true # PowerShell is slow to test
+ignore_timeout = true                    # PowerShell is slow to test
 os = 'unix'
-unsafe_no_escape = true # Required for the escape sequence
+unsafe_no_escape = true                  # Required for the escape sequence
 when = 'test "$STARSHIP_SHELL" = "bash"' # This needs to work in PowerShell
 
 [os]
@@ -46,16 +46,6 @@ disabled = false
 style = "bg:env_bg fg:light_fg"
 
 [os.symbols]
-Windows = ""
-Ubuntu = "󰕈"
-SUSE = ""
-Raspbian = "󰐿"
-Mint = "󰣭"
-Macos = "󰀵"
-Manjaro = ""
-Linux = "󰌽"
-Gentoo = "󰣨"
-Fedora = "󰣛"
 Alpine = ""
 Amazon = ""
 Android = ""
@@ -63,13 +53,23 @@ Arch = "󰣇"
 Artix = "󰣇"
 CentOS = ""
 Debian = "󰣚"
-Redhat = "󱄛"
+Fedora = "󰣛"
+Gentoo = "󰣨"
+Linux = "󰌽"
+Macos = "󰀵"
+Manjaro = ""
+Mint = "󰣭"
+Raspbian = "󰐿"
 RedHatEnterprise = "󱄛"
+Redhat = "󱄛"
+SUSE = ""
+Ubuntu = "󰕈"
+Windows = ""
 
 [shell]
-disabled = false
 bash_indicator = "bash"
 cmd_indicator = "cmd"
+disabled = false
 format = "[ $indicator ]($style)"
 powershell_indicator = "posh"
 pwsh_indicator = "pwsh"
@@ -78,8 +78,8 @@ style = "bg:env_bg fg:light_fg"
 [username]
 format = '[ $user]($style)'
 show_always = false
-style_user = "bg:id_bg fg:light_fg"
 style_root = "bg:id_bg fg:light_fg"
+style_user = "bg:id_bg fg:light_fg"
 
 [hostname]
 format = "[ $hostname ]($style)"
@@ -95,11 +95,11 @@ truncation_length = 5
 truncation_symbol = '.../'
 
 [directory.substitutions]
+"Developer" = "󰲋 "
 "Documents" = "󰈙 "
 "Downloads" = " "
 "Music" = "󰝚 "
 "Pictures" = " "
-"Developer" = "󰲋 "
 
 [git_branch]
 format = '[ $symbol $branch ]($style)'
@@ -107,41 +107,40 @@ style = "bg:git_bg fg:light_fg"
 symbol = ""
 
 [git_status]
-format = '([($stashed )( ($untracked )($modified )($renamed )($deleted )($conflicted ))($staged )($ahead_behind )]($style))'
-style = "bg:git_bg fg:light_fg"
-stashed = ' ${count}'
 ahead = "⇡${count}"
 behind = "⇣${count}"
-diverged = "⇕${count}"
 conflicted = "!${count}"
 deleted = "-${count}"
-renamed = "»${count}"
+diverged = "⇕${count}"
+format = '([($stashed )( ($untracked )($modified )($renamed )($deleted )($conflicted ))($staged )($ahead_behind )]($style))'
 modified = "~${count}"
+renamed = "»${count}"
 staged = " ${count}"
+stashed = ' ${count}'
+style = "bg:git_bg fg:light_fg"
 untracked = "?${count}"
 
 [git_state]
-format = '[$state ($progress_current/$progress_total )]($style)'
-style = "bg:git_bg fg:light_fg"
-rebase = "\uE728"
-merge = "\uE727"
-revert = "\uF0E2"
 cherry_pick = "\uE29B"
+format = '[$state ($progress_current/$progress_total )]($style)'
+merge = "\uE727"
+rebase = "\uE728"
+revert = "\uF0E2"
+style = "bg:git_bg fg:light_fg"
 
 [time]
 disabled = false
-time_format = "%R"
-style = "bg:time_bg"
 format = '[[ $time ](fg:light_fg bg:env_bg)]($style)'
+style = "bg:time_bg"
+time_format = "%R"
 
 [line_break]
 disabled = true
 
 [palettes.default]
-env_bg = "#3A3A3A"
 dark_fg = "#282828"
 dir_bg = "cyan"
+env_bg = "#3A3A3A"
 git_bg = "#6F42C1"
 id_bg = "#F96C2A"
 light_fg = "#FFFFFF"
-

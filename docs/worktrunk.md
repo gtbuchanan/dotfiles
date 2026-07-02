@@ -9,20 +9,20 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoidata/wt.yaml`](../home/.chezmoidata/wt.yaml) | Pinned version (Renovate-tracked) |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl) | Skill archive → `~/.agents/skills/worktrunk/` |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl) | Termux manual install |
-| [`home/.chezmoitemplates/worktrunk-config.toml`](../home/.chezmoitemplates/worktrunk-config.toml) | Shared user-config template |
-| [`home/AppData/Roaming/worktrunk/config.toml.tmpl`](../home/AppData/Roaming/worktrunk/config.toml.tmpl) | Renders shared config on Windows (`%APPDATA%`) |
-| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl) | Bash shell integration |
-| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | PowerShell shell integration |
-| [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl) | Renders shared config on Linux/macOS/Android (XDG) |
-| [`home/dot_local/bin/executable_wt-pre-start`](../home/dot_local/bin/executable_wt-pre-start) | `pre-start` hook script |
-| [`home/dot_local/bin/executable_wt-post-start`](../home/dot_local/bin/executable_wt-post-start) | `post-start` hook script |
-| [`home/dot_local/bin/symlink_wt.exe.tmpl`](../home/dot_local/bin/symlink_wt.exe.tmpl) | Windows symlink → winget-installed `wt.exe` |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) | Windows install + App Execution Alias removal |
+| File                                                                                                                                          | Role                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| [`home/.chezmoidata/wt.yaml`](../home/.chezmoidata/wt.yaml)                                                                                   | Pinned version (Renovate-tracked)                  |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                       | Skill archive → `~/.agents/skills/worktrunk/`      |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl) | Termux manual install                              |
+| [`home/.chezmoitemplates/worktrunk-config.toml`](../home/.chezmoitemplates/worktrunk-config.toml)                                             | Shared user-config template                        |
+| [`home/AppData/Roaming/worktrunk/config.toml.tmpl`](../home/AppData/Roaming/worktrunk/config.toml.tmpl)                                       | Renders shared config on Windows (`%APPDATA%`)     |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                             | Bash shell integration                             |
+| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)           | PowerShell shell integration                       |
+| [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl)                                                 | Renders shared config on Linux/macOS/Android (XDG) |
+| [`home/dot_local/bin/executable_wt-pre-start`](../home/dot_local/bin/executable_wt-pre-start)                                                 | `pre-start` hook script                            |
+| [`home/dot_local/bin/executable_wt-post-start`](../home/dot_local/bin/executable_wt-post-start)                                               | `post-start` hook script                           |
+| [`home/dot_local/bin/symlink_wt.exe.tmpl`](../home/dot_local/bin/symlink_wt.exe.tmpl)                                                         | Windows symlink → winget-installed `wt.exe`        |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                           | Windows install + App Execution Alias removal      |
 
 ## `wt` Resolution Per Platform
 
@@ -30,7 +30,7 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 
 Two `wt.exe` binaries compete:
 
-- Worktrunk's `wt.exe` ships in the winget package directory but is *not*
+- Worktrunk's `wt.exe` ships in the winget package directory but is _not_
   symlinked into `WinGet\Links\` — winget skips it because the link would
   collide with the existing App Execution Alias. Only `git-wt.exe` gets
   a Links entry.

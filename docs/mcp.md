@@ -8,15 +8,15 @@ and macOS would need install scripts added.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh`](../home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh) | Android: HTTP MCP registrations (microsoft-learn) |
-| [`home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl) | Android: install + register `readonly-mcp` (stdio); `setsid` workaround |
-| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Windows: HTTP MCP registrations (folded into Claude configure) |
-| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Windows: install + register `readonly-mcp` (stdio) |
-| [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) | VS Code `mcp.servers` config (shared across OSes) |
-| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl) | Claude permissions `allow` list — explicitly enumerates every MCP tool |
-| [`package.json`](../package.json) | `@readonly-mcp/core` pin (GitHub-spec) |
+| File                                                                                                                                                                | Role                                                                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [`home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh`](../home/.chezmoiscripts/android/run_onchange_after_claude-configure.sh)                     | Android: HTTP MCP registrations (microsoft-learn)                       |
+| [`home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl)   | Android: install + register `readonly-mcp` (stdio); `setsid` workaround |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Windows: HTTP MCP registrations (folded into Claude configure)          |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Windows: install + register `readonly-mcp` (stdio)                      |
+| [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json)                                                                     | VS Code `mcp.servers` config (shared across OSes)                       |
+| [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                       | Claude permissions `allow` list — explicitly enumerates every MCP tool  |
+| [`package.json`](../package.json)                                                                                                                                   | `@readonly-mcp/core` pin (GitHub-spec)                                  |
 
 ## Servers
 

@@ -7,14 +7,14 @@ for non-interactive signing.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs pinentry-termux's runtime dependencies |
-| [`home/AppData/Roaming/gnupg/gpg-agent.conf`](../home/AppData/Roaming/gnupg/gpg-agent.conf) | Windows `gpg-agent` config (`allow-loopback-pinentry`) |
-| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat) | Windows GPG shim; toggles loopback based on caller env |
-| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl) | `[gpg] program = …` hookup, per-OS |
-| [`home/dot_local/bin/executable_pinentry-termux`](../home/dot_local/bin/executable_pinentry-termux) | Termux pinentry using `termux-dialog` (Android popup) |
-| [`home/private_dot_gnupg/gpg-agent.conf.tmpl`](../home/private_dot_gnupg/gpg-agent.conf.tmpl) | Linux/macOS/Android `gpg-agent` config |
+| File                                                                                                                      | Role                                                   |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs pinentry-termux's runtime dependencies        |
+| [`home/AppData/Roaming/gnupg/gpg-agent.conf`](../home/AppData/Roaming/gnupg/gpg-agent.conf)                               | Windows `gpg-agent` config (`allow-loopback-pinentry`) |
+| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat)                           | Windows GPG shim; toggles loopback based on caller env |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                   | `[gpg] program = …` hookup, per-OS                     |
+| [`home/dot_local/bin/executable_pinentry-termux`](../home/dot_local/bin/executable_pinentry-termux)                       | Termux pinentry using `termux-dialog` (Android popup)  |
+| [`home/private_dot_gnupg/gpg-agent.conf.tmpl`](../home/private_dot_gnupg/gpg-agent.conf.tmpl)                             | Linux/macOS/Android `gpg-agent` config                 |
 
 ## The AI-Agent Convention
 
@@ -40,11 +40,11 @@ work from non-interactive contexts and is wrong for terminal sessions.
 [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat) adjusts behavior by
 caller environment:
 
-| Caller env | Wrapper behavior |
-|---|---|
+| Caller env                      | Wrapper behavior                                                       |
+| ------------------------------- | ---------------------------------------------------------------------- |
 | `CLAUDE_CODE` or `AI_AGENT` set | Pass through — default pinentry (cached → no prompt, cache miss → GUI) |
-| `GPG_TTY` set, no AI env | Add `--pinentry-mode loopback` — pinentry prompts via current terminal |
-| Neither | Pass through — default GUI pinentry |
+| `GPG_TTY` set, no AI env        | Add `--pinentry-mode loopback` — pinentry prompts via current terminal |
+| Neither                         | Pass through — default GUI pinentry                                    |
 
 `gpg-agent.conf` has `allow-loopback-pinentry` so the loopback mode
 works at all.
@@ -82,7 +82,7 @@ Android popup (returns JSON, parsed by `jq`).
 Wired in via `gpg-agent.conf`'s `pinentry-program` directive (gated
 to Android by template conditional):
 
-```
+```text
 {{- if eq .chezmoi.os "android" }}
 pinentry-program {{ .chezmoi.homeDir }}/.local/bin/pinentry-termux
 {{- end }}

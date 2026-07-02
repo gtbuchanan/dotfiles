@@ -7,14 +7,14 @@ customizations.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/dot_vimrc`](../home/dot_vimrc) | Standalone Vim entrypoint; sets `g:data_dir` and sources `config/*.vim` |
-| [`home/dot_vsvimrc`](../home/dot_vsvimrc) | VsVim entrypoint; sources `shared.vim` only |
-| [`home/private_dot_vim/private_after/private_plugin/*.vim`](../home/private_dot_vim/private_after/private_plugin/) | Per-plugin configuration (auto-loaded after plugins) |
-| [`home/private_dot_vim/private_config/packages.vim`](../home/private_dot_vim/private_config/packages.vim) | Loads built-in optional packages (e.g., editorconfig) |
-| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl) | vim-plug plugin manifest (host-conditional) |
-| [`home/private_dot_vim/private_config/shared.vim`](../home/private_dot_vim/private_config/shared.vim) | Settings safe for both Vim and VsVim |
+| File                                                                                                                | Role                                                                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`home/dot_vimrc`](../home/dot_vimrc)                                                                               | Standalone Vim entrypoint; sets `g:data_dir` and sources `config/*.vim`                                                                           |
+| [`home/dot_vsvimrc`](../home/dot_vsvimrc)                                                                           | VsVim entrypoint; sources `shared.vim` only                                                                                                       |
+| [`home/private_dot_vim/private_after/private_plugin/*.vim`](../home/private_dot_vim/private_after/private_plugin/)  | Per-plugin configuration (auto-loaded after plugins)                                                                                              |
+| [`home/private_dot_vim/private_config/packages.vim`](../home/private_dot_vim/private_config/packages.vim)           | Loads built-in optional packages (e.g., editorconfig)                                                                                             |
+| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)         | vim-plug plugin manifest (host-conditional)                                                                                                       |
+| [`home/private_dot_vim/private_config/shared.vim`](../home/private_dot_vim/private_config/shared.vim)               | Settings safe for both Vim and VsVim                                                                                                              |
 | [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl) | Vim-only settings (auto-loaded); on Windows also sets the shell for vim-tmux-navigator edge-forwarding (see [`tmux.md`](tmux.md#pane-navigation)) |
 
 ## Two-Entrypoint Layout
@@ -57,7 +57,7 @@ mechanism:
   file here loads at startup. This is where `settings.vim.tmpl`
   lives.
 - **`after/plugin/`** — Vim's standard "after plugins" auto-load
-  directory. Files here load *after* every plugin has loaded, so they
+  directory. Files here load _after_ every plugin has loaded, so they
   can safely reference plugin-defined variables and commands. Per-
   plugin tweaks (airline theme, easymotion mappings, fzf workarounds,
   lsp overrides) all live here.
