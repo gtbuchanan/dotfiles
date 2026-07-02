@@ -1,1 +1,2 @@
-termux-wifi-enable $1
+#!/data/data/com.termux/files/usr/bin/sh
+termux-wifi-enable "$1"

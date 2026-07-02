@@ -35,7 +35,7 @@ git -C "$WT_MAIN" ls-files --others --exclude-standard --ignored --directory 2>/
 for pattern in '.vs/*/config/applicationhost.config' '.vs/*/v*/.suo'; do
   for src in "$WT_MAIN"/$pattern; do
     [ -e "$src" ] || continue
-    rel="${src#$WT_MAIN/}"
+    rel="${src#"$WT_MAIN"/}"
     dst="$WT_PATH/$rel"
     mkdir -p "$(dirname "$dst")"
     cp "$src" "$dst"
@@ -58,21 +58,21 @@ done
 #      and authenticated for `wt switch pr:`. Fail closed: an unresolvable
 #      lookup is treated as a fork (no trust, manual review).
 if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
-   [ -f "$WT_PATH/.config/mise/config.toml" ]; then
+  [ -f "$WT_PATH/.config/mise/config.toml" ]; then
   is_fork=false
   if [ -n "$WT_PR" ]; then
     case "$(cd "$WT_PATH" && gh pr view "$WT_PR" --json isCrossRepository \
-              --jq .isCrossRepository 2>/dev/null)" in
-      false) is_fork=false ;;
-      *) is_fork=true ;;
+      --jq .isCrossRepository 2>/dev/null)" in
+    false) is_fork=false ;;
+    *) is_fork=true ;;
     esac
   fi
   origin=$(git -C "$WT_PATH" remote get-url origin 2>/dev/null || true)
   case "$origin" in
-    *github.com[:/]gtbuchanan/* | *github.com[:/]energyworldnet/*)
-      if [ "$is_fork" = false ]; then
-        mise -C "$WT_PATH" trust >/dev/null 2>&1 || true
-      fi
-      ;;
+  *github.com[:/]gtbuchanan/* | *github.com[:/]energyworldnet/*)
+    if [ "$is_fork" = false ]; then
+      mise -C "$WT_PATH" trust >/dev/null 2>&1 || true
+    fi
+    ;;
   esac
 fi

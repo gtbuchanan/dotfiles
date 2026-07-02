@@ -10,7 +10,6 @@ DIR=$(echo "$input" | jq -r '
   ')
 PCT=$(echo "$input" | jq -r '.context_window.used_percentage // 0' | cut -d. -f1)
 WORKTREE_NAME=$(echo "$input" | jq -r '.worktree.name // empty')
-WORKTREE_BRANCH=$(echo "$input" | jq -r '.worktree.branch // empty')
 
 # Palette matching starship config
 ENV_BG='\033[48;2;58;58;58m'
@@ -35,19 +34,19 @@ CTX_FG_RED='\033[31m'
 RESET='\033[0m'
 
 # Nerd font glyphs (printf to get actual UTF-8 bytes)
-SEP=$(printf '\xee\x82\xb0')         # \ue0b0 powerline right arrow
-SEP_ROUND_L=$(printf '\xee\x82\xb6') # \ue0b6 powerline left round
-SEP_ROUND_R=$(printf '\xee\x82\xb4') # \ue0b4 powerline right round
-ICON_DIR=$(printf '\xef\x90\x88')    # \uf408 nf-oct-file_directory_fill
-ICON_BRANCH=$(printf '\xef\x90\x98') # \uf418 nf-oct-git_branch
-ICON_STAGED=$(printf '\xef\x81\x86') # \uf046 nf-fa-check_square_o
-ICON_MODIFIED=$(printf '\xef\x81\x84') # \uf044 nf-fa-pencil_square_o
+SEP=$(printf '\xee\x82\xb0')            # \ue0b0 powerline right arrow
+SEP_ROUND_L=$(printf '\xee\x82\xb6')    # \ue0b6 powerline left round
+SEP_ROUND_R=$(printf '\xee\x82\xb4')    # \ue0b4 powerline right round
+ICON_DIR=$(printf '\xef\x90\x88')       # \uf408 nf-oct-file_directory_fill
+ICON_BRANCH=$(printf '\xef\x90\x98')    # \uf418 nf-oct-git_branch
+ICON_STAGED=$(printf '\xef\x81\x86')    # \uf046 nf-fa-check_square_o
+ICON_MODIFIED=$(printf '\xef\x81\x84')  # \uf044 nf-fa-pencil_square_o
 ICON_ROBOT=$(printf '\xf3\xb0\x9a\xa9') # \uf06a9 nf-md-robot
-ICON_REBASE=$(printf '\xee\x9c\xa8')   # \ue728 nf-dev-git_merge
-ICON_MERGE=$(printf '\xee\x9c\xa7')    # \ue727 nf-dev-git_compare
-ICON_REVERT=$(printf '\xef\x83\xa2')   # \uf0e2 nf-fa-undo
-ICON_CHERRY=$(printf '\xee\x8a\x9b')   # \ue29b nf-oct-ruby
-ICON_STASH=$(printf '\xef\x83\x87')    # \uf0c7 nf-fa-floppy_o
+ICON_REBASE=$(printf '\xee\x9c\xa8')    # \ue728 nf-dev-git_merge
+ICON_MERGE=$(printf '\xee\x9c\xa7')     # \ue727 nf-dev-git_compare
+ICON_REVERT=$(printf '\xef\x83\xa2')    # \uf0e2 nf-fa-undo
+ICON_CHERRY=$(printf '\xee\x8a\x9b')    # \ue29b nf-oct-ruby
+ICON_STASH=$(printf '\xef\x83\x87')     # \uf0c7 nf-fa-floppy_o
 
 # --- Model segment (env_bg) ---
 LINE="${ENV_FG}${SEP_ROUND_L}${RESET}${ENV_BG}${LIGHT_FG} ${ICON_ROBOT} ${MODEL} ${RESET}"
@@ -65,57 +64,57 @@ CACHE_FILE="${CACHE_BASE}/claude-statusline-git-cache-${CACHE_DIR_HASH}"
 CACHE_MAX_AGE=5
 
 cache_is_stale() {
-    [ ! -f "$CACHE_FILE" ] || \
+  [ ! -f "$CACHE_FILE" ] ||
     [ $(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0))) -gt $CACHE_MAX_AGE ]
 }
 
 if cache_is_stale; then
-    if GIT_DIR=$(git rev-parse --git-dir 2>/dev/null); then
-        # Linked worktree: per-worktree gitdir differs from the common gitdir.
-        GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
-        IS_WORKTREE=0
-        [ "$GIT_DIR" != "$GIT_COMMON_DIR" ] && IS_WORKTREE=1
-        BRANCH=$(git branch --show-current 2>/dev/null)
-        # Detect rebase/merge/cherry-pick/revert state
-        STATE=""
-        STEP=""
-        TOTAL=""
-        if [ -d "${GIT_DIR}/rebase-merge" ]; then
-            STEP=$(cat "${GIT_DIR}/rebase-merge/msgnum" 2>/dev/null)
-            TOTAL=$(cat "${GIT_DIR}/rebase-merge/end" 2>/dev/null)
-            STATE="$ICON_REBASE"
-        elif [ -d "${GIT_DIR}/rebase-apply" ]; then
-            STEP=$(cat "${GIT_DIR}/rebase-apply/next" 2>/dev/null)
-            TOTAL=$(cat "${GIT_DIR}/rebase-apply/last" 2>/dev/null)
-            STATE="$ICON_REBASE"
-        elif [ -f "${GIT_DIR}/MERGE_HEAD" ]; then
-            STATE="$ICON_MERGE"
-        elif [ -f "${GIT_DIR}/CHERRY_PICK_HEAD" ]; then
-            STATE="$ICON_CHERRY"
-        elif [ -f "${GIT_DIR}/REVERT_HEAD" ]; then
-            STATE="$ICON_REVERT"
-        fi
-        # Fallback to detached HEAD
-        [ -z "$BRANCH" ] && BRANCH="HEAD"
-        STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
-        MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
-        UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
-        STASH=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
-        UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
-        if [ -n "$UPSTREAM" ]; then
-            AHEAD=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
-            BEHIND=$(git rev-list --count 'HEAD..@{upstream}' 2>/dev/null || echo 0)
-        else
-            AHEAD=0
-            BEHIND=0
-        fi
-        echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}|${STASH}|${IS_WORKTREE}" > "$CACHE_FILE"
-    else
-        echo "||||||||||" > "$CACHE_FILE"
+  if GIT_DIR=$(git rev-parse --git-dir 2>/dev/null); then
+    # Linked worktree: per-worktree gitdir differs from the common gitdir.
+    GIT_COMMON_DIR=$(git rev-parse --git-common-dir 2>/dev/null)
+    IS_WORKTREE=0
+    [ "$GIT_DIR" != "$GIT_COMMON_DIR" ] && IS_WORKTREE=1
+    BRANCH=$(git branch --show-current 2>/dev/null)
+    # Detect rebase/merge/cherry-pick/revert state
+    STATE=""
+    STEP=""
+    TOTAL=""
+    if [ -d "${GIT_DIR}/rebase-merge" ]; then
+      STEP=$(cat "${GIT_DIR}/rebase-merge/msgnum" 2>/dev/null)
+      TOTAL=$(cat "${GIT_DIR}/rebase-merge/end" 2>/dev/null)
+      STATE="$ICON_REBASE"
+    elif [ -d "${GIT_DIR}/rebase-apply" ]; then
+      STEP=$(cat "${GIT_DIR}/rebase-apply/next" 2>/dev/null)
+      TOTAL=$(cat "${GIT_DIR}/rebase-apply/last" 2>/dev/null)
+      STATE="$ICON_REBASE"
+    elif [ -f "${GIT_DIR}/MERGE_HEAD" ]; then
+      STATE="$ICON_MERGE"
+    elif [ -f "${GIT_DIR}/CHERRY_PICK_HEAD" ]; then
+      STATE="$ICON_CHERRY"
+    elif [ -f "${GIT_DIR}/REVERT_HEAD" ]; then
+      STATE="$ICON_REVERT"
     fi
+    # Fallback to detached HEAD
+    [ -z "$BRANCH" ] && BRANCH="HEAD"
+    STAGED=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
+    MODIFIED=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
+    UNTRACKED=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    STASH=$(git stash list 2>/dev/null | wc -l | tr -d ' ')
+    UPSTREAM=$(git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+    if [ -n "$UPSTREAM" ]; then
+      AHEAD=$(git rev-list --count '@{upstream}..HEAD' 2>/dev/null || echo 0)
+      BEHIND=$(git rev-list --count 'HEAD..@{upstream}' 2>/dev/null || echo 0)
+    else
+      AHEAD=0
+      BEHIND=0
+    fi
+    echo "${BRANCH}|${STAGED}|${MODIFIED}|${UNTRACKED}|${AHEAD}|${BEHIND}|${STATE}|${STEP}|${TOTAL}|${STASH}|${IS_WORKTREE}" >"$CACHE_FILE"
+  else
+    echo "||||||||||" >"$CACHE_FILE"
+  fi
 fi
 
-IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH IS_WORKTREE < "$CACHE_FILE"
+IFS='|' read -r BRANCH STAGED MODIFIED UNTRACKED AHEAD BEHIND STATE STEP TOTAL STASH IS_WORKTREE <"$CACHE_FILE"
 BRANCH_STRIPPED="${BRANCH#worktree-}"
 # Restore / from + (Claude Code replaces / with + in worktree branch names)
 [ "$BRANCH_STRIPPED" != "$BRANCH" ] && BRANCH_STRIPPED="${BRANCH_STRIPPED//+//}"
@@ -124,7 +123,7 @@ BRANCH_STRIPPED="${BRANCH#worktree-}"
 # other linked worktree (wt, manual `git worktree add`, etc.) synthesize
 # WORKTREE_NAME from the branch so the 🌳 icon still shows up.
 if [ -z "$WORKTREE_NAME" ] && [ "$IS_WORKTREE" = "1" ]; then
-    WORKTREE_NAME="$BRANCH_STRIPPED"
+  WORKTREE_NAME="$BRANCH_STRIPPED"
 fi
 
 # --- Worktree segment (wt_bg, only when current branch differs from worktree name) ---
@@ -147,58 +146,61 @@ BRANCH_SANITIZED="${BRANCH_STRIPPED//\//-}"
 BRANCH_SANITIZED="${BRANCH_SANITIZED//\\/-}"
 WT_EQUIV_BRANCH=0
 if [ -n "$WORKTREE_NAME" ]; then
-    [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && WT_EQUIV_BRANCH=1
-    [ "$WT_DISPLAY" = "$BRANCH_SANITIZED" ] && WT_EQUIV_BRANCH=1
+  [ "$WT_NAME_NORM" = "$GIT_BRANCH_NORM" ] && WT_EQUIV_BRANCH=1
+  [ "$WT_DISPLAY" = "$BRANCH_SANITIZED" ] && WT_EQUIV_BRANCH=1
 fi
 if [ -n "$WORKTREE_NAME" ] && [ "$WT_EQUIV_BRANCH" = "0" ]; then
-    LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WT_DISPLAY} ${RESET}"
-    PREV_BG_FG="${WT_FG}"
+  LINE="${LINE}${WT_BG}${PREV_BG_FG}${SEP}${RESET}${WT_BG}${LIGHT_FG} 🌳${WT_DISPLAY} ${RESET}"
+  PREV_BG_FG="${WT_FG}"
 fi
 
 if [ -n "$BRANCH" ]; then
-    GIT_STATUS=""
-    # Stash count (first, matching starship ordering)
-    [ "$STASH" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STASH} ${STASH}"
-    # Unstaged group: pencil-in-box then individual indicators
-    UNSTAGED=""
-    [ "$UNTRACKED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}?${UNTRACKED} "
-    [ "$MODIFIED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}~${MODIFIED} "
-    [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED% }"
-    # Staged group: check-in-box then count
-    [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STAGED} ${STAGED}"
-    # Rebase/merge/cherry-pick/revert state
-    if [ -n "$STATE" ]; then
-        GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}"
-        if [ -n "$STEP" ] && [ -n "$TOTAL" ]; then
-            GIT_STATUS="${GIT_STATUS} ${STATE} ${STEP}/${TOTAL}"
-        else
-            GIT_STATUS="${GIT_STATUS} ${STATE}"
-        fi
+  GIT_STATUS=""
+  # Stash count (first, matching starship ordering)
+  [ "$STASH" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STASH} ${STASH}"
+  # Unstaged group: pencil-in-box then individual indicators
+  UNSTAGED=""
+  [ "$UNTRACKED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}?${UNTRACKED} "
+  [ "$MODIFIED" -gt 0 ] 2>/dev/null && UNSTAGED="${UNSTAGED}~${MODIFIED} "
+  [ -n "$UNSTAGED" ] && GIT_STATUS="${GIT_STATUS} ${ICON_MODIFIED} ${UNSTAGED% }"
+  # Staged group: check-in-box then count
+  [ "$STAGED" -gt 0 ] 2>/dev/null && GIT_STATUS="${GIT_STATUS} ${ICON_STAGED} ${STAGED}"
+  # Rebase/merge/cherry-pick/revert state
+  if [ -n "$STATE" ]; then
+    GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}"
+    if [ -n "$STEP" ] && [ -n "$TOTAL" ]; then
+      GIT_STATUS="${GIT_STATUS} ${STATE} ${STEP}/${TOTAL}"
+    else
+      GIT_STATUS="${GIT_STATUS} ${STATE}"
     fi
-    # Sync status: ahead/behind/diverged
-    SYNC=""
-    if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
-        SYNC="⇕"
-    elif [ "$AHEAD" -gt 0 ] 2>/dev/null; then
-        SYNC="⇡${AHEAD}"
-    elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
-        SYNC="⇣${BEHIND}"
-    fi
-    GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
-    [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
-    GIT_ICON="${ICON_BRANCH} "
-    [ "$WT_EQUIV_BRANCH" = "1" ] && GIT_ICON="🌳"
-    LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
-    PREV_BG_FG="${GIT_FG}"
+  fi
+  # Sync status: ahead/behind/diverged
+  SYNC=""
+  if [ "$AHEAD" -gt 0 ] 2>/dev/null && [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+    SYNC="⇕"
+  elif [ "$AHEAD" -gt 0 ] 2>/dev/null; then
+    SYNC="⇡${AHEAD}"
+  elif [ "$BEHIND" -gt 0 ] 2>/dev/null; then
+    SYNC="⇣${BEHIND}"
+  fi
+  GIT_STATUS="${GIT_STATUS%"${GIT_STATUS##*[! ]}"}" # trim trailing spaces
+  [ -n "$SYNC" ] && GIT_STATUS="${GIT_STATUS} ${SYNC}"
+  GIT_ICON="${ICON_BRANCH} "
+  [ "$WT_EQUIV_BRANCH" = "1" ] && GIT_ICON="🌳"
+  LINE="${LINE}${GIT_BG}${PREV_BG_FG}${SEP}${RESET}${GIT_BG}${LIGHT_FG} ${GIT_ICON}${BRANCH_STRIPPED}${GIT_STATUS} ${RESET}"
+  PREV_BG_FG="${GIT_FG}"
 fi
 
 # --- Context segment ---
 if [ "$PCT" -ge 90 ]; then
-    CTX_BG="$CTX_BG_RED"; CTX_FG_OUT="$CTX_FG_RED"
+  CTX_BG="$CTX_BG_RED"
+  CTX_FG_OUT="$CTX_FG_RED"
 elif [ "$PCT" -ge 70 ]; then
-    CTX_BG="$CTX_BG_YELLOW"; CTX_FG_OUT="$CTX_FG_YELLOW"
+  CTX_BG="$CTX_BG_YELLOW"
+  CTX_FG_OUT="$CTX_FG_YELLOW"
 else
-    CTX_BG="$CTX_BG_GREEN"; CTX_FG_OUT="$CTX_FG_GREEN"
+  CTX_BG="$CTX_BG_GREEN"
+  CTX_FG_OUT="$CTX_FG_GREEN"
 fi
 
 LINE="${LINE}${CTX_BG}${PREV_BG_FG}${SEP}${RESET}${CTX_BG}${DARK_FG} ${PCT}% ${RESET}${CTX_FG_OUT}${SEP_ROUND_R}${RESET}"

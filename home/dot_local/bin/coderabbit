@@ -12,4 +12,7 @@ fi
 
 export GIT_WORK_TREE GIT_DIR
 export WSLENV="GIT_DIR/p:GIT_WORK_TREE/p"
+# WSL expands the quoted ~ to the WSL-side home; passing it literally (rather
+# than letting Git Bash expand it to the Windows home) is intentional.
+# shellcheck disable=SC2088
 exec wsl '~/.local/bin/coderabbit' "$@"
