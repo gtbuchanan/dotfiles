@@ -98,7 +98,8 @@ Key variables available in `.tmpl` files:
 ## Directory Structure
 
 ```text
-package.json                       # pnpm global package versions (Renovate-managed)
+package.json                       # Dev-tooling devDependencies; Renovate-managed
+pnpm-workspace.yaml                # pnpm catalogs: dev toolchain + globals (pnpm add -g)
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
 ├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply (skills, vim-plug, ~/Code dev repos)
@@ -190,21 +191,23 @@ path, Claude symlink redirect, and pinning conventions.
 
 ## Global pnpm Packages
 
-Global pnpm package versions are centralized in `package.json` at the repo root.
-A shared chezmoi template (`home/.chezmoitemplates/pnpm-globals`) reads this file
-and generates `pnpm add -g` commands. Each `run_onchange_after_` script declares
-which packages it needs via an include list, so a version bump only re-runs the
-scripts that use that package.
+Global pnpm package versions are centralized in the `globals` catalog of
+`pnpm-workspace.yaml` at the repo root. A shared chezmoi template
+(`home/.chezmoitemplates/pnpm-globals`) resolves each script's package names
+against that catalog and generates `pnpm add -g` commands. Each
+`run_onchange_after_` script declares which packages it needs via an include
+list, so a version bump only re-runs the scripts that use that package.
 
 To add a new package:
 
-1. Add the package and pinned version to `package.json`.
+1. Add the package and pinned version to the `globals` catalog in
+   `pnpm-workspace.yaml`.
 1. Add the package name to the include list in exactly one script. Scripts that
    need a package for post-install steps (e.g., MCP registration) install it
    themselves to stay self-contained.
 
 See [`docs/pnpm-globals.md`](docs/pnpm-globals.md) for the template internals,
-GitHub-spec handling, the `pnpmfile.cjs` hook, and the per-script package mapping.
+GitHub-spec handling, the `.pnpmfile.cjs` hook, and the per-script package mapping.
 
 ## User-Level Agent Preferences
 

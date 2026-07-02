@@ -1,32 +1,34 @@
 # pnpm Globals
 
-Global pnpm packages installed across machines have pinned versions in
-[`package.json`](../package.json) at the repo root. A shared chezmoi template renders
-`pnpm add -g` commands into per-script install scripts, so each script
-re-runs only when _its_ packages change — not when an unrelated package
-bumps.
+Global pnpm packages installed across machines have pinned versions in the
+`globals` catalog of [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) at the repo
+root. A shared chezmoi template renders `pnpm add -g` commands into per-script
+install scripts, so each script re-runs only when _its_ packages change — not
+when an unrelated package bumps.
 
 ## File Map
 
-| File                                                                                                                                                                | Role                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                            |
-| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                                    |
-| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages (uses [`pnpmfile.cjs`](../pnpmfile.cjs))       |
-| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                         |
-| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`                 |
-| [`package.json`](../package.json)                                                                                                                                   | Pinned versions; Renovate-managed                                           |
-| [`pnpmfile.cjs`](../pnpmfile.cjs)                                                                                                                                   | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
+| File                                                                                                                                                                | Role                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`.pnpmfile.cjs`](../.pnpmfile.cjs)                                                                                                                                 | Global pnpm hooks (patches a volar dep + ink-link's missing react) |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                   |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                           |
+| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages                                       |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                |
+| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`        |
+| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml)                                                                                                                     | Pinned versions (`globals` catalog); Renovate-managed              |
 
 ## How the Template Renders
 
 The template takes a `dict` with:
 
 - `include` — list of package names to install on this invocation
-- `pnpmfile` — optional path passed as `--config.global-pnpmfile=<path>`
+- `workingTree` — repo root, used to wire `--config.global-pnpmfile`
 
-It iterates [`package.json`](../package.json)'s `dependencies`, keeps entries whose name is
-in `include`, and emits `pnpm add -g`. Two version-spec branches:
+It resolves each `include` name against the `globals` catalog in
+[`pnpm-workspace.yaml`](../pnpm-workspace.yaml) and emits `pnpm add -g`, always
+passing the root [`.pnpmfile.cjs`](../.pnpmfile.cjs) via
+`--config.global-pnpmfile`. Two version-spec branches:
 
 - `github:<owner>/<repo>#<sha>` → passed verbatim (pnpm understands the
   spec); `name@version` would error because there is no published
@@ -37,7 +39,7 @@ in `include`, and emits `pnpm add -g`. Two version-spec branches:
 So a script declaring `include "@openai/codex"` renders to roughly:
 
 ```sh
-pnpm add -g @openai/codex@0.120.0
+pnpm add -g --config.global-pnpmfile=<root>/.pnpmfile.cjs @openai/codex@0.120.0
 ```
 
 with the version baked into the rendered file content.
@@ -56,10 +58,10 @@ script needs `@readonly-mcp/core` before registering it with Claude)
 install that package themselves via the same template — making them
 self-contained, no ordering dependencies.
 
-## The `pnpmfile` Option
+## The `.pnpmfile.cjs` Hook
 
-[`pnpmfile.cjs`](../pnpmfile.cjs) at the repo root contains a `readPackage` hook with two
-patches:
+[`.pnpmfile.cjs`](../.pnpmfile.cjs) at the repo root contains a `readPackage`
+hook with two patches:
 
 - `volar-service-emmet@0.0.64`'s GitHub-resolved `@emmetio/css-parser`
   dep is repointed to the npm-published version (pnpm 11's
@@ -73,18 +75,19 @@ patches:
   bug. The hook adds react as an explicit dep. Pulled by `tweakcc`,
   installed by `claude-configure`.
 
-Both Windows scripts that pull an affected package pass the file via
-`--config.global-pnpmfile=` (rendered by the `pnpmfile` option of the
-shared template). Scripts whose packages need no patching don't set the
-flag. See the inline comments in [`pnpmfile.cjs`](../pnpmfile.cjs) for the upstream-issue
-trail.
+The template wires this file via `--config.global-pnpmfile=` on every
+`pnpm add -g`, so a global that needs a patch is covered without opting in
+per script; the hook is a no-op for packages that match neither name. It
+doubles as the workspace's local hook for `pnpm install` (pnpm's canonical
+`.pnpmfile.cjs`). See the inline comments in
+[`.pnpmfile.cjs`](../.pnpmfile.cjs) for the upstream-issue trail.
 
 ## Adding a New Global Package
 
-1. Add the package + pinned version to [`package.json`](../package.json).
-2. Add the name to the `include` list in exactly one script.
+1. Add the package + pinned version to the `globals` catalog in
+   [`pnpm-workspace.yaml`](../pnpm-workspace.yaml).
+1. Add the name to the `include` list in exactly one script.
 
-Renovate's existing [`package.json`](../package.json) watcher picks up version bumps and
-opens PRs. The shared template handles GitHub-spec packages
-automatically — pin them as `github:<owner>/<repo>#<sha>` in
-[`package.json`](../package.json).
+Renovate's pnpm-catalog support picks up version bumps and opens PRs. The
+shared template handles GitHub-spec packages automatically — pin them as
+`github:<owner>/<repo>#<sha>` in the catalog.
