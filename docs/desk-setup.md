@@ -15,7 +15,6 @@ A KVM sits at the center, switching one set of shared peripherals between hosts.
 ```mermaid
 flowchart LR
   subgraph hosts [Hosts]
-    direction TB
     PL["Laptop (Personal)"] --- D1["Dock (Personal)"]
     WL["Laptop (Work)"] --- LD["Dock (Work)"]
     MM["Desktop (Work)"]
@@ -26,7 +25,6 @@ flowchart LR
   KVM["KVM Switch"]
 
   subgraph shared [Shared Peripherals]
-    direction TB
     UW["Monitor"]
     SB["Speaker"]
     HUB["USB Hub"]
