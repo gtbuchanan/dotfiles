@@ -9,4 +9,3 @@ trim_trailing_whitespace = true
 
 [*gitconfig*]
 indent_style = tab
-
