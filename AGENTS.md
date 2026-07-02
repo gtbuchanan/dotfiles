@@ -50,7 +50,7 @@ the script.
 To force a re-run, delete the script's `entryState` entry (keyed by the
 destination path of the rendered script):
 
-```
+```sh
 chezmoi state delete --bucket=entryState \
   --key=$HOME/.chezmoiscripts/<os>/<script>.sh
 chezmoi apply --no-tty
@@ -65,17 +65,17 @@ pinned versions match).
 
 Chezmoi uses filename prefixes/suffixes to control deployment behavior:
 
-| Prefix/Suffix | Meaning |
-|---|---|
-| `dot_` | Deployed with a leading `.` (e.g., `dot_gitconfig` → `.gitconfig`) |
-| `private_` | Excluded from world-readable permissions |
-| `readonly_` | Deployed read-only |
-| `executable_` | Deployed with execute bit set |
-| `.tmpl` | Go text template; evaluated during `chezmoi apply` |
-| `modify_` | Script that modifies an existing target file |
-| `run_onchange_before_` | Script run before apply when its content changes |
-| `run_onchange_after_` | Script run after apply when its content changes |
-| `remove_` | Ensures the target path is removed |
+| Prefix/Suffix          | Meaning                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| `dot_`                 | Deployed with a leading `.` (e.g., `dot_gitconfig` → `.gitconfig`) |
+| `private_`             | Excluded from world-readable permissions                           |
+| `readonly_`            | Deployed read-only                                                 |
+| `executable_`          | Deployed with execute bit set                                      |
+| `.tmpl`                | Go text template; evaluated during `chezmoi apply`                 |
+| `modify_`              | Script that modifies an existing target file                       |
+| `run_onchange_before_` | Script run before apply when its content changes                   |
+| `run_onchange_after_`  | Script run after apply when its content changes                    |
+| `remove_`              | Ensures the target path is removed                                 |
 
 Prefixes may be combined, e.g., `private_dot_ssh/`.
 
@@ -83,21 +83,21 @@ Prefixes may be combined, e.g., `private_dot_ssh/`.
 
 Key variables available in `.tmpl` files:
 
-| Variable | Values | Description |
-|---|---|---|
-| `.chezmoi.os` | `windows`, `linux`, `darwin`, `android` | Host OS |
-| `.codeDir` | `Code` (Windows), `code` (other) | Dev-repo dir leaf under `$HOME`, cased per platform |
-| `.hosttype` | `personal`, `ewn` | Host type (personal or company) |
-| `.osid` | `linux-ubuntu`, `windows`, `darwin`, etc. | OS identifier |
-| `.wsl` | `true`/`false` | Running under WSL |
-| `.font` | `CaskaydiaCove NF` | Nerd Font family |
-| `.fontpack` | `CascadiaCode` | Nerd Font package name |
-| `.email` | string | Signing email, varies by host type |
-| `.signingkey` | string | GPG key ID, varies by host type |
+| Variable      | Values                                    | Description                                         |
+| ------------- | ----------------------------------------- | --------------------------------------------------- |
+| `.chezmoi.os` | `windows`, `linux`, `darwin`, `android`   | Host OS                                             |
+| `.codeDir`    | `Code` (Windows), `code` (other)          | Dev-repo dir leaf under `$HOME`, cased per platform |
+| `.hosttype`   | `personal`, `ewn`                         | Host type (personal or company)                     |
+| `.osid`       | `linux-ubuntu`, `windows`, `darwin`, etc. | OS identifier                                       |
+| `.wsl`        | `true`/`false`                            | Running under WSL                                   |
+| `.font`       | `CaskaydiaCove NF`                        | Nerd Font family                                    |
+| `.fontpack`   | `CascadiaCode`                            | Nerd Font package name                              |
+| `.email`      | string                                    | Signing email, varies by host type                  |
+| `.signingkey` | string                                    | GPG key ID, varies by host type                     |
 
 ## Directory Structure
 
-```
+```text
 package.json                       # pnpm global package versions (Renovate-managed)
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
@@ -142,17 +142,17 @@ unmanaged targets will error. Use `chezmoi managed` or check `.chezmoiignore`.
 
 Key exclusions (see `.chezmoiignore` for the full set):
 
-| Files | Managed on | Excluded on |
-|---|---|---|
-| `.bash*`, `.blerc`, `.profile`, `*.sh*` | linux, darwin, android | windows |
-| `.config/powershell/` | linux, darwin, windows | android |
-| `.config/Code/` | linux, darwin | windows, android |
-| `.config/wezterm/` | darwin, windows | linux, android |
-| `.gnupg/` | linux, darwin, android | windows |
-| `.tmux*` | linux, darwin, android | windows |
-| `AppData/`, `Documents/`, `*.bat*` | windows | linux, darwin, android |
-| `Library/` | darwin | windows, linux, android |
-| `.termux/` | android | windows, linux, darwin |
+| Files                                   | Managed on             | Excluded on             |
+| --------------------------------------- | ---------------------- | ----------------------- |
+| `.bash*`, `.blerc`, `.profile`, `*.sh*` | linux, darwin, android | windows                 |
+| `.config/powershell/`                   | linux, darwin, windows | android                 |
+| `.config/Code/`                         | linux, darwin          | windows, android        |
+| `.config/wezterm/`                      | darwin, windows        | linux, android          |
+| `.gnupg/`                               | linux, darwin, android | windows                 |
+| `.tmux*`                                | linux, darwin, android | windows                 |
+| `AppData/`, `Documents/`, `*.bat*`      | windows                | linux, darwin, android  |
+| `Library/`                              | darwin                 | windows, linux, android |
+| `.termux/`                              | android                | windows, linux, darwin  |
 
 Shared templates (`.chezmoitemplates/`) are **not** deployed directly — they are
 included by platform-specific targets. For example, `vscode_settings.json` is

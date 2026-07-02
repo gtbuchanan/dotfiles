@@ -3,20 +3,20 @@
 Global pnpm packages installed across machines have pinned versions in
 [`package.json`](../package.json) at the repo root. A shared chezmoi template renders
 `pnpm add -g` commands into per-script install scripts, so each script
-re-runs only when *its* packages change — not when an unrelated package
+re-runs only when _its_ packages change — not when an unrelated package
 bumps.
 
 ## File Map
 
-| File | Role |
-|---|---|
-| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl) | Termux installer |
-| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl) | Installs `tweakcc` + Claude plugin setup |
-| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages (uses [`pnpmfile.cjs`](../pnpmfile.cjs)) |
-| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration |
-| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals) | Shared template that renders `pnpm add -g <name@version> …` |
-| [`package.json`](../package.json) | Pinned versions; Renovate-managed |
-| [`pnpmfile.cjs`](../pnpmfile.cjs) | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
+| File                                                                                                                                                                | Role                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                            |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                                    |
+| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages (uses [`pnpmfile.cjs`](../pnpmfile.cjs))       |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                         |
+| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`                 |
+| [`package.json`](../package.json)                                                                                                                                   | Pinned versions; Renovate-managed                                           |
+| [`pnpmfile.cjs`](../pnpmfile.cjs)                                                                                                                                   | Optional global pnpm hooks (patches a volar dep + ink-link's missing react) |
 
 ## How the Template Renders
 
@@ -36,7 +36,7 @@ in `include`, and emits `pnpm add -g`. Two version-spec branches:
 
 So a script declaring `include "@openai/codex"` renders to roughly:
 
-```
+```sh
 pnpm add -g @openai/codex@0.120.0
 ```
 
@@ -44,7 +44,7 @@ with the version baked into the rendered file content.
 
 ## Why Include Lists Instead of Installing Everything
 
-Chezmoi's `run_onchange_*` mechanism hashes the *rendered* script
+Chezmoi's `run_onchange_*` mechanism hashes the _rendered_ script
 content. If every script installed every global, bumping any package
 would re-run every script (slow; some have non-trivial post-install
 steps like Claude plugin registration). With include lists, the rendered
