@@ -5,6 +5,7 @@ Documents
 **/*.bat*
 .local/bin/coderabbit
 .local/bin/wt.exe
+.psmux
 .wslconfig
 {{- else }}
 .gnupg

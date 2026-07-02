@@ -44,19 +44,12 @@ set -g warm off
 # https://github.com/psmux/psmux/issues/150
 set -g allow-predictions on
 
-# Pane navigation (no vim detection — psmux lacks #{m/r:} support)
+# Vim-aware pane navigation via psmux-vim-navigator: C-h/j/k/l forward
+# to Vim when it is the pane's foreground process and switch psmux panes
+# otherwise. The Vim side forwards back at a split edge via psmux's
+# bundled `tmux` shim.
 # https://github.com/marlocarlo/psmux/issues/30
-bind-key -n C-h select-pane -L
-bind-key -n C-j select-pane -D
-bind-key -n C-k select-pane -U
-bind-key -n C-l select-pane -R
-bind-key -n C-\\ select-pane -l
-
-bind-key -T copy-mode-vi C-h select-pane -L
-bind-key -T copy-mode-vi C-j select-pane -D
-bind-key -T copy-mode-vi C-k select-pane -U
-bind-key -T copy-mode-vi C-l select-pane -R
-bind-key -T copy-mode-vi C-\\ select-pane -l
+set -g @plugin 'psmux-plugins/psmux-vim-navigator'
 {{- else }}
 # Define Plugins
 set -g @plugin 'tmux-plugins/tmux-sensible'
