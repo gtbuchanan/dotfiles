@@ -17,5 +17,6 @@ Deep-dive references for this repo — how the moving parts fit together, from c
 | [`pnpm-globals.md`](pnpm-globals.md) | Pinned-version source, shared template, per-script include lists, GitHub-spec packages, [`pnpmfile.cjs`](../pnpmfile.cjs) hook |
 | [`powershell.md`](powershell.md) | Canonical `~/.config/powershell` profile, Windows `Documents/PowerShell` dot-source stub, `profile.d` numeric-ordered loader + `foreach`-scope rule, per-part breakdown |
 | [`ssh.md`](ssh.md) | Shared `Include ./*.conf` config, Windows-native OpenSSH as the canonical client, WSL→Windows agent bridge, Android popup askpass |
+| [`tmux.md`](tmux.md) | Cross-platform tmux/psmux config, status line + Windows tuning, plugin loading, Vim-aware pane navigation (psmux plugin, bash-shell edge-forward, netrw caveat) |
 | [`vim.md`](vim.md) | `.vimrc` + `.vsvimrc` shared-config split, `data_dir` cross-platform trick, plugin/auto-load layout, Android fauxClip, LSP via vim-lsp + ALE |
 | [`worktrunk.md`](worktrunk.md) | Worktrunk install, `wt`-resolution per platform, shared config template, post-start bootstrap, skill deployment |

@@ -15,7 +15,7 @@ customizations.
 | [`home/private_dot_vim/private_config/packages.vim`](../home/private_dot_vim/private_config/packages.vim) | Loads built-in optional packages (e.g., editorconfig) |
 | [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl) | vim-plug plugin manifest (host-conditional) |
 | [`home/private_dot_vim/private_config/shared.vim`](../home/private_dot_vim/private_config/shared.vim) | Settings safe for both Vim and VsVim |
-| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl) | Vim-only settings (auto-loaded) |
+| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl) | Vim-only settings (auto-loaded); on Windows also sets the shell for vim-tmux-navigator edge-forwarding (see [`tmux.md`](tmux.md#pane-navigation)) |
 
 ## Two-Entrypoint Layout
 
