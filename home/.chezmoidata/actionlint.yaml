@@ -3,6 +3,6 @@
 # actionlint is a standalone GitHub Actions linter that gtbuchanan/tooling's
 # hk pipeline orchestrates as one step; kept in sync with tooling's mise.toml.
 #
-# renovate: datasource=github-releases depName=rhysd/actionlint
 ---
+# renovate: datasource=github-releases depName=rhysd/actionlint
 actionlint_version: '1.7.12'

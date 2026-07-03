@@ -2,8 +2,8 @@
 # .chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl. Kept in sync
 # with gtbuchanan/tooling's mise.toml so local hk runs match CI.
 #
-# renovate: datasource=github-releases depName=jdx/hk
 ---
+# renovate: datasource=github-releases depName=jdx/hk
 hk_version: '1.48.0'
 # renovate: datasource=github-releases depName=apple/pkl
 pkl_version: '0.31.1'

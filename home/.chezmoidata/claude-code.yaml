@@ -1,6 +1,6 @@
 # Launcher package (gtbuchanan/claude-code-termux) release.
-# renovate: datasource=github-releases depName=gtbuchanan/claude-code-termux
 ---
+# renovate: datasource=github-releases depName=gtbuchanan/claude-code-termux
 claude_code_termux_version: '2026.6.23'
 # Claude Code release the package downloads from downloads.claude.ai; GitHub
 # Releases track that version stream with no lag.
