@@ -11,9 +11,15 @@ import "package://github.com/gtbuchanan/tooling/releases/download/hk-config@0.2.
 // rendered output is deferred to a future render-first step.
 local shellExclude: Regex = Regex("\(Defaults.defaultExclude.pattern)|\\.tmpl$")
 
-local allSteps = new Mapping<String, Step> {
+// Spread the preset into a base mapping, then amend. Overriding a spread-in
+// member in the same object body is a duplicate-definition error under stricter
+// Pkl builds (e.g. the system Pkl used on Android, where hk has no bundled
+// binary); amending in a separate layer overrides cleanly on every Pkl version.
+local baseSteps = new Mapping<String, Step> {
   ...Defaults.recommended
+}
 
+local allSteps = (baseSteps) {
   ["shellcheck"] = (Defaults.shellcheck) { exclude = shellExclude }
   ["shfmt"] = (Defaults.shfmt) { exclude = shellExclude }
 

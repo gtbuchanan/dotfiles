@@ -77,13 +77,20 @@ which aqua publishes no assets and `core` backends fall back to
 from-source builds that don't compile against bionic. The config therefore:
 
 - sets `HK_PKL_BACKEND = "pkl"` so hk routes pkl through the external CLI
-  instead of its embedded evaluator (the bundled rustls/reqwest client can't
-  fetch the remote pkl package over HTTPS on Termux); and
+  instead of its embedded evaluator. The repo `mise.toml` pins this backend on
+  every platform for consistent evaluation; on Termux it is also mandatory —
+  the embedded backend's rustls/reqwest client can't fetch the remote pkl
+  package over HTTPS on bionic; and
 - lists every tool with no usable Android backend in `disable_tools`. Most
   are then supplied from PATH instead — either native `pkg` builds or
-  out-of-band release fetches (below). The exception is `uv`, which gets no
-  replacement: it's disabled only because its sole consumer here
-  (`clang-format`) is satisfied by Termux's `clang` package.
+  out-of-band release fetches (below). The exceptions are `uv` and
+  `powershell`, which get no replacement: `uv` is disabled only because its
+  sole consumer here (`clang-format`) is satisfied by Termux's `clang`
+  package, and `powershell`'s only consumer (the psscriptanalyzer hk step)
+  isn't run on Termux. `chezmoi` is a further special case — aqua _does_ ship
+  an Android asset and mise installs it, but the generic Go binary can't
+  resolve DNS on bionic (breaking `.chezmoiexternal` fetches), so it too is
+  disabled in favor of the `pkg` build.
 
 Each disabled tool's per-tool rationale lives inline in the config — keep that
 as the source of truth and update it when a tool's Android story changes.

@@ -33,6 +33,12 @@ HK_PKL_BACKEND = "pkl"
 # a grun wrapper out of band (same run_onchange_after_install-hk.sh). hk
 # only invokes pkl for validate/check/fix/install.
 #
+# powershell: `aqua:PowerShell/PowerShell` has no android asset — it keys
+# off `android` while only `powershell-linux-arm64` (glibc) exists. Unlike
+# pkl (an hk runtime dependency), PowerShell is only needed by the
+# psscriptanalyzer hk step, which isn't run on Termux, so just disable it
+# rather than shimming a glibc build with grun.
+#
 # actionlint: `aqua:rhysd/actionlint` has no android asset (only
 # linux_arm64 exists). It's a static Go binary that runs unmodified on
 # bionic, so the prebuilt linux_arm64 release is installed directly (in
@@ -44,6 +50,14 @@ HK_PKL_BACKEND = "pkl"
 # three, native to bionic, so install them from `pkg` (run_onchange_before.sh)
 # and let hk resolve them from PATH.
 #
+# chezmoi: unlike the tools above, aqua *does* ship an android asset and mise
+# installs it — but the generic linux-arm64 Go binary can't resolve DNS on
+# bionic (it queries localhost:53 instead of Android's resolver), so every
+# `.chezmoiexternal` fetch fails with "lookup github.com ... connection
+# refused". Termux packages a bionic-native chezmoi (in run_onchange_before.sh),
+# so disable the mise one and let PATH fall through to the pkg build. It tracks
+# Termux's chezmoi release, which may lag the [tools] pin used elsewhere.
+#
 # clang-format (`pipx:clang-format`): the pipx/uv install path has no
 # bionic-compatible wheel, and `uv` itself has no android asset. Termux's
 # `clang` package supplies clang-format natively (same source), so `uv` is
@@ -52,11 +66,13 @@ HK_PKL_BACKEND = "pkl"
 [settings]
 disable_tools = [
   "actionlint",
+  "chezmoi",
   "hk",
   "node",
   "pipx:clang-format",
   "pkl",
   "pnpm",
+  "powershell",
   "ruff",
   "shellcheck",
   "shfmt",

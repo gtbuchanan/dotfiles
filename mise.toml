@@ -12,6 +12,12 @@ min_version = "2026.6.2"
 # hk wraps hook steps in `mise x` so mise-managed tools resolve without
 # activation.
 HK_MISE = "1"
+# Route pkl through the external CLI (pinned in [tools]) instead of hk's
+# embedded evaluator, whose leniency (it accepts redefining a spread-in
+# Mapping member the CLI rejects) lets bad configs pass CI yet fail on the
+# strict CLI Android must use. Pinning it repo-wide keeps local and CI
+# evaluation identical.
+HK_PKL_BACKEND = "pkl"
 
 [hooks]
 # Installs hk's git hooks (pre-commit) on `mise install`.
