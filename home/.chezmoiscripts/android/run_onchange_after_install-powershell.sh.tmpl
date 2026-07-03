@@ -1,0 +1,120 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  PowerShell install for Termux/Android.
+
+  Microsoft ships no bionic build of PowerShell — every Linux release links
+  against glibc (or musl), and there is no linux-musl-arm64 asset at all, so
+  aarch64's only option is the glibc linux-arm64 tarball. It runs under
+  glibc-runner: 'grun -c' rewrites the ELF interpreter to the Termux glibc
+  loader ($PREFIX/glibc/lib/ld-linux-aarch64.so.1) and bakes in an RPATH to
+  $PREFIX/glibc/lib, where its deps (libstdc++, libssl, ICU, etc.) live. The
+  wrapper unsets LD_PRELOAD so the bionic termux-exec shim doesn't leak into
+  the glibc process and break the loader.
+
+  The interactive REPL is the one case that needs more: PSReadLine's named
+  mutex makes CoreCLR create a shared-memory dir under /tmp, a path it
+  hardcodes with no env override, and Termux's /tmp is unwritable. The
+  wrapper overlays a writable dir onto /tmp via proot for that case only;
+  scripts (-c/-File, or piped stdin) run proot-free at native speed.
+
+  grun/patchelf come from glibc-runner + patchelf-glibc, owned by the
+  claude-code-termux package (see run_onchange_after_claude-code-install.sh);
+  that script sorts before this one, so they're present. ICU (libicu-glibc)
+  and proot are pwsh-specific here, so this script installs them. Version-
+  pinned in home/.chezmoidata/powershell.yaml (Renovate-tracked).
+*/}}
+set -euo pipefail
+
+VERSION='{{ .powershell_version }}'
+ARCHIVE="powershell-${VERSION}-linux-arm64.tar.gz"
+DL_BASE="https://github.com/PowerShell/PowerShell/releases/download/v${VERSION}"
+
+INSTALL_DIR="$HOME/.local/share/powershell"
+VERSION_DIR="$INSTALL_DIR/$VERSION"
+BINARY="$VERSION_DIR/pwsh"
+WRAPPER="$HOME/.local/bin/pwsh"
+
+if ! command -v grun > /dev/null 2>&1; then
+  echo "grun (glibc-runner) not found; expected from claude-code-termux" >&2
+  exit 1
+fi
+
+# libicu-glibc backs .NET globalization (else pwsh aborts unless invariant);
+# proot gives the interactive REPL a writable /tmp (see wrapper below).
+pkg install -y libicu-glibc proot
+
+mkdir -p "$VERSION_DIR" "$(dirname "$WRAPPER")"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Installing PowerShell $VERSION..."
+  # hashes.sha256 is UTF-16LE with a BOM and CRLF; decode to plain ASCII
+  # (drop NULs, the leading BOM, and CRs) before parsing "<hash> *<file>".
+  checksum=$(curl -fsSL "$DL_BASE/hashes.sha256" \
+    | LC_ALL=C tr -d '\000' | LC_ALL=C sed '1s/^\xff\xfe//' | tr -d '\r' \
+    | awk -v f="*$ARCHIVE" '$2 == f { print tolower($1) }')
+  if [ -z "$checksum" ]; then
+    echo "Could not find checksum for $ARCHIVE" >&2
+    exit 1
+  fi
+
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$DL_BASE/$ARCHIVE" -o "$tmp/$ARCHIVE"
+
+  actual=$(sha256sum "$tmp/$ARCHIVE" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $ARCHIVE: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  # The tarball is a flat self-contained .NET app dir (pwsh + assemblies).
+  tar -xzf "$tmp/$ARCHIVE" -C "$VERSION_DIR"
+  rm -rf "$tmp"
+  trap - EXIT
+
+  # Patch the ELF interpreter to the glibc loader and set the RPATH so the
+  # binary launches directly, without wrapping every call in `grun`.
+  grun -c "$BINARY"
+fi
+
+# Generate the wrapper. The binary path is injected (expanded) via printf %q;
+# the rest is a quoted heredoc so $@/$a/$TMPDIR stay literal in the wrapper.
+{
+  echo '#!/data/data/com.termux/files/usr/bin/bash'
+  printf 'BINARY=%q\n' "$BINARY"
+  cat << 'WRAPPER_EOF'
+# Native PowerShell on Termux via glibc-runner. LD_PRELOAD is unset so the
+# bionic termux-exec shim doesn't leak into the glibc process (it breaks the
+# glibc loader). The interpreter/RPATH were baked in by 'grun -c' at install.
+#
+# The interactive REPL initializes PSReadLine, whose named mutex makes
+# CoreCLR create a shared-memory dir under /tmp — a path it hardcodes and no
+# env var overrides. Termux's /tmp is unwritable, so overlay a writable dir
+# onto it via proot, but only for that case (~4x startup cost): a terminal on
+# stdin with no run-and-exit flag. Scripts (-c/-File, piped stdin) run direct.
+#
+# .NET reads the terminfo DB from glibc paths (/usr/share/terminfo, ...) that
+# don't exist on Android, so Console can't tell the terminal supports cursor
+# addressing and PSReadLine repaints without repositioning — the line renders
+# duplicated (exitexitexit). Point it at Termux's copy to restore redraws.
+export TERMINFO="${PREFIX:-/data/data/com.termux/files/usr}/share/terminfo"
+
+run_flag=
+noexit=
+for a in "$@"; do
+  case "$a" in
+    -c | -[Cc]ommand | -f | -[Ff]ile | -e | -ec | -[Ee]ncoded*) run_flag=1 ;;
+    -[Nn]o[Ee]xit) noexit=1 ;;
+  esac
+done
+if [ -t 0 ] && { [ -z "$run_flag" ] || [ -n "$noexit" ]; }; then
+  exec proot -b "${TMPDIR:-/data/data/com.termux/files/usr/tmp}:/tmp" \
+    env -u LD_PRELOAD "$BINARY" "$@"
+fi
+exec env -u LD_PRELOAD "$BINARY" "$@"
+WRAPPER_EOF
+} > "$WRAPPER"
+chmod +x "$WRAPPER"
+
+find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type d ! -name "$VERSION" \
+  -exec rm -rf {} +

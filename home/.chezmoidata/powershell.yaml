@@ -1,0 +1,8 @@
+# Version for the Termux out-of-band PowerShell install, by
+# .chezmoiscripts/android/run_onchange_after_install-powershell.sh.tmpl.
+# There is no bionic PowerShell build, so the glibc linux-arm64 release runs
+# under glibc-runner (grun) — see that script for the loader shim rationale.
+#
+---
+# renovate: datasource=github-releases depName=PowerShell/PowerShell
+powershell_version: '7.6.3'
