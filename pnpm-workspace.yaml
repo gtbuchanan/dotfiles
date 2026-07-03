@@ -1,9 +1,3 @@
-# Dev-tooling workspace for this chezmoi repo. The default `catalog` pins the
-# local dev toolchain (installed into node_modules); the named `globals` catalog
-# pins packages installed with `pnpm add -g` by the chezmoi run_onchange
-# scripts (resolved via the `.chezmoitemplates/pnpm-globals` template). Renovate
-# manages both catalogs.
-
 allowBuilds:
   esbuild: true
   unrs-resolver: false
@@ -25,7 +19,7 @@ catalogs:
     '@readonly-mcp/core': github:readonly-mcp/core#1ff05ccedbe3a589decdbd67e73f98a5884f3286
     '@vtsls/language-server': 0.3.0
     '@vue/language-server': 2.2.12
-    tweakcc: 4.2.0
+    tweakcc: 4.3.0
     vscode-langservers-extracted: 4.10.0
     # eslint-enable pnpm/yaml-no-unused-catalog-item
 
