@@ -36,10 +36,6 @@ Library
 .tmux
 {{- end }}
 
-{{- if eq .chezmoi.os "android" }}
-.config/powershell
-{{- end }}
-
 {{- if and (ne .chezmoi.os "darwin") (ne .chezmoi.os "windows") }}
 .config/wezterm
 {{- end }}
