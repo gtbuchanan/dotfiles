@@ -44,5 +44,12 @@ node = "24.18.0"
 "npm:renovate" = "43.231.2"
 pkl = "0.31.1"
 pnpm = "11.9.0"
+# Backs the hk psscriptanalyzer step (and lint-powershell.ps1) so pwsh is pinned
+# and reproducible on dev machines and CI rather than relying on an ambient one.
+# The per-tool postinstall provisions the pinned PowerShell Gallery modules (see
+# powershell-modules.psd1) once pwsh is installed; the script is idempotent, so
+# it re-runs cheaply on reinstall. Bumping a module version in the manifest
+# needs a `mise install --force powershell` (or a manual run) to re-provision.
+powershell = { version = "7.6.3", postinstall = "pwsh -NoProfile -File scripts/provision-psmodules.ps1" }
 shellcheck = "0.11.0"
 shfmt = "3.13.1"

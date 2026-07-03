@@ -31,6 +31,17 @@
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/archive/(?<currentDigest>[a-f0-9]{40})\\.tar\\.gz"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "nuget",
+      "managerFilePatterns": [
+        "/^powershell-modules\\.psd1$/"
+      ],
+      "matchStrings": [
+        "(?<depName>\\w[\\w.]*)\\s*=\\s*'(?<currentValue>[^']+)'"
+      ],
+      "registryUrlTemplate": "https://www.powershellgallery.com/api/v2/"
     }
   ],
   "extends": [

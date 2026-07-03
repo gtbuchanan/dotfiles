@@ -33,6 +33,18 @@ local allSteps = new Mapping<String, Step> {
     glob = List("**/*.tmpl")
     check = "sh scripts/lint-templates.sh {{files}}"
   }
+
+  // PSScriptAnalyzer over PowerShell sources. The `**/*.ps1` glob leaves
+  // `.ps1.tmpl` to render-templates (rendered-output linting is deferred with
+  // the shell case). pwsh is aqua-managed via mise; the module is provisioned
+  // into .psmodules by scripts/provision-psmodules.ps1 (mise postinstall).
+  // Check-only: PSScriptAnalyzer's -Fix is unreliable (see lint-powershell.ps1),
+  // so no fix command is wired; formatting is left to the editor.
+  ["psscriptanalyzer"] {
+    glob = List("**/*.ps1")
+    exclude = Defaults.defaultExclude
+    check = "pwsh -NoProfile -File scripts/lint-powershell.ps1 {{files}}"
+  }
 }
 
 hooks = Defaults.hooksFor(allSteps)

@@ -1,5 +1,11 @@
 # Configure OSC 7 for Starship
 # https://wezterm.org/shell-integration.html#osc-7-on-windows-with-powershell-with-starship
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+  'PSAvoidUsingInvokeExpression', '',
+  Justification = 'starship init emits a script string to Invoke-Expression'
+)]
+param()
+
 $prompt = ""
 function Invoke-Starship-PreCommand {
   $current_location = $executionContext.SessionState.Path.CurrentLocation
