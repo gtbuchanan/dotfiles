@@ -1,0 +1,23 @@
+# Install the PowerShell modules the profile hard-imports (profile.d/30-modules:
+# PSFzf, posh-git). They ship via winget on Windows, but nothing provides them
+# on Unix, so install from the PSGallery with the bundled PSResourceGet. Shared
+# by the per-OS install-ps-modules scripts. Idempotent; a no-op where pwsh is
+# absent (e.g. macOS without PowerShell). fzf/git (the tools these modules wrap)
+# come from the OS package sets.
+pwsh_bin=$(command -v pwsh 2>/dev/null || true)
+if [ -z "$pwsh_bin" ] && [ -x "$HOME/.local/bin/pwsh" ]; then
+  pwsh_bin="$HOME/.local/bin/pwsh"
+fi
+if [ -z "$pwsh_bin" ]; then
+  echo "pwsh not found; skipping PowerShell module install"
+else
+  "$pwsh_bin" -NoProfile -NoLogo -Command '
+    $ErrorActionPreference = "Stop"
+    foreach ($m in "PSFzf", "posh-git") {
+      if (-not (Get-InstalledPSResource -Name $m -ErrorAction SilentlyContinue)) {
+        Write-Host "Installing PowerShell module $m..."
+        Install-PSResource -Name $m -Repository PSGallery -TrustRepository -Scope CurrentUser
+      }
+    }
+  '
+fi
