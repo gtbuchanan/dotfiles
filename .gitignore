@@ -9,3 +9,6 @@ dist/
 
 # Node.js
 node_modules/
+
+# PowerShell Gallery modules provisioned by scripts/provision-psmodules.ps1
+.psmodules/

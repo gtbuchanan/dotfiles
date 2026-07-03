@@ -13,7 +13,7 @@ Set-PSReadLineKeyHandler `
   -Description 'Autocomplete commands via fzf' `
   -ScriptBlock { Invoke-FzfTabCompletion }
 function local:Write-AtCursor ([Parameter(ValueFromPipeline)]$Result) {
-  If ($Result.Length -gt 0) {
+  if ($Result.Length -gt 0) {
     [Microsoft.PowerShell.PSConsoleReadLine]::Insert($Result -join "")
   }
   [Microsoft.PowerShell.PSConsoleReadLine]::InvokePrompt()

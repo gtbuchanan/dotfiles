@@ -153,6 +153,30 @@ checksum = "sha256:82c130717a59f237c49e8eaa8a7ed75c1d8d351a5b6dedeee3196b8e1b597
 url = "https://github.com/pnpm/pnpm/releases/download/v11.9.0/pnpm-win32-x64.zip"
 provenance = "github-attestations"
 
+[[tools.powershell]]
+version = "7.6.3"
+backend = "aqua:PowerShell/PowerShell"
+
+[tools.powershell."platforms.linux-arm64"]
+checksum = "sha256:7a14a385eca7dc5bedc1c8aa3d8b765f449ada30aabe5785a9fd331266eb062d"
+url = "https://github.com/PowerShell/PowerShell/releases/download/v7.6.3/powershell-7.6.3-linux-arm64.tar.gz"
+
+[tools.powershell."platforms.linux-x64"]
+checksum = "sha256:856d0765d2332377f9d7a4aea76efdfde4de51446e7738dde2dfda41dba9e2a7"
+url = "https://github.com/PowerShell/PowerShell/releases/download/v7.6.3/powershell-7.6.3-linux-x64.tar.gz"
+
+[tools.powershell."platforms.macos-arm64"]
+checksum = "sha256:f0263c2072fe7d0953781c60497a574bea99b37237f2554a59ce4bad07de8d36"
+url = "https://github.com/PowerShell/PowerShell/releases/download/v7.6.3/powershell-7.6.3-osx-arm64.tar.gz"
+
+[tools.powershell."platforms.macos-x64"]
+checksum = "sha256:f02073a442515877aa5a8f361f55866800100c41b665cfb64883b77dbba09412"
+url = "https://github.com/PowerShell/PowerShell/releases/download/v7.6.3/powershell-7.6.3-osx-x64.tar.gz"
+
+[tools.powershell."platforms.windows-x64"]
+checksum = "sha256:07ddb0d00b660459560ef82a9841da7705b27cd5dcca5a0d7b025a98eca29eca"
+url = "https://github.com/PowerShell/PowerShell/releases/download/v7.6.3/PowerShell-7.6.3-win-x64.zip"
+
 [[tools.shellcheck]]
 version = "0.11.0"
 backend = "aqua:koalaman/shellcheck"
