@@ -28,6 +28,11 @@ local allSteps = new Mapping<String, Step> {
     glob = List("mise.toml", "mise.tasks.toml")
     check = "gtb verify mise"
   }
+
+  ["render-templates"] {
+    glob = List("**/*.tmpl")
+    check = "sh scripts/lint-templates.sh {{files}}"
+  }
 }
 
 hooks = Defaults.hooksFor(allSteps)
