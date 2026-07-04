@@ -16,8 +16,8 @@ catalogs:
       specifier: 1101.3.2
       version: 1101.3.2
     '@types/node':
-      specifier: 26.0.1
-      version: 26.0.1
+      specifier: 26.1.0
+      version: 26.1.0
     eslint:
       specifier: 10.6.0
       version: 10.6.0
@@ -42,7 +42,7 @@ importers:
         version: 1101.3.2
       '@types/node':
         specifier: 'catalog:'
-        version: 26.0.1
+        version: 26.1.0
       eslint:
         specifier: 'catalog:'
         version: 10.6.0
@@ -402,8 +402,8 @@ packages:
   '@types/ms@2.1.0':
     resolution: {integrity: sha512-GsCCIZDE/p3i96vtEqx+7dBUGXrc7zeSK3wwPHIaRThS+9OhWIXRqzs4d6k1SVU8g91DrNRWxWUGhp5KXQb2VA==}
 
-  '@types/node@26.0.1':
-    resolution: {integrity: sha512-fc3KiUoBt6kie0N9bIW3E47vZsuaMf0PM2AaUpLCLT0s/LvX1nxAim6Fc049cNxODPpGm6qRAuUOB86SkRuPQw==}
+  '@types/node@26.1.0':
+    resolution: {integrity: sha512-O0A1G3xPGy4w7AgQdAQYUlQ+BKk2Oovw8eRpofyp5KdBZULnbe+WqaOVNrm705SHphCiG4XHsACrSmPu1f+Kgw==}
 
   '@types/unist@2.0.11':
     resolution: {integrity: sha512-CmBKiL6NNo/OqgmMn95Fk9Whlp2mtvIv+KNpQKN2F4SjvrEesubTRWGYSg+BnWZOnlCaSTU1sMpsBOzgbYhnsA==}
@@ -1998,7 +1998,7 @@ snapshots:
 
   '@types/ms@2.1.0': {}
 
-  '@types/node@26.0.1':
+  '@types/node@26.1.0':
     dependencies:
       undici-types: 8.3.0
 
