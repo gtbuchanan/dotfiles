@@ -54,7 +54,26 @@ render() {
   fi
 }
 
-for src in "$@"; do
+# Skip templates chezmoi ignores for the lint hosttype/OS: they aren't deployed
+# here and may call host-specific tools (e.g. the ewn profile part shells out to
+# dcli). `chezmoi ignored` prints home-relative targets; prefix the home dir to
+# match `chezmoi target-path` below.
+home_dir=$(chezmoi execute-template --config "$chezmoi_config" '{{ .chezmoi.homeDir }}')
+ignored=$(chezmoi ignored --config "$chezmoi_config" --source "$src_root" |
+  sed "s|^|$home_dir/|")
+
+# Resolve each source to its target in one call; output order matches the args,
+# so pair them line by line via paste.
+printf '%s\n' "$@" >"$work/sources"
+chezmoi target-path --source "$src_root" "$@" >"$work/targets"
+paste "$work/sources" "$work/targets" >"$work/map"
+
+while IFS="$(printf '\t')" read -r src target; do
+  if printf '%s\n' "$ignored" | grep -Fxq "$target"; then
+    printf 'skip (ignored for this hosttype/OS): %s\n' "$src" >&2
+    continue
+  fi
+
   # The config template (.chezmoi.<format>.tmpl) uses init-only prompt functions
   # and renders without .chezmoidata/.chezmoitemplates, so it renders in --init
   # mode with the hosttype above. Every other template renders against the
@@ -67,6 +86,6 @@ for src in "$@"; do
     render "$src" --config "$chezmoi_config"
     ;;
   esac
-done
+done <"$work/map"
 
 exit "$rc"
