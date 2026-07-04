@@ -58,8 +58,17 @@ render() {
 # here and may call host-specific tools (e.g. the ewn profile part shells out to
 # dcli). `chezmoi ignored` prints home-relative targets; prefix the home dir to
 # match `chezmoi target-path` below.
+#
+# --override-data sets lintSkipExternals so .chezmoiexternal renders empty:
+# `ignored` builds full source state, which would otherwise realize every
+# external (download archives, SSH-clone repos) just to list ignored targets —
+# network + credentials this offline check must not need, and which fail on a
+# fresh checkout (CI) and in the android container. Externals don't affect which
+# templates are ignored. Only `ignored` realizes them, so the override is scoped
+# here — every template (including .chezmoiexternal itself) still renders in full.
 home_dir=$(chezmoi execute-template --config "$chezmoi_config" '{{ .chezmoi.homeDir }}')
-ignored=$(chezmoi ignored --config "$chezmoi_config" --source "$src_root" |
+ignored=$(chezmoi ignored --override-data '{"lintSkipExternals":true}' \
+  --config "$chezmoi_config" --source "$src_root" |
   sed "s|^|$home_dir/|")
 
 # Resolve each source to its target in one call; output order matches the args,

@@ -1,4 +1,10 @@
 ---
+{{- /* lintSkipExternals is set true only by scripts/lint-templates.sh (via
+   --override-data) to render this file empty, so `chezmoi ignored` need not
+   realize these externals — downloading archives, SSH-cloning repos — merely to
+   compute the template ignore set. `get` reads it without erroring when unset
+   (chezmoi runs templates with missingkey=error). Normal apply never sets it. */ -}}
+{{- if not (get . "lintSkipExternals") }}
 {{- if eq .hosttype "ewn" }}
 '.agents/skills/atlassian-cli':
   exact: true
@@ -113,4 +119,5 @@
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@gist.github.com:1a9699e8350d2eacc73de902c29d8ea0.git
+{{- end }}
 {{- end }}

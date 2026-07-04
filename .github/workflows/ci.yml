@@ -5,6 +5,38 @@ jobs:
     uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@main
     with:
       use-pnpm: true
+
+  # Render every template natively on each hosted OS. The render-templates hook
+  # self-selects via `chezmoi ignored`, so each runner checks only the templates
+  # deployed on its own OS — real coverage of each platform's own branches,
+  # which the single-OS pre-commit job above cannot give. android has no hosted
+  # runner and is covered by render-templates-android instead.
+  render-templates:
+    name: Render Templates (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: gtbuchanan/tooling/.github/actions/mise-setup@main
+      - run: mise run test:templates
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+
+  # android has no hosted runner, so render its templates in a Termux container
+  # (native x86_64 image on the x64 runner — no QEMU). Same test:templates engine
+  # as every other leg, only with the android ignore set active.
+  render-templates-android:
+    name: Render Templates (android)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: gtbuchanan/tooling/.github/actions/mise-setup@main
+      - run: mise run test:templates-android
 name: CI
 
 on:

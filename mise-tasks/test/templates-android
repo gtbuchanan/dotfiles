@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#MISE description="Render templates in a Termux (android) environment"
+#
+# android has no hosted CI runner and chezmoi's `.chezmoi.os` comes from GOOS
+# (unfakeable), so the android templates can only be rendered by a real Termux
+# userland. On a Termux device that's native; elsewhere we borrow one from
+# termux/termux-docker. Either way the render itself is the shared test:templates
+# engine, so this leg checks exactly what every other platform's leg does.
+set -euo pipefail
+
+if [ "$(uname -o 2>/dev/null)" = "Android" ]; then
+  exec mise run test:templates
+else
+  exec bash scripts/docker-run.sh scripts/render-templates-termux.sh
+fi

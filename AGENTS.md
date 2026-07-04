@@ -175,6 +175,21 @@ Scripts under `.chezmoiscripts/` are platform-gated via `.chezmoiignore`. Each p
 directory is excluded on non-matching OSes. Use the template variables above for finer-grained
 conditionals within a script (e.g., WSL vs. native Linux, personal vs. ewn).
 
+## Template Render Lint
+
+`scripts/lint-templates.sh` (the hk `render-templates` step) proves every
+`*.tmpl` renders, skipping ones chezmoi ignores on the current OS/hosttype (via
+`chezmoi ignored`). CI runs it natively per-OS plus, since android has no hosted
+runner, in a Termux container (`mise run test:templates-android`); see
+`.github/workflows/ci.yml`.
+
+`chezmoi ignored` realizes every `.chezmoiexternal` entry (downloading archives,
+SSH-cloning repos) just to enumerate targets, which breaks the offline check on
+fresh CI and in the container. chezmoi has no flag to suppress this, so
+`home/.chezmoiexternal.yaml.tmpl` carries a `{{ if not (get . "lintSkipExternals") }}`
+guard that the lint trips via `--override-data` on that one call. **Do not
+remove it** — the rationale is in both files' comments.
+
 ## Formatting
 
 - UTF-8, 2-space indent, LF line endings, final newline, trim trailing whitespace.

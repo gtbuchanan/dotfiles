@@ -35,9 +35,13 @@ local allSteps = (baseSteps) {
     check = "gtb verify mise"
   }
 
+  // Delegates to the test:templates mise task (the single render entrypoint the
+  // CI legs also call) rather than invoking lint-templates.sh directly, so the
+  // hook and CI render through one definition. The task self-selects via
+  // `chezmoi ignored`, checking only this OS's templates.
   ["render-templates"] {
     glob = List("**/*.tmpl")
-    check = "sh scripts/lint-templates.sh {{files}}"
+    check = "mise run test:templates -- {{files}}"
   }
 
   // PSScriptAnalyzer over PowerShell sources. The `**/*.ps1` glob leaves

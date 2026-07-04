@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#MISE description="Render source templates for the current platform"
+#
+# The single entrypoint for template rendering: the hk render-templates hook and
+# the CI legs all call this. It renders each template through chezmoi for the
+# host OS (scripts/lint-templates.sh), so it self-selects via `chezmoi ignored`
+# — a Windows runner checks the Windows templates, a Termux host the android
+# ones, etc. Given file arguments it renders just those (the hook passes changed
+# files); with none it renders every source template (CI).
+set -euo pipefail
+
+# Run from the repo root regardless of caller cwd, and without git: the android
+# leg renders inside a container where the worktree's .git is an unmounted host
+# path, and only cwd-relative paths below are portable there. $0 is this task
+# file (…/mise-tasks/test/templates), so two levels up is the root.
+cd "$(dirname "$0")/../.."
+
+if [ "$#" -gt 0 ]; then
+  sh scripts/lint-templates.sh "$@"
+else
+  # Every chezmoi source template lives under the chezmoi root (home/). `-exec …
+  # +` batches them into one invocation and propagates a non-zero render exit;
+  # portable where bash arrays / `mapfile` (bash 3.2 on macOS) are not.
+  find home -type f -name '*.tmpl' -exec sh scripts/lint-templates.sh {} +
+fi
