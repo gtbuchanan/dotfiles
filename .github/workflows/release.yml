@@ -1,0 +1,17 @@
+---
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+
+name: Release
+
+# The main-branch pipeline: re-validate templates post-integration. pre-commit
+# is intentionally absent — its hooks diff against a base ref, which a push to
+# main has none of, so only the full-tree CI checks apply here.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read

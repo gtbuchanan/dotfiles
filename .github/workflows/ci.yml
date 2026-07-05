@@ -1,16 +1,14 @@
 ---
+# Render every template natively on each hosted OS. The render-templates hook
+# self-selects via `chezmoi ignored`, so each runner checks only the templates
+# deployed on its own OS — real coverage of each platform's own branches,
+# which a single-OS runner cannot give. android has no hosted runner and is
+# covered by render-templates-android instead.
+#
+# Reusable so both pr.yml (pre-merge) and release.yml (post-integration on
+# main) share one definition. These checks are full-tree, not diff-based, so
+# unlike pre-commit they run meaningfully on a push to main.
 jobs:
-  pre-commit:
-    name: Pre-Commit
-    uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@main
-    with:
-      use-pnpm: true
-
-  # Render every template natively on each hosted OS. The render-templates hook
-  # self-selects via `chezmoi ignored`, so each runner checks only the templates
-  # deployed on its own OS — real coverage of each platform's own branches,
-  # which the single-OS pre-commit job above cannot give. android has no hosted
-  # runner and is covered by render-templates-android instead.
   render-templates:
     name: Render Templates (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -37,11 +35,11 @@ jobs:
           persist-credentials: false
       - uses: gtbuchanan/tooling/.github/actions/mise-setup@main
       - run: mise run test:templates-android
+
 name: CI
 
 on:
-  pull_request:
-    branches: [main]
+  workflow_call: {}
 
 permissions:
   contents: read
