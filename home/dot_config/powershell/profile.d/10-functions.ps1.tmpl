@@ -11,10 +11,14 @@ Function su { sudo pwsh -NoLogo }
 Function Update-SessionEnvironment {
   # Adapted from StackOverflow:
   # https://stackoverflow.com/a/31845512/1409101
-  $env:Path = `
+  #
+  # GetEnvironmentVariable returns REG_EXPAND_SZ values verbatim, so
+  # %VAR% tokens (e.g. %PROGRAMFILES%\Vim) stay unexpanded and their
+  # dirs never resolve. Expand them the way a login shell would.
+  $env:Path = [System.Environment]::ExpandEnvironmentVariables(
     [System.Environment]::GetEnvironmentVariable("Path", "Machine") + `
     ";" + `
-    [System.Environment]::GetEnvironmentVariable("Path", "User")
+    [System.Environment]::GetEnvironmentVariable("Path", "User"))
 }
 
 Function refreshenv { Update-SessionEnvironment }
