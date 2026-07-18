@@ -3,7 +3,7 @@ allowBuilds:
   unrs-resolver: false
 
 catalog:
-  '@gtbuchanan/eslint-config': 0.2.0
+  '@gtbuchanan/eslint-config': 0.2.1
   '@gtbuchanan/tsconfig': 0.1.1
   '@pnpm/types': 1101.4.0
   '@types/node': 26.1.1
