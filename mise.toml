@@ -49,7 +49,7 @@ hk = "1.48.0"
 node = "24.18.0"
 "npm:@gtbuchanan/cli" = "0.2.0"
 "npm:renovate" = "43.231.2"
-pkl = "0.31.1"
+pkl = "0.32.0"
 pnpm = "11.11.0"
 # Backs the hk psscriptanalyzer step (and lint-powershell.ps1) so pwsh is pinned
 # and reproducible on dev machines and CI rather than relying on an ambient one.
