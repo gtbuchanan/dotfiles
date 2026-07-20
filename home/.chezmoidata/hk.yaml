@@ -4,6 +4,6 @@
 #
 ---
 # renovate: datasource=github-releases depName=jdx/hk
-hk_version: '1.48.0'
+hk_version: '1.51.0'
 # renovate: datasource=github-releases depName=apple/pkl
 pkl_version: '0.32.0'

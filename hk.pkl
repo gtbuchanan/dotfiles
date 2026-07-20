@@ -1,7 +1,7 @@
 /// Pre-commit config for developing this chezmoi repo. Adopts the shared
 /// @gtbuchanan/hk-config `recommended` preset and adds a guard that mise's
 /// generated tasks stay in sync. Tool versions come from mise.toml.
-amends "package://github.com/jdx/hk/releases/download/v1.48.0/hk@1.48.0#/Config.pkl"
+amends "package://github.com/jdx/hk/releases/download/v1.51.0/hk@1.51.0#/Config.pkl"
 
 import "package://github.com/gtbuchanan/tooling/releases/download/hk-config@0.2.0/hk-config@0.2.0#/Defaults.pkl"
 
