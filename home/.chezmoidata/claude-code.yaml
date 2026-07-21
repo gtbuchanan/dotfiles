@@ -5,4 +5,4 @@ claude_code_termux_version: '2026.7.25'
 # Claude Code release the package downloads from downloads.claude.ai; GitHub
 # Releases track that version stream with no lag.
 # renovate: datasource=github-releases depName=anthropics/claude-code
-claude_code_version: '2.1.207'
+claude_code_version: '2.1.214'
