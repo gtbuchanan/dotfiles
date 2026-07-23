@@ -1,0 +1,28 @@
+# Symlink every skill from the gtbuchanan/skills clone into the canonical
+# ~/.agents/skills directory (which ~/.claude/skills also points at, so Claude
+# Code picks them up too). Idempotent and runs after every apply, so skills
+# added upstream appear once the clone refreshes. Only symlinks this script
+# created are pruned; real (third-party) skill directories are left untouched.
+src="$HOME/{{ .codeDir }}/skills/skills"
+dst="$HOME/.agents/skills"
+
+[ -d "$src" ] || exit 0
+mkdir -p "$dst"
+
+# Prune stale symlinks we previously created (those pointing into $src).
+for entry in "$dst"/*; do
+  [ -L "$entry" ] || continue
+  case "$(readlink "$entry")" in
+    "$src"/*) rm -f "$entry" ;;
+  esac
+done
+
+# (Re)create a symlink for every skill in the clone.
+for dir in "$src"/*/; do
+  [ -f "${dir}SKILL.md" ] || continue
+  name="$(basename "$dir")"
+  link="$dst/$name"
+  # Never clobber a real (non-symlink) directory that shares a name.
+  if [ -e "$link" ] && [ ! -L "$link" ]; then continue; fi
+  ln -sfn "$src/$name" "$link"
+done

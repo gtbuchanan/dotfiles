@@ -101,3 +101,27 @@ externals file).
 
 All tools pick it up automatically on the next `chezmoi apply` — no
 per-tool registration step.
+
+### Personal Skills
+
+Skills I author myself live in the private
+[`gtbuchanan/skills`](https://github.com/gtbuchanan/skills) repo and are
+deployed as a whole-repo clone rather than enumerated per-skill, so every
+skill installs and new ones are picked up automatically without publishing
+the skill names in this public repo. The archive-per-skill approach above
+doesn't fit here for two reasons:
+
+- The repo is private, and chezmoi `archive` externals can't authenticate;
+  only `git-repo` externals can (over SSH).
+- A `git-repo` external can't `stripComponents`/`include` to flatten the
+  repo's `skills/<name>/` layout into `.agents/skills/<name>/`.
+
+So the deploy is a two-step: a `git-repo` external in
+[`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)
+SSH-clones the repo alongside the other dev repos, then a per-OS `run_after`
+script symlinks each skill from the clone into `.agents/skills/`. The POSIX
+logic is shared via
+[`home/.chezmoitemplates/agent-skills-sync`](../home/.chezmoitemplates/agent-skills-sync)
+(included by the linux/darwin/android scripts); Windows has its own
+PowerShell copy. Only symlinks the script created are pruned — the
+third-party skill directories above are left untouched.

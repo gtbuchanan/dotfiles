@@ -1,0 +1,33 @@
+# Symlink every skill from the gtbuchanan/skills clone into the canonical
+# ~/.agents/skills directory (which ~/.claude/skills also points at, so Claude
+# Code picks them up too). Idempotent and runs after every apply, so skills
+# added upstream appear once the clone refreshes. Only symlinks this script
+# created are pruned; real (third-party) skill directories are left untouched.
+$ErrorActionPreference = 'Stop'
+$src = Join-Path $env:USERPROFILE '{{ .codeDir }}\skills\skills'
+$dst = Join-Path $env:USERPROFILE '.agents\skills'
+
+if (-not (Test-Path -LiteralPath $src)) { return }
+New-Item -ItemType Directory -Force -Path $dst | Out-Null
+
+# Prune stale symlinks we previously created (those targeting $src).
+Get-ChildItem -Force -LiteralPath $dst -ErrorAction SilentlyContinue |
+  Where-Object { $_.LinkType -eq 'SymbolicLink' } |
+  ForEach-Object {
+    $target = @($_.Target)[0]
+    if ($target -and $target.StartsWith($src, [System.StringComparison]::OrdinalIgnoreCase)) {
+      Remove-Item -Force -LiteralPath $_.FullName
+    }
+  }
+
+# (Re)create a symlink for every skill in the clone.
+Get-ChildItem -Directory -LiteralPath $src |
+  Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') } |
+  ForEach-Object {
+    $link = Join-Path $dst $_.Name
+    $existing = Get-Item -Force -LiteralPath $link -ErrorAction SilentlyContinue
+    # Never clobber a real (non-symlink) directory that shares a name.
+    if ($existing -and $existing.LinkType -ne 'SymbolicLink') { return }
+    if ($existing) { Remove-Item -Force -LiteralPath $link }
+    New-Item -ItemType SymbolicLink -Path $link -Target $_.FullName | Out-Null
+  }

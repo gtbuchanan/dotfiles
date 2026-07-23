@@ -99,6 +99,17 @@
 # ~/{{ .codeDir }}. Cloned on first apply, refreshed weekly so chezmoi doesn't
 # pull over local work. Keyed on .codeDir so the casing tracks each platform.
 {{- $refresh := "168h" }}
+# Personal skills — all trusted, since I author the repo. Cloned whole (not
+# enumerated per-skill) so every skill is installed and new ones are picked up
+# automatically without publishing the skill names here; a per-OS run_after
+# script then symlinks each skills/* into .agents/skills/<name>. This
+# clone-then-symlink indirection is required because chezmoi's git-repo
+# externals can't stripComponents/flatten like archive externals, and archive
+# externals can't authenticate over SSH (needed for this private repo).
+'{{ .codeDir }}/skills':
+  refreshPeriod: {{ $refresh }}
+  type: git-repo
+  url: git@github.com:gtbuchanan/skills.git
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Imported by the PowerShell profile.
 '{{ .codeDir }}/PSRSA':
