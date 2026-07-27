@@ -181,6 +181,12 @@
 ## Testing
 
 - Prefer TDD (red/green): write a failing test first, then make it pass
+- Never write tautological tests — ones that pass by construction and can't
+  fail for a real defect. If you can't name a code change that would break the
+  test, it isn't a test. Avoid asserting a mock returns what it was configured
+  to return, re-deriving the expected value with the implementation's own
+  logic, and assertions true for any input (`toBeDefined`, `expect.anything`).
+  Assert observable behavior against independently-known values.
 - Always use Playwright CLI to verify website changes
 - Avoid logic in test lifecycle hooks — it encourages shared mutable state.
   Prefer fixture factory functions or types, instantiated per test. Make
