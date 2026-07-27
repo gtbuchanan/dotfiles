@@ -180,7 +180,14 @@
 
 ## Testing
 
-- Prefer TDD (red/green): write a failing test first, then make it pass
+- Follow TDD by default. For each behavior: write the test first, run it and
+  confirm it fails for the right reason (red), then write the minimum code to
+  pass (green), then refactor. Don't write implementation before its test, and
+  don't write a batch of tests against code that already exists and passes —
+  that skips the red step, which is what proves the test can fail. Watching a
+  test fail first is the primary defense against the tautological tests below.
+  Deviate only when TDD genuinely doesn't fit (e.g. spikes, throwaway
+  exploration) and say so explicitly.
 - Never write tautological tests — ones that pass by construction and can't
   fail for a real defect. If you can't name a code change that would break the
   test, it isn't a test. Avoid asserting a mock returns what it was configured
