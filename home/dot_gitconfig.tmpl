@@ -87,6 +87,11 @@
 	sshCommand = ssha
 {{- end }}
 
+[credential "https://github.com"]
+	# Pin the GitHub account so Git Credential Manager uses it directly instead
+	# of prompting to choose when several accounts are cached for github.com.
+	username = gtbuchanan
+
 [delta]
 	dark = true
 	hyperlinks = true
