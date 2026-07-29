@@ -5,9 +5,9 @@
 # PSScriptAnalyzerSettings.psd1 at the repo root (also honored by the VS Code
 # PowerShell extension).
 #
-# Check-only: PSScriptAnalyzer's -Fix rewrites files in place and throws on some
-# valid inputs (e.g. NullReferenceException on scripts with backtick line
-# continuations), so autofix is left to the editor, which applies the same psd1.
+# Check-only: PSScriptAnalyzer's -Fix rewrites files in place, so autofix is
+# left to the editor, which applies the same psd1. (-Fix also amplifies the
+# cold-start crash worked around below.)
 [CmdletBinding()]
 param(
   [Parameter(ValueFromRemainingArguments = $true)]
@@ -30,8 +30,34 @@ if (Test-Path $repoModules) {
 $settings = Join-Path $root 'PSScriptAnalyzerSettings.psd1'
 
 # Invoke-ScriptAnalyzer -Path is single-valued, so analyze each file in turn.
+#
+# PSScriptAnalyzer intermittently throws a NullReferenceException ("Object
+# reference not set to an instance of an object") on the first analysis in a
+# fresh process when the formatting rules run against a file containing backtick
+# line continuations -- its correction engine dereferences a null token during
+# cold initialization. hk spawns a new pwsh per run, so it always takes this
+# cold path and hits the crash roughly half the time. A later call in the same
+# process reliably succeeds (the failed attempt still warms the type init), so
+# retry the transient fault before surfacing it. Genuine analysis problems
+# reproduce on every attempt and still throw once the retries are exhausted.
+$maxAttempts = 3
 $findings = foreach ($file in $Path) {
-  Invoke-ScriptAnalyzer -Path $file -Settings $settings
+  for ($attempt = 1; ; $attempt++) {
+    try {
+      # Capture then emit so a crash mid-analysis can't leak partial findings
+      # into the pipeline ahead of a successful retry.
+      $result = Invoke-ScriptAnalyzer -Path $file -Settings $settings
+      $result
+      break
+    }
+    catch {
+      # The cold-start fault surfaces with the NullReferenceException message
+      # ("Object reference not set..."); match it so a wrapped rethrow is caught
+      # too. Any other failure is real -- rethrow it without retrying.
+      $transient = $_.Exception.Message -match 'Object reference not set'
+      if (-not $transient -or $attempt -ge $maxAttempts) { throw }
+    }
+  }
 }
 
 if ($findings) {
