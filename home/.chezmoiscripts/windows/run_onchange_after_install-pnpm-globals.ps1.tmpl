@@ -1,13 +1,12 @@
 $ErrorActionPreference = 'Stop'
-{{ template "pnpm-globals" dict
-  "workingTree" .chezmoi.workingTree
-  "include" (list
-    "@playwright/cli"
-    "@vtsls/language-server"
-    "@vue/language-server"
-    "vscode-langservers-extracted"
-  )
-}}
+{{- $globals := list
+  "@playwright/cli"
+  "@vtsls/language-server"
+  "@vue/language-server"
+  "vscode-langservers-extracted" -}}
+{{- /* CLI for Microsoft 365 is work-only (Outlook / M365 tenant). */ -}}
+{{- if eq .hosttype "ewn" }}{{ $globals = append $globals "@pnp/cli-microsoft365" }}{{ end }}
+{{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" $globals }}
 
 # Codex CLI is now installed via winget (OpenAI.Codex). Remove the legacy
 # pnpm-managed global so the two don't shadow each other on PATH. Idempotent --

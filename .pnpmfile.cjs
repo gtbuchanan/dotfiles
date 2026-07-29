@@ -33,6 +33,32 @@ function readPackage(pkg) {
   if (pkg.name === 'ink-link' && !pkg.dependencies?.react) {
     return { ...pkg, dependencies: { ...pkg.dependencies, react: '^19' } };
   }
+  /* @azure/monitor-opentelemetry-exporter (the applicationinsights telemetry
+   * pulled by @pnp/cli-microsoft365) requires @azure/logger in its compiled
+   * output but declares it as neither a dependency nor a peerDependency — it
+   * relies on @azure/logger being hoisted (it's a transitive dep of the many
+   * @azure/core-* packages, all of which depend on it). Under our hoist: false
+   * workspace it isn't linked into the exporter's scope, so the CLI crashes at
+   * load with "Cannot find module '@azure/logger'". Hoisted layouts (npm) mask
+   * the bug. Add @azure/logger as an explicit dep so pnpm symlinks the
+   * already-resolved copy into the exporter's scope.
+   *
+   * A recurring Azure SDK anti-pattern (@azure/logger left in devDependencies
+   * while used in dist): https://github.com/Azure/azure-sdk-for-js/issues/26618
+   * (@azure/cosmos), https://github.com/Azure/azure-sdk-for-js/issues/9477
+   * (@azure/identity). No exporter-specific issue is filed yet.
+   *
+   * Drop this patch once the exporter declares @azure/logger as a dependency.
+   */
+  if (
+    pkg.name === '@azure/monitor-opentelemetry-exporter' &&
+    !pkg.dependencies?.['@azure/logger']
+  ) {
+    return {
+      ...pkg,
+      dependencies: { ...pkg.dependencies, '@azure/logger': '^1' },
+    };
+  }
   return pkg;
 }
 
