@@ -88,6 +88,10 @@ A [dotfiles] configuration using [chezmoi].
    host key, which the SSH externals then rely on (gist.github.com via the
    `HostKeyAlias` in `~/.ssh/config`).
 
+1. Sign in to the [Microsoft 365 CLI](docs/m365.md) (Work only):
+
+   `m365 login --appId <your-ewn-app-id> --tenant ewn.com --authType browser`
+
 ### Troubleshooting
 
 #### WinGet Errors
