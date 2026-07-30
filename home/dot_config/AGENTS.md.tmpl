@@ -233,6 +233,18 @@
     `tail -n 50 output.log` or `tail -f output.log`
   Once the command finishes, filter the saved file freely — by then the
   output is static and `head`/`tail`/`grep` are fine.
+- Never terminate processes by name or image on your own initiative —
+  `Stop-Process -Name`, `taskkill /IM`, `pkill`, `killall`,
+  `Get-Process <name> | Stop-Process`, WMI/CIM `Terminate`, `.Kill()`, and
+  the like. A name/image kill hits EVERY matching process on the machine,
+  not just yours: other agent and terminal sessions, and the harness's own
+  shell host. When you need to reap something you spawned, find its exact
+  PID — from the job/launch you started, or by filtering the platform's
+  process list on command line / parent PID (`ps`/`pgrep -f` on
+  Unix, `Get-CimInstance Win32_Process` on Windows) — and kill that one PID
+  (`kill <pid>`, `Stop-Process -Id <pid>`, `taskkill /PID <pid>`). Only kill
+  by name/image when I explicitly ask you to (e.g. "kill all node
+  processes") — then it's the intended blast radius.
 {{- if eq .chezmoi.os "windows" }}
 - `sudo` is available natively on Windows 11 (24H2+) and configured in inline
   mode — use it when a command needs administrator privileges and won't
