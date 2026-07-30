@@ -60,6 +60,18 @@
           }
         ]
       }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "command": "& $HOME/.claude/deny-pwsh-kill.ps1",
+            "shell": "powershell",
+            "type": "command"
+          }
+        ]
+      }
     ]
   },
 {{- end }}
