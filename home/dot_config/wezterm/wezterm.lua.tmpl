@@ -5,7 +5,20 @@ local config = wezterm.config_builder()
 config.adjust_window_size_when_changing_font_size = false
 config.color_scheme = 'Helios (base16)'
 {{- if eq .osid "windows" }}
-config.default_prog = { 'psmux', 'new', '-As', 'main' }
+-- Clear WEZTERM_PANE/TERM_PROGRAM before launching psmux so its
+-- needs_vt_input() stays false and psmux uses the native Win32 INPUT_RECORD
+-- path rather than the VT-input path (psmux #468). On the VT path psmux does
+-- not decode WezTerm's Ctrl+Space (our leader) — WezTerm reports it with
+-- win32_uni_char 0x20 (space) rather than NUL (wezterm #4055) — so the prefix
+-- dies; the native path receives it correctly. Trade-off: drops psmux-level
+-- mouse-wheel scrollback of pane output (use <Prefix>[ copy-mode instead);
+-- app-level mouse (e.g. Claude Code) still works.
+-- https://github.com/psmux/psmux/issues/508
+-- https://github.com/wezterm/wezterm/issues/4055
+config.default_prog = {
+  'pwsh', '-NoLogo', '-NoProfile', '-Command',
+  'Remove-Item Env:WEZTERM_PANE, Env:TERM_PROGRAM -ErrorAction SilentlyContinue; psmux new -As main',
+}
 {{- end }}
 config.font = wezterm.font '{{ .font }}'
 {{- if eq .osid "windows" }}
