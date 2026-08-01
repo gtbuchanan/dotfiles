@@ -13,8 +13,8 @@ catalogs:
       specifier: 0.2.0
       version: 0.2.0
     '@pnpm/types':
-      specifier: 1101.4.0
-      version: 1101.4.0
+      specifier: 1101.6.0
+      version: 1101.6.0
     '@types/node':
       specifier: 26.1.1
       version: 26.1.1
@@ -39,7 +39,7 @@ importers:
         version: 0.2.0(typescript@6.0.3)
       '@pnpm/types':
         specifier: 'catalog:'
-        version: 1101.4.0
+        version: 1101.6.0
       '@types/node':
         specifier: 'catalog:'
         version: 26.1.1
@@ -348,8 +348,8 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@pnpm/types@1101.4.0':
-    resolution: {integrity: sha512-s03f87SySGMvjOE16dWXmUOsXt+5Ic/DabWaB4/+L13l4q/tMjOusIu3t2plazCK0gCY9wYOIw2p9CQ9+CHbcA==}
+  '@pnpm/types@1101.6.0':
+    resolution: {integrity: sha512-oqJsbjsYcvbONsMTCQQHxpIyhGDSgRUsIoGM8TMWoydgeSdtnqpGVAvxljkvP2mgYO3Y8EwRRZ1usESSoySYjg==}
     engines: {node: '>=22.13'}
 
   '@prettier/plugin-xml@3.4.2':
@@ -1967,7 +1967,7 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@pnpm/types@1101.4.0': {}
+  '@pnpm/types@1101.6.0': {}
 
   '@prettier/plugin-xml@3.4.2(prettier@3.9.3)':
     dependencies:
