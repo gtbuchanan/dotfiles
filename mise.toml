@@ -45,7 +45,7 @@ actionlint = "1.7.12"
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
 chezmoi = "2.71.1"
-hk = "1.53.0"
+hk = "1.54.0"
 node = "24.18.1"
 "npm:@gtbuchanan/cli" = "0.4.0"
 "npm:renovate" = "43.231.2"
