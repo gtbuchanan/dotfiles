@@ -145,3 +145,62 @@ publish per-tarball checksums, so hk is pinned by version only.
 The `mise-guide` skill ships as a chezmoi external archive and is deployed to
 `~/.agents/skills/mise-guide/`. See [`agent-config.md`](agent-config.md) for
 the skill deploy path shared by every tool.
+
+## mise Bootstrap as a chezmoi Replacement
+
+`mise bootstrap` — a converging machine provisioner mise grew over its 2026
+releases — overlaps chezmoi's job enough to raise the question of whether it
+could replace it here. Evaluated as of 2026-08 against mise 2026.8.2:
+**no.** Keep chezmoi as the file-deployment layer.
+
+What bootstrap does bring:
+
+- `[dotfiles]`, keyed by target path, with `symlink`, `symlink-each`, `copy`,
+  and `template` (tera) modes — plus _edit_ entries that own a
+  marker-delimited block or a single exact line inside a file mise doesn't
+  otherwise own. Confirmed working on Windows: template mode renders with
+  `[vars]` in scope, and `symlink` falls back to copying for files (documented
+  behavior, since file symlinks need elevation there).
+- System-level convergence that chezmoi can only model as shell scripts —
+  `[bootstrap.packages]`, `[bootstrap.services]`, `[bootstrap.linux.firewall]`,
+  `[bootstrap.linux.systemd.units]`, `[bootstrap.macos.defaults]`,
+  `[bootstrap.macos.launchd.agents]`, `[bootstrap.users]`/`[bootstrap.groups]`.
+- `[bootstrap.repos]`, which covers the `type: git` entries in
+  [`.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl).
+- `mise bootstrap remote` (bootstrap other machines over OpenSSH) and
+  `mise bootstrap plan`, neither of which chezmoi has an analogue for.
+
+What blocks it for this repo:
+
+| Gap                                                                                                                                                                                                                                                                                                 | Dependency here                                                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| No conditional gating of entries. `mise.toml` is strict TOML and tera renders inside string _values_, not over the file, so `{% if os() == "windows" %}` around `[dotfiles]` entries is a parse error. `[bootstrap.packages]` entries take an `os` filter; `[dotfiles]` entries have no equivalent. | [`.chezmoiignore`](../home/.chezmoiignore) gates whole categories of targets per-OS. The workaround would be sharding into `mise.<env>.toml` files and setting `MISE_ENV` on every machine. |
+| No Windows package manager — no `winget`, `scoop`, or `chocolatey` backend anywhere in the CLI or schema.                                                                                                                                                                                           | [`winget.yaml.tmpl`](../home/winget.yaml.tmpl), which provisions Windows packages including mise itself.                                                                                    |
+| `mise bootstrap status` fails outright on Windows (`managed system files are only supported on Unix`); only sub-phases such as `bootstrap dotfiles` run.                                                                                                                                            | Windows is a primary platform.                                                                                                                                                              |
+| No prompted, persisted per-host data. `[vars]` is static; `[bootstrap.secrets]` prompts only for secret inputs.                                                                                                                                                                                     | `promptChoiceOnce` for `hosttype` in [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl), fanning out to `email`, `signingkey`, `osid`, and `wsl`.                                           |
+| No permission attributes on dotfile entries; `template` mode simply inherits the source file's permissions.                                                                                                                                                                                         | The `private_`, `readonly_`, and `executable_` prefixes — notably [`private_dot_ssh`](../home/private_dot_ssh).                                                                             |
+| No `modify_` equivalent. Edit entries manage comment-marker blocks or exact lines, not structured merges.                                                                                                                                                                                           | The `modify_` scripts, above all the VS Code `settings.json` merge that has to survive VS Code's own writes.                                                                                |
+| No archive or single-file externals; `[bootstrap.repos]` is git-only.                                                                                                                                                                                                                               | The `type: archive` and `type: file` externals (agent skills, vim-plug).                                                                                                                    |
+| Bootstrap hooks run on every invocation and must be idempotent. Task `sources`/`outputs` fingerprinting is the nearest analogue to re-firing on a rendered-content hash change, but it isn't the same contract.                                                                                     | The `run_onchange_*` scripts.                                                                                                                                                               |
+
+Migration would also mean porting every `*.tmpl` from Go `text/template` to
+tera.
+
+Maturity weighs in too, for a repo that has to work on every platform above:
+bootstrap is new and moving quickly, and mise's published JSON schema already
+lags its own CLI — `--help` documents `[bootstrap.files]`,
+`[bootstrap.services]`, `[bootstrap.compose]`, and
+`[bootstrap.users]`/`[bootstrap.groups]`, while `mise.json` omits them.
+
+Re-evaluate if either of these lands:
+
+- a `winget:` (or `scoop:`) manager for `[bootstrap.packages]`, which would
+  give `winget.yaml.tmpl` somewhere to go; or
+- an `os` filter on `[dotfiles]` entries, matching what
+  `[bootstrap.packages]` already accepts — the `.chezmoiignore` replacement.
+
+A narrower question stays open: moving only the _provisioning_ half (the
+`run_onchange_*` scripts and `winget.yaml.tmpl`) into `mise bootstrap` while
+chezmoi keeps deploying files. That doesn't pay off today either, because this
+repo's provisioning is concentrated in Windows winget and the Termux backend
+workarounds above — the two areas bootstrap serves least well.
