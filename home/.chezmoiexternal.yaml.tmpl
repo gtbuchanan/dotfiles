@@ -107,11 +107,11 @@
 {{- $refresh := "168h" }}
 # Personal skills — all trusted, since I author the repo. Cloned whole (not
 # enumerated per-skill) so every skill is installed and new ones are picked up
-# automatically without publishing the skill names here; a per-OS run_after
-# script then symlinks each skills/* into .agents/skills/<name>. This
-# clone-then-symlink indirection is required because chezmoi's git-repo
-# externals can't stripComponents/flatten like archive externals, and archive
-# externals can't authenticate over SSH (needed for this private repo).
+# automatically, without pinning a repo I author to a SHA and fielding Renovate
+# PRs on my own work; a per-OS run_after script then symlinks each skills/*
+# into .agents/skills/<name>. This clone-then-symlink indirection is required
+# because a git-repo external can't flatten the repo's skills/<name> layout the
+# way the archive externals above do with stripComponents.
 '{{ .codeDir }}/skills':
   refreshPeriod: {{ $refresh }}
   type: git-repo
