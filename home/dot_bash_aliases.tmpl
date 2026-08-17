@@ -1,3 +1,15 @@
+{{ if eq .chezmoi.os "android" -}}
+# Bitwarden session helpers. These must be functions, not aliases: only the
+# calling shell can export BW_SESSION into its own environment. See the
+# `bw-session-termux` script for the at-rest wrapping and idle-timeout scheme.
+bwl() { bw-session-termux lock; unset BW_SESSION; }
+bwu() {
+  local key
+  key=$(bw-session-termux get) || { unset BW_SESSION; return 1; }
+  export BW_SESSION="$key"
+}
+
+{{ end -}}
 alias c=clear
 alias cc=claude
 ccc() { clear; claude "$@"; }

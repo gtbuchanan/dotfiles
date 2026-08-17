@@ -1,0 +1,282 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Hardware-bound, biometric-gated session cache for the Bitwarden CLI.
+#
+# Termux-only -- the at-rest wrapping is bound to the Android hardware
+# keystore, so other platforms would need their own implementation against
+# Keychain/Secure Enclave or DPAPI rather than a port of this.
+#
+# The Bitwarden CLI deliberately never persists the symmetric key that decrypts
+# vault items -- it hands it back from `bw unlock` and expects the caller to
+# carry it in BW_SESSION. Caching that key in a plain file would leave the vault
+# effectively unlocked for anyone who can read the filesystem, including an
+# offline copy of /data pulled via adb or root.
+#
+# This wraps the session key at rest instead:
+#
+#   - The key-encryption key (KEK) is derived from an RSA signature produced
+#     inside the Android hardware keystore. PKCS#1 v1.5 signing is
+#     deterministic, so signing a fixed context string yields a stable value,
+#     and the private key is non-extractable -- so the cache is inert on any
+#     machine but this device.
+#   - Every read is gated behind a fingerprint prompt, so a cached session is
+#     not silently usable by someone holding the unlocked phone.
+#   - The cache carries an authenticated idle expiry. `bw` itself has no vault
+#     timeout, so this supplies one: past the window the vault is locked for
+#     real and the master password is required again. The expiry is bound as
+#     GCM additional authenticated data, so editing it in the cache file makes
+#     decryption fail rather than extending the window.
+#
+# The cache is persistent rather than living in TMPDIR, which Termux wipes on
+# app start. That is a deliberate trade: the biometric path then applies across
+# restarts -- roughly what Bitwarden desktop's biometric unlock does -- at the
+# cost of a wrapped session key that outlives the app and is usable by anything
+# running as this user. Off-device it stays inert either way.
+#
+# The idle window is correspondingly long. Lapsing destroys the session key, so
+# a short window would mean the master password nearly every time and the
+# fingerprint gate would almost never engage.
+#
+# Both prompts -- fingerprint and master password -- are native Android dialogs
+# rather than TTY input, matching pinentry-termux and ssh-askpass-termux. They
+# reach the user even when stdin is a pipe, as it is when git drives `ssha`, and
+# autofill can target a real field where it cannot against a terminal.
+#
+# Commands: get (default) | check | lock | reset | status
+#
+# Prefer the `bwu` / `bwl` shell functions -- only the calling shell can export
+# BW_SESSION into its own environment.
+
+set -euo pipefail
+
+# Stable identifiers, deliberately independent of this script's filename:
+# changing the alias or the context string orphans the existing hardware key
+# and makes every already-cached session undecryptable.
+readonly KEY_ALIAS=bw-session-kek
+readonly KEK_CONTEXT='bw-session-kek/v1'
+readonly CACHE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/bw-session"
+readonly CACHE="$CACHE_DIR/session.enc"
+
+# Sliding idle window, in seconds. Each successful read pushes the expiry out
+# again. Override with BW_SESSION_IDLE_TIMEOUT.
+readonly IDLE_TIMEOUT="${BW_SESSION_IDLE_TIMEOUT:-2592000}"
+
+die() {
+  printf '%s: %s\n' "${0##*/}" "$1" >&2
+  exit 1
+}
+
+# Master password via a native dialog, the same way pinentry-termux and
+# ssh-askpass-termux surface theirs. No terminal is involved, so this works when
+# git drives `ssha` with the ssh transport on stdin, and Android
+# password-manager autofill can target a real field as it cannot against TTY
+# input. Empty means the dialog was cancelled.
+prompt_master_password() {
+  local result
+  result=$(termux-dialog text -p -t 'Bitwarden' \
+    -i 'Master password' 2>/dev/null || true)
+  jq -r '.text // empty' <<<"$result" 2>/dev/null || true
+}
+
+# Derives the KEK as hex, creating the hardware key on first use.
+#
+# No -u validity window is set: the fingerprint gate below already supplies
+# per-use consent, and -u expires relative to the last *device* unlock, which
+# would force a master-password re-entry in the middle of any long session that
+# never cycles the lock screen. Set BW_SESSION_KEY_VALIDITY to opt in.
+derive_kek() {
+  if ! termux-keystore list 2>/dev/null | jq -e --arg a "$KEY_ALIAS" \
+    'map(select(.alias == $a)) | length > 0' >/dev/null; then
+    local -a opts=(-a RSA -s 2048)
+    [[ -n "${BW_SESSION_KEY_VALIDITY:-}" ]] &&
+      opts+=(-u "$BW_SESSION_KEY_VALIDITY")
+    termux-keystore generate "$KEY_ALIAS" "${opts[@]}" >/dev/null ||
+      die 'could not create hardware key'
+  fi
+
+  printf '%s' "$KEK_CONTEXT" |
+    termux-keystore sign "$KEY_ALIAS" SHA256withRSA |
+    sha256sum | cut -d' ' -f1
+}
+
+# Requires a fingerprint touch. Fails closed -- set BW_SESSION_NO_BIOMETRIC=1
+# on a device with no enrolled fingerprint.
+require_fingerprint() {
+  [[ -n "${BW_SESSION_NO_BIOMETRIC:-}" ]] && return 0
+  command -v termux-fingerprint >/dev/null ||
+    die 'termux-fingerprint not found (pkg install termux-api)'
+
+  local result auth
+  result=$(termux-fingerprint -t 'Bitwarden' \
+    -d 'Authenticate to use the cached vault session' 2>/dev/null || true)
+  auth=$(jq -r '.auth_result // empty' <<<"$result" 2>/dev/null || true)
+
+  if [[ "$auth" != AUTH_RESULT_SUCCESS ]]; then
+    printf '%s\n' "$result" >&2
+    die 'fingerprint authentication failed'
+  fi
+}
+
+# The KEK travels to node via the environment rather than argv, which would be
+# visible in any process listing.
+encrypt_session() {
+  local kek=$1 exp=$2
+  BW_KEK="$kek" BW_EXP="$exp" node -e '
+    const crypto = require("crypto");
+    const kek = Buffer.from(process.env.BW_KEK, "hex");
+    const exp = process.env.BW_EXP;
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv("aes-256-gcm", kek, iv);
+    cipher.setAAD(Buffer.from(exp));
+    const ct = Buffer.concat([
+      cipher.update(require("fs").readFileSync(0)),
+      cipher.final(),
+    ]);
+    process.stdout.write(JSON.stringify({
+      v: 1,
+      exp: Number(exp),
+      iv: iv.toString("base64"),
+      tag: cipher.getAuthTag().toString("base64"),
+      ct: ct.toString("base64"),
+    }));
+  '
+}
+
+decrypt_session() {
+  local kek=$1
+  BW_KEK="$kek" node -e '
+    const crypto = require("crypto");
+    const kek = Buffer.from(process.env.BW_KEK, "hex");
+    const o = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    const d = crypto.createDecipheriv("aes-256-gcm", kek,
+      Buffer.from(o.iv, "base64"));
+    d.setAAD(Buffer.from(String(o.exp)));
+    d.setAuthTag(Buffer.from(o.tag, "base64"));
+    process.stdout.write(Buffer.concat([
+      d.update(Buffer.from(o.ct, "base64")),
+      d.final(),
+    ]).toString());
+  '
+}
+
+store_session() {
+  local key=$1 kek=$2
+  local exp=$(($(date +%s) + IDLE_TIMEOUT))
+  local tmp
+  mkdir -p "$CACHE_DIR"
+  chmod 700 "$CACHE_DIR"
+  tmp=$(mktemp "${CACHE}.XXXXXX")
+  chmod 600 "$tmp"
+  printf '%s' "$key" | encrypt_session "$kek" "$exp" >"$tmp"
+  mv "$tmp" "$CACHE"
+}
+
+discard_cache() {
+  rm -f "$CACHE"
+}
+
+# The password reaches bw through the environment, scoped to the single command
+# so it is never exported script-wide; argv would expose it in any process
+# listing.
+fresh_unlock() {
+  local kek=$1 key pw
+  pw=$(prompt_master_password)
+  [[ -n "$pw" ]] || die 'unlock cancelled'
+  key=$(BW_PASSWORD="$pw" bw unlock --passwordenv BW_PASSWORD --raw) ||
+    die 'unlock failed'
+  store_session "$key" "$kek"
+  printf '%s' "$key"
+}
+
+cmd_get() {
+  local kek
+  kek=$(derive_kek)
+
+  if [[ ! -s "$CACHE" ]]; then
+    fresh_unlock "$kek"
+    return
+  fi
+
+  # Checked before decrypting to avoid a pointless fingerprint prompt on an
+  # already-dead session; the value is authenticated during decryption.
+  local exp
+  exp=$(jq -r '.exp // 0' "$CACHE" 2>/dev/null || echo 0)
+  if [[ "$(date +%s)" -ge "$exp" ]]; then
+    bw lock >/dev/null 2>&1 || true
+    discard_cache
+    printf '%s: idle timeout reached, vault locked\n' "${0##*/}" >&2
+    fresh_unlock "$kek"
+    return
+  fi
+
+  require_fingerprint
+
+  local key
+  if ! key=$(decrypt_session "$kek" <"$CACHE" 2>/dev/null) ||
+    [[ -z "$key" ]]; then
+    discard_cache
+    printf '%s: cache unreadable, re-unlocking\n' "${0##*/}" >&2
+    fresh_unlock "$kek"
+    return
+  fi
+
+  # Slide the idle window forward on each use.
+  store_session "$key" "$kek"
+  printf '%s' "$key"
+}
+
+cmd_check() {
+  local key
+  key=$(cmd_get)
+  BW_SESSION="$key" bw unlock --check >/dev/null 2>&1 ||
+    die 'session key is not valid'
+  printf 'session valid\n'
+}
+
+cmd_lock() {
+  bw lock >/dev/null 2>&1 || true
+  discard_cache
+  printf 'vault locked\n'
+}
+
+# Drops the hardware key too, making any surviving cache permanently undecryptable.
+cmd_reset() {
+  cmd_lock
+  termux-keystore delete "$KEY_ALIAS" 2>/dev/null || true
+  printf 'hardware key removed\n'
+}
+
+cmd_status() {
+  printf 'vault:     %s\n' "$(bw status 2>/dev/null | jq -r '.status // "unknown"')"
+  printf 'key alias: %s\n' \
+    "$(termux-keystore list 2>/dev/null |
+      jq -r --arg a "$KEY_ALIAS" \
+        'if map(select(.alias == $a)) | length > 0 then "present" else "absent" end')"
+
+  if [[ -s "$CACHE" ]]; then
+    local remaining=$(($(jq -r '.exp // 0' "$CACHE") - $(date +%s)))
+    if [[ "$remaining" -gt 0 ]]; then
+      printf 'cache:     valid, expires in %ds\n' "$remaining"
+    else
+      printf 'cache:     expired\n'
+    fi
+  else
+    printf 'cache:     empty\n'
+  fi
+}
+
+command -v bw >/dev/null || die 'bw not found'
+command -v jq >/dev/null || die 'jq not found'
+for _cmd in termux-dialog termux-keystore; do
+  command -v "$_cmd" >/dev/null ||
+    die "$_cmd not found (pkg install termux-api)"
+done
+unset _cmd
+
+case "${1:-get}" in
+check) cmd_check ;;
+get) cmd_get ;;
+lock) cmd_lock ;;
+reset) cmd_reset ;;
+status) cmd_status ;;
+*) die "unknown command: $1 (expected get|check|lock|reset|status)" ;;
+esac
