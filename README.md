@@ -63,36 +63,60 @@ A [dotfiles] configuration using [chezmoi].
 
 ## Getting Started
 
-### Prerequisites
+### Install on Windows
+
+[`bootstrap.ps1`](bootstrap.ps1) installs the prerequisites, provisions an SSH
+key, and runs `chezmoi init --apply` for you. Run it from Windows PowerShell —
+`pwsh` is one of the things it installs:
+
+```powershell
+irm https://raw.githubusercontent.com/gtbuchanan/dotfiles/main/bootstrap.ps1 | iex
+```
+
+It prompts for the host type and is safe to re-run after a partial failure.
+
+Personal hosts expect [Bitwarden] Desktop to be signed in, unlocked, and serving
+its SSH agent before you start, since that agent is where the SSH key comes
+from. Work hosts pull the key from Dashlane and will prompt you to authenticate.
+
+`iex` can't forward parameters, so pass them through a scriptblock instead:
+
+```powershell
+$s = irm https://raw.githubusercontent.com/gtbuchanan/dotfiles/main/bootstrap.ps1
+& ([scriptblock]::Create($s)) -HostType ewn -ResetWinGet
+```
+
+`-ResetWinGet` applies the [WinGet reset workaround][WinGet Reset] for winget's
+intermittent RPC errors.
+
+Afterward, on work hosts, sign in to the
+[Microsoft 365 CLI](docs/m365.md):
+
+```powershell
+m365 login --appId <your-ewn-app-id> --tenant ewn.com --authType browser
+```
+
+### Install on macOS and Linux
+
+No bootstrap script yet. Install the prerequisites first:
 
 - [Chezmoi][chezmoi]
-  - Windows: `winget install -e --id twpayne.chezmoi`
   - macOS: `brew install chezmoi`
   - Ubuntu/Snap: `snap install --classic chezmoi`
 - [Chezmoi Modify Manager]: Unzip [release][Chezmoi Modify Manager Release] and add to PATH
   - macOS: `xattr -d com.apple.quarantine "$HOME/bin/chezmoi_modify_manager"`
-- [PowerShell] (Windows only): `winget install -e --id Microsoft.PowerShell`
-- [Dashlane CLI] (Work only)
-  - Windows: `winget install -e --id Dashlane.CLI`
-  - macOS: `brew install dashlane/tap/dashlane-cli`
+- [Dashlane CLI] (Work only): `brew install dashlane/tap/dashlane-cli`
 
-### Install
+Then:
 
-1. Reset WinGet if needed (Windows only, see [workaround][WinGet Reset]):
-
-   `Reset-AppxPackage -Package 'Microsoft.DesktopAppInstaller_1.26.430.0_x64__8wekyb3d8bbwe'`
-
-1. Restart shell or reload environment variables
 1. `dcli sync` (Work only)
+1. Ensure an SSH key is available to git — `--ssh` clones over SSH, and the
+   git-repo externals authenticate over SSH mid-apply
 1. `chezmoi init --apply --ssh gtbuchanan`
 
-   `--ssh` clones over SSH; this first connection also trusts github.com's
-   host key, which the SSH externals then rely on (gist.github.com via the
-   `HostKeyAlias` in `~/.ssh/config`).
-
-1. Sign in to the [Microsoft 365 CLI](docs/m365.md) (Work only):
-
-   `m365 login --appId <your-ewn-app-id> --tenant ewn.com --authType browser`
+   This first connection also trusts github.com's host key, which the SSH
+   externals then rely on (gist.github.com via the `HostKeyAlias` in
+   `~/.ssh/config`).
 
 ### Troubleshooting
 
@@ -113,6 +137,7 @@ chezmoi state delete-bucket --bucket=scriptState
 
 [Agent Skills]: https://agentskills.io/
 [AGENTS.md]: home/dot_config/AGENTS.md
+[Bitwarden]: https://bitwarden.com/
 [ble.sh]: https://github.com/akinomyoga/ble.sh/
 [Caskaydia Cove]: https://github.com/eliheuer/caskaydia-cove/
 [chezmoi]: https://www.chezmoi.io/
