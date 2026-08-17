@@ -35,6 +35,25 @@ const patches = [
     spec: '^1',
     when: 'missing',
   },
+  /* @bitwarden/cli's webpack bundle requires the `buffer` shim (note the
+   * trailing slash in `require("buffer/")` — not the node builtin) without
+   * declaring it; npm's hoisted layout supplies it, so upstream never notices.
+   *
+   * Latent for us until pnpm 11 started symlinking global packages into the
+   * store link farm (`store/v11/links/...`). Node resolves to realpath before
+   * walking node_modules, so the search now starts inside the store and never
+   * reaches the global dir's hoisted `.pnpm/node_modules`, where buffer sits.
+   * `bw` then dies at startup with "Cannot find module 'buffer/'".
+   *
+   * Only Buffer.from(...).toString(...) is used — identical in buffer 5 and 6.
+   * No upstream issue is filed. Drop this patch once the CLI declares buffer.
+   */
+  {
+    package: '@bitwarden/cli',
+    dependency: 'buffer',
+    spec: '^6',
+    when: 'missing',
+  },
   /* ink-link@4.1.0 imports react in its compiled output but declares it
    * neither as a dependency nor a peerDependency (only `ink` is a peer). Under
    * pnpm's isolated node_modules, react isn't linked into ink-link's scope, so

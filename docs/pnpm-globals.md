@@ -74,6 +74,11 @@ hook with these patches:
   leaves `@azure/logger` in `devDependencies`, crashing `m365` under
   isolated `node_modules`; the hook adds it. Installed by
   `install-pnpm-globals` (`ewn` only).
+- `@bitwarden/cli` requires the `buffer` shim from its webpack bundle
+  without declaring it, crashing `bw` at startup; the hook adds it.
+  Latent until pnpm 11 started symlinking global packages into the store
+  link farm, which puts the hoisted copy out of node's resolution walk.
+  Installed by `install-pnpm-globals` (`personal` only).
 
 The template wires this file via `--config.global-pnpmfile=` on every
 `pnpm add -g`, so a global that needs a patch is covered without opting in
