@@ -19,6 +19,7 @@ Documents
 .local/bin/bw-session-termux
 .local/bin/pinentry-termux
 .local/bin/ssh-askpass-termux
+.ssh/start_agent.sh
 .termux
 {{- end }}
 

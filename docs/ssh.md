@@ -11,16 +11,19 @@ checked in.
 
 | File                                                                                                                      | Role                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` to Android                                                                  |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android                                               |
+| [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                              |
 | [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Starts the WSL→Windows agent bridge on WSL hosts                                                       |
 | [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                 | Disables WezTerm's built-in agent mux so the native agent stays in charge                              |
 | [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                   | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                  |
 | [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                               | Gates `ssh-agent-pipe` to WSL                                                                          |
+| [`home/dot_local/bin/executable_bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)                   | Supplies the Bitwarden vault session the agent hook needs                                              |
 | [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe)                         | WSL→Windows agent bridge (socat + npiperelay)                                                          |
 | [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                 |
 | [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: `Include ./*.conf` + macOS keychain                                                  |
+| [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, starts agent service, sets `GIT_SSH` |
 
 ## Shared ssh_config
@@ -108,6 +111,46 @@ Separately, Git on Android uses `core.sshCommand = ssha` —
 [Termux's wrapper](https://wiki.termux.com/wiki/Remote_Access#SSH_Agent)
 that ensures `ssh-agent` is running before invoking `ssh`, so the
 agent spins up on first use without a manual `ssh-add` step.
+
+### Bitwarden-Backed Keys on Android
+
+Rather than keeping a private key on the device, Android seeds the
+agent from the Bitwarden vault. `ssha` sources Termux's
+`$PREFIX/libexec/source-ssh-agent.sh`, which sources
+`$PREFIX/etc/ssh/start_agent.sh` if it exists for the express purpose of
+letting `start_agent()` be replaced. `start_agent.sh` overrides it to
+pull every vault item carrying an SSH private key and stream each one
+into `ssh-add -` on stdin, so the key reaches the agent's memory without
+ever being written to disk. Because `ssha` is also Git's
+`core.sshCommand`, Git inherits this with no additional wiring.
+
+The hook lives at `~/.ssh/start_agent.sh` because chezmoi only manages
+`$HOME`; the `run_after_ssh-agent-hook.sh` script symlinks it into the
+prefix on every apply, which also restores it if a Termux reinstall wipes
+`$PREFIX`.
+
+Consequences worth knowing:
+
+- The hook runs `bw sync` before listing items. The CLI serves a local
+  copy of the vault and refreshes it only on an explicit sync — not on
+  unlock, and not on list — so a key added from another device would
+  otherwise stay invisible to the hook indefinitely. The sync is
+  best-effort, so an offline cold start still proceeds from cache.
+- Keys are added with no lifetime. `source-ssh-agent.sh` calls
+  `start_agent` only when no agent is reachable — when the agent is up
+  but empty it runs a bare `ssh-add`, which the hook cannot override.
+  Expiring keys would land on that path and search for on-disk keys that
+  aren't there. The agent's own lifetime bounds exposure instead. For
+  per-use confirmation, add `-c` to the `ssh-add` call; `SSH_ASKPASS`
+  already routes to a Termux popup, so every signature would prompt.
+- Seeding unlocks the vault, so the first agent start of a session costs
+  a fingerprint prompt and a few seconds of `bw` startup. If the vault is
+  locked or unreachable, the hook falls back to a plain `ssh-add` so
+  behavior degrades to stock rather than breaking `ssh`.
+
+The vault session itself comes from `bw-session-termux`, which wraps the
+session key at rest under a hardware-keystore-derived key and gates reads
+behind a fingerprint prompt.
 
 ## WezTerm
 
