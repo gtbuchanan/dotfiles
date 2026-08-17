@@ -1,38 +1,17 @@
-/* Patch volar-service-emmet@0.0.64's git-resolved @emmetio/css-parser to the
- * npm-published version. pnpm 11's blockExoticSubdeps rejects the github fork,
- * and overrides/packageExtensions aren't honored in the global config.
+/* Dependency fixups for globals whose published manifests don't survive
+ * pnpm's isolated node_modules. Each entry pins one dependency onto one
+ * package; `when` says whether the fixup applies to a dep the manifest
+ * already declares ('declared', to repoint it) or omits ('missing', to add
+ * it). Adding a case is a new entry here, never a new branch below.
  *
- * The fix shipped in volar-service-emmet 0.0.67+, but @vue/language-server 2.x
- * pins 0.0.64 exactly with no v2 backport tracked upstream
- * (https://github.com/volarjs/services/issues/112). We're stuck on v2 because
- * v3 requires the LSP client to forward tsserver/request messages to vtsls,
- * which Claude Code doesn't implement
- * (https://github.com/Piebald-AI/claude-code-lsps/issues/43).
+ * @type {ReadonlyArray<{
+ *   package: string,
+ *   dependency: string,
+ *   spec: string,
+ *   when: 'declared' | 'missing',
+ * }>}
  */
-
-/** @param {import('@pnpm/types').PackageManifest} pkg */
-function readPackage(pkg) {
-  if (pkg.name === 'volar-service-emmet' && pkg.dependencies?.['@emmetio/css-parser']) {
-    return {
-      ...pkg,
-      dependencies: { ...pkg.dependencies, '@emmetio/css-parser': '^0.4.1' },
-    };
-  }
-  /* ink-link@4.1.0 imports react in its compiled output but declares it
-   * neither as a dependency nor a peerDependency (only `ink` is a peer). Under
-   * pnpm's isolated node_modules, react isn't linked into ink-link's scope, so
-   * ESM resolution fails ("Cannot find package 'react'") and tweakcc — which
-   * pulls ink-link — crashes on startup. Hoisted layouts (npm) mask the bug.
-   * Add react as an explicit dep so pnpm symlinks the already-resolved
-   * react@19 into ink-link's scope.
-   *
-   * ink-link@5.0.0 still omits react (deps: terminal-link, peer: ink).
-   * Reported upstream: https://github.com/sindresorhus/ink-link/issues/21
-   * Drop this patch once ink-link declares react.
-   */
-  if (pkg.name === 'ink-link' && !pkg.dependencies?.react) {
-    return { ...pkg, dependencies: { ...pkg.dependencies, react: '^19' } };
-  }
+const patches = [
   /* @azure/monitor-opentelemetry-exporter (the applicationinsights telemetry
    * pulled by @pnp/cli-microsoft365) requires @azure/logger in its compiled
    * output but declares it as neither a dependency nor a peerDependency — it
@@ -50,16 +29,60 @@ function readPackage(pkg) {
    *
    * Drop this patch once the exporter declares @azure/logger as a dependency.
    */
-  if (
-    pkg.name === '@azure/monitor-opentelemetry-exporter' &&
-    !pkg.dependencies?.['@azure/logger']
-  ) {
-    return {
-      ...pkg,
-      dependencies: { ...pkg.dependencies, '@azure/logger': '^1' },
-    };
-  }
-  return pkg;
+  {
+    package: '@azure/monitor-opentelemetry-exporter',
+    dependency: '@azure/logger',
+    spec: '^1',
+    when: 'missing',
+  },
+  /* ink-link@4.1.0 imports react in its compiled output but declares it
+   * neither as a dependency nor a peerDependency (only `ink` is a peer). Under
+   * pnpm's isolated node_modules, react isn't linked into ink-link's scope, so
+   * ESM resolution fails ("Cannot find package 'react'") and tweakcc — which
+   * pulls ink-link — crashes on startup. Hoisted layouts (npm) mask the bug.
+   * Add react as an explicit dep so pnpm symlinks the already-resolved
+   * react@19 into ink-link's scope.
+   *
+   * ink-link@5.0.0 still omits react (deps: terminal-link, peer: ink).
+   * Reported upstream: https://github.com/sindresorhus/ink-link/issues/21
+   * Drop this patch once ink-link declares react.
+   */
+  { package: 'ink-link', dependency: 'react', spec: '^19', when: 'missing' },
+  /* Patch volar-service-emmet@0.0.64's git-resolved @emmetio/css-parser to the
+   * npm-published version. pnpm 11's blockExoticSubdeps rejects the github
+   * fork, and overrides/packageExtensions aren't honored in the global config.
+   *
+   * The fix shipped in volar-service-emmet 0.0.67+, but @vue/language-server
+   * 2.x pins 0.0.64 exactly with no v2 backport tracked upstream
+   * (https://github.com/volarjs/services/issues/112). We're stuck on v2
+   * because v3 requires the LSP client to forward tsserver/request messages to
+   * vtsls, which Claude Code doesn't implement
+   * (https://github.com/Piebald-AI/claude-code-lsps/issues/43).
+   */
+  {
+    package: 'volar-service-emmet',
+    dependency: '@emmetio/css-parser',
+    spec: '^0.4.1',
+    when: 'declared',
+  },
+];
+
+/**
+@param {import('@pnpm/types').PackageManifest} pkg
+*/
+function readPackage(pkg) {
+  const patch = patches.find(
+    candidate =>
+      candidate.package === pkg.name &&
+      (candidate.when === 'declared') ===
+      Object.hasOwn(pkg.dependencies ?? {}, candidate.dependency),
+  );
+  return patch
+    ? {
+        ...pkg,
+        dependencies: { ...pkg.dependencies, [patch.dependency]: patch.spec },
+      }
+    : pkg;
 }
 
 module.exports = { hooks: { readPackage } };
