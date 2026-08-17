@@ -72,7 +72,9 @@ A [dotfiles] configuration using [chezmoi].
 - [Chezmoi Modify Manager]: Unzip [release][Chezmoi Modify Manager Release] and add to PATH
   - macOS: `xattr -d com.apple.quarantine "$HOME/bin/chezmoi_modify_manager"`
 - [PowerShell] (Windows only): `winget install -e --id Microsoft.PowerShell`
-- [Dashlane CLI] (Work only): Unzip [release][Dashlane CLI Release] and add to PATH
+- [Dashlane CLI] (Work only)
+  - Windows: `winget install -e --id Dashlane.CLI`
+  - macOS: `brew install dashlane/tap/dashlane-cli`
 
 ### Install
 
@@ -119,7 +121,6 @@ chezmoi state delete-bucket --bucket=scriptState
 [Claude Code]: https://claude.ai/code
 [Codex CLI]: https://github.com/openai/codex
 [Dashlane CLI]: https://github.com/Dashlane/dashlane-cli
-[Dashlane CLI Release]: https://github.com/Dashlane/dashlane-cli/releases
 [dotfiles]: https://dotfiles.github.io/
 [GitHub Copilot CLI]: https://github.com/github/copilot-cli
 [PowerShell]: https://github.com/PowerShell/PowerShell/

@@ -235,6 +235,15 @@ properties:
         id: DBBrowserForSQLite.DBBrowserForSQLite
         source: winget
 {{- end }}
+{{- if eq .hosttype "ewn" }}
+    - resource: Microsoft.WinGet.DSC/WinGetPackage
+      directives:
+        description: Install Dashlane CLI
+      id: dashlaneCli
+      settings:
+        id: Dashlane.CLI
+        source: winget
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Debug Diagnostics
