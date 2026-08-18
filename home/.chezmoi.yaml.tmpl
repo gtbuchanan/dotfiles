@@ -1,12 +1,12 @@
 {{- $hostTypes := list "personal" "ewn" -}}
 {{- $hostType := promptChoiceOnce . "hosttype" "What type of host are you on" $hostTypes -}}
 {{- /* Git signs with an SSH key only where an agent is known to serve one:
-   personal Windows, where Bitwarden Desktop owns the OpenSSH named pipe.
-   Everywhere else still signs with GPG -- work uses Dashlane, which has no
-   agent; Android's `ssha` seeds an agent for Git's transport but never exports
-   SSH_AUTH_SOCK, so `ssh-keygen -Y sign` can't reach it; macOS, Linux, and WSL
-   have no agent this repo provisions. Widen per platform as each is migrated. */ -}}
-{{- $sshSigning := and (eq $hostType "personal") (eq .chezmoi.os "windows") -}}
+   personal Windows, where Bitwarden Desktop owns the OpenSSH named pipe, and
+   Android, where start_agent.sh seeds one from the same vault -- the same key,
+   so both sign with the public key below. Everywhere else still signs with
+   GPG -- work uses Dashlane, which has no agent; macOS, Linux, and WSL have no
+   agent this repo provisions. Widen per platform as each is migrated. */ -}}
+{{- $sshSigning := and (eq $hostType "personal") (or (eq .chezmoi.os "windows") (eq .chezmoi.os "android")) -}}
 {{- $osid := .chezmoi.os -}}
 {{- if hasKey .chezmoi.osRelease "id" -}}
 {{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}

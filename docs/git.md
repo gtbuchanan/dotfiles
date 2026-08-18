@@ -42,11 +42,14 @@ The non-default settings worth knowing about:
 
 ## Commit Signing
 
-Two backends, chosen per host. Personal Windows signs with an SSH key
-served by the Bitwarden agent that also backs SSH auth there (see
-[`ssh.md`](ssh.md#windows-agent-ownership)) — one key for both jobs,
-none of it on disk. Every other host signs with GPG (see
-[`gpg.md`](gpg.md)).
+Two backends, chosen per host. Personal Windows and Android both sign
+with an SSH key — the same vault key that backs SSH auth on each, so one
+key does both jobs and none of it sits on disk. Windows gets it from
+Bitwarden Desktop's agent (see
+[`ssh.md`](ssh.md#windows-agent-ownership)); Android from the agent
+`start_agent.sh` seeds (see
+[`ssh.md`](ssh.md#bitwarden-backed-keys-on-android)). Every other host
+signs with GPG (see [`gpg.md`](gpg.md)).
 
 The choice is derived once in
 [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) as `sshsigning`,
@@ -61,12 +64,24 @@ reasoning for its own part.
 verification backend from the signature, so the GPG-signed history
 keeps verifying under `gpg.format = ssh`.
 
-Bitwarden's "ask for authorization when using SSH agent" applies per
-request, so with `commit.gpgsign = true` it prompts on every commit —
-and an unanswered prompt surfaces as `agent refused operation`. This is
-where the [AI-agent convention](gpg.md#the-ai-agent-convention) has no
-counterpart: there's no bypass, so a non-interactive commit needs the
-prompt answered or the setting off.
+Android signs through `ssh-keygena`, a symlink to Termux's
+`wrap-ssh-agent.sh` following the same `<cmd>a` convention as the stock
+`ssha`, `scpa`, and `sftpa`. Termux exports `SSH_AUTH_SOCK` only inside
+that wrapper, so a bare `ssh-keygen` inherits nothing and cannot reach
+the agent — going through it both starts the agent and hands signing the
+socket.
+
+Bitwarden Desktop's agent applies its "ask for authorization when using
+SSH agent" setting per request, so with `commit.gpgsign = true` it
+prompts on every commit — and an unanswered prompt surfaces as `agent
+refused operation`. This is where the [AI-agent
+convention](gpg.md#the-ai-agent-convention) has no counterpart: there's
+no bypass, so a non-interactive commit needs the prompt answered or the
+setting off.
+
+That is a property of the desktop app's agent, not of Bitwarden. Android
+goes through the CLI, which hands the key to a stock `ssh-agent` once
+when the agent is seeded; every signature after that is unprompted.
 
 ## Delta + KDiff3
 

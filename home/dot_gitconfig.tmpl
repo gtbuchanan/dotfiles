@@ -130,10 +130,18 @@
 
 [gpg "ssh"]
 	allowedSignersFile = {{ .chezmoi.homeDir }}/.config/git/allowed_signers
+{{- if eq .chezmoi.os "windows" }}
 	# Git for Windows prefers its bundled MSYS2 ssh-keygen, which can't reach
 	# the Windows agent's named pipe. Point at the native client, matching the
 	# GIT_SSH the winget manifest sets machine-wide.
 	program = C:/Program Files/OpenSSH/ssh-keygen.exe
+{{- else if eq .chezmoi.os "android" }}
+	# Termux exports SSH_AUTH_SOCK only inside the `ssha` wrapper Git uses for
+	# transport, so a bare ssh-keygen inherits none and cannot reach the agent.
+	# ssh-keygena is that same wrapper under a name it resolves to ssh-keygen,
+	# which both starts the agent and hands signing the socket.
+	program = {{ .chezmoi.homeDir }}/.local/bin/ssh-keygena
+{{- end }}
 {{- end }}
 
 [init]
