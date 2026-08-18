@@ -1,12 +1,15 @@
 {{- $hostTypes := list "personal" "ewn" -}}
 {{- $hostType := promptChoiceOnce . "hosttype" "What type of host are you on" $hostTypes -}}
-{{- /* Git signs with an SSH key only where an agent is known to serve one:
-   personal Windows, where Bitwarden Desktop owns the OpenSSH named pipe, and
-   Android, where start_agent.sh seeds one from the same vault -- the same key,
-   so both sign with the public key below. Everywhere else still signs with
-   GPG -- work uses Dashlane, which has no agent; macOS, Linux, and WSL have no
-   agent this repo provisions. Widen per platform as each is migrated. */ -}}
-{{- $sshSigning := and (eq $hostType "personal") (or (eq .chezmoi.os "windows") (eq .chezmoi.os "android")) -}}
+{{- /* Git signs with an SSH key wherever an agent serves one, which on Windows
+   is now both host types: Bitwarden Desktop owns the OpenSSH named pipe on
+   personal hosts, and on work hosts bootstrap.ps1 seeds the Windows ssh-agent
+   service straight from the Dashlane vault. Dashlane having no agent of its own
+   was never the obstacle it looked like -- the service is the agent, and it only
+   needs handing the key once, because it persists keys across reboots. Android
+   seeds the personal key the same way via start_agent.sh. macOS, Linux, and WSL
+   still sign with GPG, having no agent this repo provisions; widen per platform
+   as each is migrated. */ -}}
+{{- $sshSigning := or (eq .chezmoi.os "windows") (and (eq $hostType "personal") (eq .chezmoi.os "android")) -}}
 {{- $osid := .chezmoi.os -}}
 {{- if hasKey .chezmoi.osRelease "id" -}}
 {{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
@@ -26,9 +29,15 @@ data:
   hosttype: {{ $hostType | quote }}
   # https://www.chezmoi.io/user-guide/machines/linux/
   osid: {{ $osid | quote }}
-  # A bare SSH public key where Git signs over SSH, otherwise a GPG key id.
+  # A bare SSH public key where Git signs over SSH, otherwise a GPG key id. Both
+  # are per host type, and the SSH ones are the keys that already authenticate --
+  # signing reuses them rather than introducing a second key to keep track of.
 {{- if $sshSigning }}
+{{-   if eq $hostType "personal" }}
   signingkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIADouO5D+n1kOX9xIW2SvL9y8RIcgvlhGFcW4ULYNx9u"
+{{-   else if eq $hostType "ewn" }}
+  signingkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIO6EUorQuhibCuoui7kwAvGFE5T9y9H3o20lrKbvj8WC"
+{{-   end }}
 {{- else if eq $hostType "personal" }}
   signingkey: E37B3051E06FBBC9
 {{- else if eq $hostType "ewn" }}

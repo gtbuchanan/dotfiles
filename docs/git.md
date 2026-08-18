@@ -42,14 +42,17 @@ The non-default settings worth knowing about:
 
 ## Commit Signing
 
-Two backends, chosen per host. Personal Windows and Android both sign
-with an SSH key — the same vault key that backs SSH auth on each, so one
-key does both jobs and none of it sits on disk. Windows gets it from
-Bitwarden Desktop's agent (see
-[`ssh.md`](ssh.md#windows-agent-ownership)); Android from the agent
-`start_agent.sh` seeds (see
-[`ssh.md`](ssh.md#bitwarden-backed-keys-on-android)). Every other host
-signs with GPG (see [`gpg.md`](gpg.md)).
+Two backends, chosen per host.
+Every Windows host signs with an SSH key, as does Android —
+in each case the same vault key that already backs SSH auth there,
+so one key does both jobs and none of it sits on disk.
+Personal Windows gets it from Bitwarden Desktop's agent;
+work Windows from the Windows `ssh-agent` service,
+seeded once from Dashlane by [`bootstrap.ps1`](../bootstrap.ps1)
+(both in [`ssh.md`](ssh.md#windows-agent-ownership));
+Android from the agent `start_agent.sh` seeds
+(see [`ssh.md`](ssh.md#bitwarden-backed-keys-on-android)).
+macOS, Linux, and WSL sign with GPG (see [`gpg.md`](gpg.md)).
 
 The choice is derived once in
 [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) as `sshsigning`,
@@ -79,9 +82,11 @@ convention](gpg.md#the-ai-agent-convention) has no counterpart: there's
 no bypass, so a non-interactive commit needs the prompt answered or the
 setting off.
 
-That is a property of the desktop app's agent, not of Bitwarden. Android
-goes through the CLI, which hands the key to a stock `ssh-agent` once
-when the agent is seeded; every signature after that is unprompted.
+That is a property of the desktop app's agent,
+not of Bitwarden, and not of SSH signing generally.
+Android goes through the CLI and work Windows through `bootstrap.ps1`,
+each handing the key to a stock `ssh-agent` once at seed time;
+every signature after that is unprompted.
 
 ## Delta + KDiff3
 

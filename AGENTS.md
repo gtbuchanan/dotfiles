@@ -83,17 +83,18 @@ Prefixes may be combined, e.g., `private_dot_ssh/`.
 
 Key variables available in `.tmpl` files:
 
-| Variable      | Values                                    | Description                                         |
-| ------------- | ----------------------------------------- | --------------------------------------------------- |
-| `.chezmoi.os` | `windows`, `linux`, `darwin`, `android`   | Host OS                                             |
-| `.codeDir`    | `Code` (Windows), `code` (other)          | Dev-repo dir leaf under `$HOME`, cased per platform |
-| `.hosttype`   | `personal`, `ewn`                         | Host type (personal or company)                     |
-| `.osid`       | `linux-ubuntu`, `windows`, `darwin`, etc. | OS identifier                                       |
-| `.wsl`        | `true`/`false`                            | Running under WSL                                   |
-| `.font`       | `CaskaydiaCove NF`                        | Nerd Font family                                    |
-| `.fontpack`   | `CascadiaCode`                            | Nerd Font package name                              |
-| `.email`      | string                                    | Signing email, varies by host type                  |
-| `.signingkey` | string                                    | GPG key ID, varies by host type                     |
+| Variable      | Values                                    | Description                                                        |
+| ------------- | ----------------------------------------- | ------------------------------------------------------------------ |
+| `.chezmoi.os` | `windows`, `linux`, `darwin`, `android`   | Host OS                                                            |
+| `.codeDir`    | `Code` (Windows), `code` (other)          | Dev-repo dir leaf under `$HOME`, cased per platform                |
+| `.hosttype`   | `personal`, `ewn`                         | Host type (personal or company)                                    |
+| `.osid`       | `linux-ubuntu`, `windows`, `darwin`, etc. | OS identifier                                                      |
+| `.wsl`        | `true`/`false`                            | Running under WSL                                                  |
+| `.font`       | `CaskaydiaCove NF`                        | Nerd Font family                                                   |
+| `.fontpack`   | `CascadiaCode`                            | Nerd Font package name                                             |
+| `.email`      | string                                    | Signing email, varies by host type                                 |
+| `.signingkey` | string                                    | SSH public key where `.sshsigning`, else GPG key ID; per host      |
+| `.sshsigning` | `true`/`false`                            | Git signs over SSH rather than GPG; read via `get` (may be absent) |
 
 ## Directory Structure
 
