@@ -8,8 +8,8 @@
   bootstrap the host: `--ssh` clones over SSH, and the git-repo externals
   authenticate over SSH mid-apply, so a usable SSH key must exist before chezmoi
   runs at all. The Windows OpenSSH client and agent are installed and configured
-  *by* the winget manifest during that same apply, which is too late. See
-  https://github.com/gtbuchanan/dotfiles/issues/4.
+  *by* the winget manifest during that same apply, which is too late -- so on
+  work hosts this script installs and enables them itself, ahead of the seed.
 
   This script closes that gap: it installs the handful of prerequisites winget
   can provide, gets an SSH key in front of git, then hands off to chezmoi, which
@@ -91,8 +91,9 @@ function Test-CommandAvailable {
 
 # The Microsoft-native OpenSSH client is the canonical one on every Windows host
 # here (the winget manifest later removes the OS capability in favor of the
-# preview package). Pre-apply only the capability build exists, so resolve
-# whichever is present -- Program Files wins once the manifest has run.
+# preview package). Which build is present depends on how far provisioning has
+# got, so resolve either -- Program Files wins once the preview package is
+# installed, whether by this script or by the manifest.
 function Get-OpenSshPath {
   param([Parameter(Mandatory = $true)][string]$Executable)
   $candidates = @(
@@ -220,18 +221,88 @@ function Initialize-KnownHostsFile {
   [IO.File]::WriteAllText($knownHosts, $content, (New-Object Text.UTF8Encoding $false))
 }
 
-# Work hosts: Dashlane has no SSH agent, so materialize the key at the default
-# identity path. `ssh` picks it up without an agent, which matters because the
-# agent service isn't running yet. The post-apply import script loads it into
-# the agent and removes the file.
-function Initialize-EwnSshKey {
+# The seed below needs a running agent, but the service ships disabled and the
+# manifest that enables it runs during the apply this script is trying to reach.
+# Enabling it needs elevation and `sudo` isn't available yet either -- the
+# manifest turns that on too -- so shell out to a UAC-elevated Windows
+# PowerShell for this one change. Skipped entirely when the service is already
+# up, so a re-run doesn't prompt.
+function Initialize-SshAgentService {
+  if (-not (Get-Service -Name 'ssh-agent' -ErrorAction SilentlyContinue)) {
+    throw 'The ssh-agent service is missing. Install the Windows OpenSSH client and re-run.'
+  }
+  if ((Get-Service -Name 'ssh-agent').Status -eq 'Running') {
+    Write-Note 'ssh-agent service already running'
+    return
+  }
+
+  Write-Step 'Enabling the ssh-agent service (prompts for elevation)'
+  # -EncodedCommand sidesteps quoting entirely, and ErrorActionPreference makes
+  # a failed Set-Service terminate so the exit code reflects it.
+  $command = "`$ErrorActionPreference = 'Stop'; " +
+  "Set-Service -Name ssh-agent -StartupType Automatic; " +
+  'Start-Service -Name ssh-agent'
+  $encoded = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($command))
+  $elevated = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru `
+    -ArgumentList '-NoProfile', '-NonInteractive', '-EncodedCommand', $encoded
+  if ($elevated.ExitCode -ne 0) {
+    throw "Enabling the ssh-agent service failed, exit code $($elevated.ExitCode)."
+  }
+
+  # Re-query rather than trusting the elevated exit code alone -- Get-Service
+  # snapshots state, so this is a fresh read.
+  if ((Get-Service -Name 'ssh-agent').Status -ne 'Running') {
+    throw 'The ssh-agent service did not start.'
+  }
+}
+
+# `ssh-add -` reads a private key from stdin. Write those bytes directly instead
+# of piping: PowerShell's native-command pipeline re-encodes the string and
+# appends its own line terminator, which under 5.1 is CRLF -- and OpenSSH wants
+# an LF-terminated PEM. Success goes to stderr ("Identity added: (stdin)"), so
+# capture it and surface it only on failure.
+function Add-AgentKeyFromText {
+  param(
+    [Parameter(Mandatory = $true)][string]$SshAdd,
+    [Parameter(Mandatory = $true)][string]$KeyText
+  )
+
+  $startInfo = New-Object Diagnostics.ProcessStartInfo
+  $startInfo.FileName = $SshAdd
+  $startInfo.Arguments = '-'
+  $startInfo.RedirectStandardInput = $true
+  $startInfo.RedirectStandardError = $true
+  $startInfo.UseShellExecute = $false
+
+  $process = [Diagnostics.Process]::Start($startInfo)
+  try {
+    $bytes = (New-Object Text.UTF8Encoding $false).GetBytes($KeyText)
+    $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+    $process.StandardInput.BaseStream.Flush()
+    $process.StandardInput.Close()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) {
+      throw "ssh-add rejected the key: $($stderr.Trim())"
+    }
+  }
+  finally {
+    $process.Dispose()
+  }
+}
+
+# Work hosts: Dashlane has no agent of its own, but it doesn't need one -- the
+# Windows ssh-agent service is the agent, and it takes a key on stdin, so the
+# vault copy goes straight into it without ever landing on disk. The service
+# persists keys per-user in the registry, so this one seed survives reboots:
+# nothing re-seeds at login, and the vault is only read once per host.
+function Import-EwnSshKey {
   param([Parameter(Mandatory = $true)][string]$NoteName)
 
-  $sshDir = Join-Path $HOME '.ssh'
-  $keyPath = Join-Path $sshDir 'id_ed25519'
-
-  if (Test-Path $keyPath) {
-    Write-Note 'SSH private key already present'
+  $sshAdd = Get-OpenSshPath -Executable 'ssh-add.exe'
+  & $sshAdd -l | Out-Null
+  if ($LASTEXITCODE -eq 0) {
+    Write-Note 'SSH agent already holds a key'
     return
   }
 
@@ -243,21 +314,16 @@ function Initialize-EwnSshKey {
   dcli sync
   if ($LASTEXITCODE -ne 0) { throw "dcli sync failed, exit code $LASTEXITCODE." }
 
-  Write-Step "Writing the SSH private key from the '$NoteName' note"
+  Write-Step "Seeding the agent from the '$NoteName' note"
   $key = dcli note $NoteName
   if ($LASTEXITCODE -ne 0) { throw "dcli note failed, exit code $LASTEXITCODE." }
   if (-not $key) { throw "The '$NoteName' note is empty." }
 
-  # OpenSSH rejects a key whose PEM has CRLF line endings or lacks a trailing
-  # newline, and PowerShell's own redirection would introduce both plus a BOM.
+  # dcli hands back an array of lines; rejoin with LF and make sure the PEM ends
+  # with one, since OpenSSH rejects a key that doesn't.
   $text = ($key -join "`n") -replace "`r`n", "`n"
   if (-not $text.EndsWith("`n")) { $text += "`n" }
-  New-Item -ItemType Directory -Path $sshDir -Force | Out-Null
-  [IO.File]::WriteAllText($keyPath, $text, (New-Object Text.UTF8Encoding $false))
-
-  # OpenSSH refuses to use a key readable by anyone but its owner.
-  icacls $keyPath /inheritance:r /grant:r "$($env:USERNAME):(F)" | Out-Null
-  if ($LASTEXITCODE -ne 0) { throw "Failed to restrict permissions on $keyPath." }
+  Add-AgentKeyFromText -SshAdd $sshAdd -KeyText $text
 }
 
 # Personal hosts: Bitwarden's desktop agent serves the key straight from the
@@ -318,6 +384,12 @@ Install-WinGetPackage -Id 'twpayne.chezmoi' -DisplayName 'chezmoi'
 Install-WinGetPackage -Id 'Microsoft.PowerShell' -DisplayName 'PowerShell'
 if ($HostType -eq 'ewn') {
   Install-WinGetPackage -Id 'Dashlane.CLI' -DisplayName 'Dashlane CLI'
+  # The same package the manifest installs, pulled forward: the agent has to be
+  # seeded before the apply, so the client and service that do it can't wait for
+  # the manifest. Installing first also means the seeded agent is the one that
+  # sticks, rather than the OS capability's being replaced underneath it. The
+  # personal path doesn't need this -- it only queries an agent it doesn't own.
+  Install-WinGetPackage -Id 'Microsoft.OpenSSH.Preview' -DisplayName 'OpenSSH'
 }
 else {
   Install-WinGetPackage -Id 'Bitwarden.Bitwarden' -DisplayName 'Bitwarden'
@@ -328,7 +400,8 @@ Install-ChezmoiModifyManager
 Initialize-KnownHostsFile
 
 if ($HostType -eq 'ewn') {
-  Initialize-EwnSshKey -NoteName $SshKeyNote
+  Initialize-SshAgentService
+  Import-EwnSshKey -NoteName $SshKeyNote
 }
 else {
   Assert-BitwardenAgent

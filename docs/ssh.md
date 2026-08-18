@@ -95,8 +95,21 @@ because the OS defaults aren't quite right out of the box:
 
 The named pipe is the contract; who serves it varies by host type.
 
-On **work** hosts the Windows `ssh-agent` service does. It ships
-disabled, so the manifest enables it and sets it to start at boot.
+On **work** hosts the Windows `ssh-agent` service does.
+It ships disabled,
+so the manifest enables it and sets it to start at boot —
+and [`bootstrap.ps1`](../bootstrap.ps1) enables it earlier still,
+because it has to seed the agent before the apply that would.
+
+Dashlane has no agent of its own,
+but it doesn't need one.
+`ssh-add` accepts a key on stdin,
+so bootstrap streams the vault copy straight into the service
+and no private key is ever written to disk.
+The service persists keys per-user in the registry,
+so that one seed survives reboots —
+nothing re-seeds at login,
+and the vault is only read once per host.
 
 On **personal** hosts Bitwarden Desktop's SSH agent does, serving keys
 straight from the vault so no private key is written to disk. Bitwarden

@@ -76,8 +76,13 @@ irm https://raw.githubusercontent.com/gtbuchanan/dotfiles/main/bootstrap.ps1 | i
 It prompts for the host type and is safe to re-run after a partial failure.
 
 Personal hosts expect [Bitwarden] Desktop to be signed in, unlocked, and serving
-its SSH agent before you start, since that agent is where the SSH key comes
-from. Work hosts pull the key from Dashlane and will prompt you to authenticate.
+its SSH agent before you start,
+since that agent is where the SSH key comes from.
+Work hosts pull the key from Dashlane and prompt you to authenticate,
+plus once for elevation to enable the SSH agent service.
+The key is streamed into that agent rather than written to disk,
+and the agent keeps it across reboots,
+so the vault is only read once per host.
 
 `iex` can't forward parameters, so pass them through a scriptblock instead:
 
