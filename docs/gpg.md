@@ -1,9 +1,12 @@
-# GPG Signing
+# GPG
 
-All commits are GPG-signed. Each OS handles pinentry differently — and
-agent/automation contexts need to bypass interactive prompts entirely.
-This doc covers the wiring per platform plus the cross-OS convention
-for non-interactive signing.
+GPG's own wiring: the agent, per-OS pinentry, and the convention for
+non-interactive use. Each OS handles pinentry differently, and
+automation contexts need to bypass interactive prompts entirely.
+
+What GPG is _used for_ lives with the consumer. Git's signing
+configuration — including which hosts sign with GPG at all — is in
+[`git.md`](git.md#commit-signing).
 
 ## File Map
 

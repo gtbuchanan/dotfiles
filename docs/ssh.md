@@ -123,7 +123,7 @@ every SSH operation fails — Git, manual `ssh`, and WSL alike.
 
 OpenSSH's default behavior is to prompt for the passphrase on the
 controlling TTY, which hits the same two problems the GPG side did
-(see [`gpg-signing.md`](gpg-signing.md#android-termux)): Claude Code's
+(see [`gpg.md`](gpg.md#android-termux)): Claude Code's
 terminal handling mangles the prompt, and Android password-manager
 autofill doesn't work against TTY input — it expects a native field.
 Routing through a native popup sidesteps both.

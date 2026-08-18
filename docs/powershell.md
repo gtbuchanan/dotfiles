@@ -33,7 +33,7 @@ the `Documents/PowerShell` profile is a one-line stub that dot-sources the
 
 ## Cross-References
 
-- `GPG_TTY` wiring: see [`gpg-signing.md`](gpg-signing.md).
+- `GPG_TTY` wiring: see [`gpg.md`](gpg.md).
 - worktrunk shell integration: see [`worktrunk.md`](worktrunk.md).
 - The Starship prompt itself is configured in
   [`home/dot_config/private_starship.toml`](../home/dot_config/private_starship.toml); `20-prompt` only initializes it.

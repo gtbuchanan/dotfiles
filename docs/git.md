@@ -12,7 +12,7 @@ their own docs — this one focuses on everything else.
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
 | [`home/dot_config/private_git/executable_clean-safe`](../home/dot_config/private_git/executable_clean-safe) | `git clean` wrapper that respects `.cleanignore.local`                                                 |
 | [`home/dot_config/private_git/executable_jira`](../home/dot_config/private_git/executable_jira)             | `git j` — resolves the JIRA key from a `jira/<key>` branch and forwards to `acli` (ewn host-type only) |
-| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat)             | Windows GPG shim (see [`gpg-signing.md`](gpg-signing.md#windows))                                      |
+| [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat)             | Windows GPG shim (see [`gpg.md`](gpg.md#windows))                                                      |
 | [`home/dot_config/private_git/ignore`](../home/dot_config/private_git/ignore)                               | Global gitignore (resolved by git's XDG default)                                                       |
 | [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                     | Main config: aliases, opinionated defaults, per-OS branches                                            |
 
@@ -36,7 +36,7 @@ The non-default settings worth knowing about:
 - **`fetch.prune = true`** — fetches always remove tracking refs for
   deleted upstream branches.
 - **`commit.gpgsign = true`** — every commit is signed. See
-  [`gpg-signing.md`](gpg-signing.md) for the per-OS pinentry wiring.
+  [`gpg.md`](gpg.md) for the per-OS pinentry wiring.
 
 ## Delta + KDiff3
 
@@ -109,6 +109,6 @@ files (`*.swo`, `*.swp`, `PowerShellEditorServices.json`), tool output
   what's wanted.
 - **WSL** — `gpg.program` points at the Windows GPG binary so signing
   uses the host's agent and key store (see
-  [`gpg-signing.md`](gpg-signing.md#wsl)).
+  [`gpg.md`](gpg.md#wsl)).
 - **Android** — `core.sshCommand = ssha` so Git auto-starts ssh-agent
   on first use (see [`ssh.md`](ssh.md#android)).
