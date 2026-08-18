@@ -629,6 +629,26 @@ properties:
           $Command = "Remove-WindowsCapability -Online -Name 'OpenSSH.Client~~~~0.0.1.0'"
           $EncodedCommand = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($Command))
           sudo --disable-input powershell -EncodedCommand $EncodedCommand
+{{- if eq .hosttype "personal" }}
+    # Bitwarden Desktop's SSH agent serves keys straight from the vault, and it
+    # binds the same `\\.\pipe\openssh-ssh-agent` the Windows service uses --
+    # the pipe name is hardcoded, so the two can't coexist and the service has
+    # to lose. Everything that reached the Windows agent still works unchanged,
+    # including the WSL bridge, which relays to that pipe by name.
+    #
+    # The trade is that Bitwarden must be running and unlocked for SSH to work
+    # at all, where the service started at boot and never asked.
+    - resource: xPSDesiredStateConfiguration/xService
+      dependsOn: [openssh]
+      directives:
+        description: Stop ssh-agent in favor of Bitwarden's agent
+        securityContext: elevated
+      id: sshAgent
+      settings:
+        Name: ssh-agent
+        State: Stopped
+        StartupType: Disabled
+{{- else }}
     - resource: xPSDesiredStateConfiguration/xService
       dependsOn: [openssh]
       directives:
@@ -639,6 +659,7 @@ properties:
         Name: ssh-agent
         State: Running
         StartupType: Automatic
+{{- end }}
     - resource: xPSDesiredStateConfiguration/xEnvironment
       dependsOn: [openssh]
       directives:

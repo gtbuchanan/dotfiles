@@ -9,22 +9,22 @@ checked in.
 
 ## File Map
 
-| File                                                                                                                      | Role                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android                                               |
-| [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                   |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                              |
-| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Starts the WSL→Windows agent bridge on WSL hosts                                                       |
-| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                 | Disables WezTerm's built-in agent mux so the native agent stays in charge                              |
-| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                   | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                  |
-| [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                               | Gates `ssh-agent-pipe` to WSL                                                                          |
-| [`home/dot_local/bin/executable_bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)                   | Supplies the Bitwarden vault session the agent hook needs                                              |
-| [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe)                         | WSL→Windows agent bridge (socat + npiperelay)                                                          |
-| [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                 |
-| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: `Include ./*.conf` + macOS keychain                                                  |
-| [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, starts agent service, sets `GIT_SSH` |
+| File                                                                                                                      | Role                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android                                                               |
+| [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                                              |
+| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
+| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                 | Disables WezTerm's built-in agent mux so the native agent stays in charge                                              |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                   | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                                  |
+| [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                               | Gates `ssh-agent-pipe` to WSL                                                                                          |
+| [`home/dot_local/bin/executable_bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)                   | Supplies the Bitwarden vault session the agent hook needs                                                              |
+| [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe)                         | WSL→Windows agent bridge (socat + npiperelay)                                                                          |
+| [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                                |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
+| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: `Include ./*.conf` + macOS keychain                                                                  |
+| [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                                |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, sets the agent service per host type, sets `GIT_SSH` |
 
 ## Shared ssh_config
 
@@ -52,9 +52,9 @@ persists keys across restarts.
 
 ## WSL → Windows Agent Bridge
 
-Keys live in the Windows agent, not in WSL — that way the same key
+Keys live in the Windows-side agent, not in WSL — that way the same key
 material backs Git and `ssh` from both sides without copying anything.
-WSL just needs a way to talk to the Windows agent's named pipe;
+WSL just needs a way to talk to that agent's named pipe;
 `ssh-agent-pipe` sets that up at login (adapted from
 [Jaykul's gist](https://gist.github.com/Jaykul/19e9f18b8a68f6ab854e338f9b38ca7b)).
 `.bash_profile` sources it on WSL hosts only.
@@ -81,13 +81,43 @@ because the OS defaults aren't quite right out of the box:
   optional capability lags upstream by a wide margin. The manifest
   removes that capability and installs Microsoft's preview winget
   package, which tracks upstream much more closely.
-- **Agent service running.** The Windows `ssh-agent` service ships
-  disabled. The manifest enables it and sets it to start at boot —
-  without this the WSL bridge has nothing to connect to.
+- **An agent on the standard pipe.** Which agent depends on the host
+  type — see below. Either way something must answer
+  `\\.\pipe\openssh-ssh-agent`, or the WSL bridge has nothing to
+  connect to.
 - **Git uses the Windows-native client.** Setting `GIT_SSH`
   machine-wide to the OpenSSH binary overrides Git for Windows'
   preference for its bundled `ssh.exe`, so Git transports route
   through the same client and agent as everything else.
+
+### Windows Agent Ownership
+
+The named pipe is the contract; who serves it varies by host type.
+
+On **work** hosts the Windows `ssh-agent` service does. It ships
+disabled, so the manifest enables it and sets it to start at boot.
+
+On **personal** hosts Bitwarden Desktop's SSH agent does, serving keys
+straight from the vault so no private key is written to disk. Bitwarden
+hardcodes the same pipe name, so the two agents cannot coexist — the
+manifest sets the Windows service to `Disabled`/`Stopped` on personal
+hosts to get out of its way. This is also why
+[`bootstrap.ps1`](../bootstrap.ps1) checks that an agent is serving a
+key before handing off to chezmoi.
+
+`GIT_SSH` still points at the native client, so Git is unaffected.
+
+The WSL bridge is **untested against Bitwarden**. It should be
+unaffected — `ssh-agent-pipe` relays by pipe name, not to a particular
+agent — but Bitwarden implements the pipe itself rather than reusing
+the Windows service's, and a difference in pipe mode could break
+npiperelay even though the name matches. No WSL distro on the host
+where this was set up had the bridge provisioned, so the claim has
+never been exercised. Verify before relying on it.
+
+The trade is availability. The Windows service started at boot and
+never asked for anything; Bitwarden must be running and unlocked or
+every SSH operation fails — Git, manual `ssh`, and WSL alike.
 
 ## Android
 
