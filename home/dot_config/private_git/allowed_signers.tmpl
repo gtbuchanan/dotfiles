@@ -1,0 +1,6 @@
+{{/*
+  Principals Git trusts when verifying SSH signatures. Without this every SSH
+  signature reads as untrusted -- there's no web of trust to fall back on the
+  way there is for GPG, so identity-to-key has to be stated explicitly.
+*/ -}}
+{{ .email }} {{ .signingkey }}

@@ -3,13 +3,15 @@
 `~/.gitconfig` carries the bulk of the customization (aliases plus
 opinionated push/pull/merge defaults), with three auxiliary scripts in
 `~/.config/git/` providing branch-aware helpers and a safer
-`git clean`. GPG signing and the Android `sshCommand` are covered in
-their own docs — this one focuses on everything else.
+`git clean`. Signing is configured here; the tools behind it — GPG's
+pinentry and SSH's agent — have their own docs. The Android
+`sshCommand` is covered in [`ssh.md`](ssh.md#android).
 
 ## File Map
 
 | File                                                                                                        | Role                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| [`home/dot_config/private_git/allowed_signers.tmpl`](../home/dot_config/private_git/allowed_signers.tmpl)   | Identity-to-key map for verifying SSH signatures                                                       |
 | [`home/dot_config/private_git/executable_clean-safe`](../home/dot_config/private_git/executable_clean-safe) | `git clean` wrapper that respects `.cleanignore.local`                                                 |
 | [`home/dot_config/private_git/executable_jira`](../home/dot_config/private_git/executable_jira)             | `git j` — resolves the JIRA key from a `jira/<key>` branch and forwards to `acli` (ewn host-type only) |
 | [`home/dot_config/private_git/gpg-wrapper.bat`](../home/dot_config/private_git/gpg-wrapper.bat)             | Windows GPG shim (see [`gpg.md`](gpg.md#windows))                                                      |
@@ -35,8 +37,36 @@ The non-default settings worth knowing about:
   remote's current tip.
 - **`fetch.prune = true`** — fetches always remove tracking refs for
   deleted upstream branches.
-- **`commit.gpgsign = true`** — every commit is signed. See
-  [`gpg.md`](gpg.md) for the per-OS pinentry wiring.
+- **`commit.gpgsign = true`** — every commit is signed. Which backend
+  does it varies by host; see [Commit Signing](#commit-signing).
+
+## Commit Signing
+
+Two backends, chosen per host. Personal Windows signs with an SSH key
+served by the Bitwarden agent that also backs SSH auth there (see
+[`ssh.md`](ssh.md#windows-agent-ownership)) — one key for both jobs,
+none of it on disk. Every other host signs with GPG (see
+[`gpg.md`](gpg.md)).
+
+The choice is derived once in
+[`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) as `sshsigning`,
+which also selects whether `.signingkey` carries an SSH public key or a
+GPG key id. `gitconfig` reads it back to gate `gpg.format`,
+`gpg.ssh.program`, and `gpg.ssh.allowedSignersFile`;
+[`.chezmoiignore`](../home/.chezmoiignore) reads it to skip
+`allowed_signers` where the key is a GPG id. Each file carries the
+reasoning for its own part.
+
+`gpg.program` stays set on SSH-signing hosts. Git picks the
+verification backend from the signature, so the GPG-signed history
+keeps verifying under `gpg.format = ssh`.
+
+Bitwarden's "ask for authorization when using SSH agent" applies per
+request, so with `commit.gpgsign = true` it prompts on every commit —
+and an unanswered prompt surfaces as `agent refused operation`. This is
+where the [AI-agent convention](gpg.md#the-ai-agent-convention) has no
+counterpart: there's no bypass, so a non-interactive commit needs the
+prompt answered or the setting off.
 
 ## Delta + KDiff3
 

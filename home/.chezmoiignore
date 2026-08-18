@@ -53,6 +53,12 @@ Library
 .profile
 {{- end }}
 
+{{- if not (get . "sshsigning") }}
+# .signingkey is a GPG key id on these hosts, so an allowed_signers built from
+# it would be meaningless.
+.config/git/allowed_signers
+{{- end }}
+
 **/*.cmm
 **/*.orig
 **/*.src.ini

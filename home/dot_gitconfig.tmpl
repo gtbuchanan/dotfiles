@@ -1,3 +1,7 @@
+{{- /* Set in .chezmoi.yaml.tmpl, which also picks .signingkey's type to match.
+   `get` so a config generated before sshsigning existed falls through to GPG
+   instead of erroring under missingkey=error. */ -}}
+{{- $sshSigning := get . "sshsigning" -}}
 [alias]
 	a = add
 	aa = a -A
@@ -112,10 +116,24 @@
 {{- end }}
 
 [gpg]
+{{- if $sshSigning }}
+	format = ssh
+{{- end }}
 {{- if eq .chezmoi.os "windows" }}
+	# Kept under SSH signing too: Git picks the verification backend from the
+	# signature, so this verifies the GPG-signed history predating the switch.
 	program = {{ .chezmoi.homeDir }}/.config/git/gpg-wrapper.bat
 {{- else if .wsl }}
 	program = /mnt/c/Program Files/GnuPG/bin/gpg.exe
+{{- end }}
+{{- if $sshSigning }}
+
+[gpg "ssh"]
+	allowedSignersFile = {{ .chezmoi.homeDir }}/.config/git/allowed_signers
+	# Git for Windows prefers its bundled MSYS2 ssh-keygen, which can't reach
+	# the Windows agent's named pipe. Point at the native client, matching the
+	# GIT_SSH the winget manifest sets machine-wide.
+	program = C:/Program Files/OpenSSH/ssh-keygen.exe
 {{- end }}
 
 [init]
@@ -148,4 +166,4 @@
 [user]
 	name = Taylor Buchanan
 	email = {{ .email | quote }}
-	signingkey = {{ .signingkey }}
+	signingkey = {{ if $sshSigning }}key::{{ end }}{{ .signingkey }}

@@ -1,5 +1,12 @@
 {{- $hostTypes := list "personal" "ewn" -}}
 {{- $hostType := promptChoiceOnce . "hosttype" "What type of host are you on" $hostTypes -}}
+{{- /* Git signs with an SSH key only where an agent is known to serve one:
+   personal Windows, where Bitwarden Desktop owns the OpenSSH named pipe.
+   Everywhere else still signs with GPG -- work uses Dashlane, which has no
+   agent; Android's `ssha` seeds an agent for Git's transport but never exports
+   SSH_AUTH_SOCK, so `ssh-keygen -Y sign` can't reach it; macOS, Linux, and WSL
+   have no agent this repo provisions. Widen per platform as each is migrated. */ -}}
+{{- $sshSigning := and (eq $hostType "personal") (eq .chezmoi.os "windows") -}}
 {{- $osid := .chezmoi.os -}}
 {{- if hasKey .chezmoi.osRelease "id" -}}
 {{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}
@@ -19,11 +26,15 @@ data:
   hosttype: {{ $hostType | quote }}
   # https://www.chezmoi.io/user-guide/machines/linux/
   osid: {{ $osid | quote }}
-{{- if eq $hostType "personal" }}
+  # A bare SSH public key where Git signs over SSH, otherwise a GPG key id.
+{{- if $sshSigning }}
+  signingkey: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIADouO5D+n1kOX9xIW2SvL9y8RIcgvlhGFcW4ULYNx9u"
+{{- else if eq $hostType "personal" }}
   signingkey: E37B3051E06FBBC9
 {{- else if eq $hostType "ewn" }}
   signingkey: C9FB125947F309D8
 {{- end }}
+  sshsigning: {{ $sshSigning }}
 {{- if and (eq .chezmoi.os "linux") (.chezmoi.kernel.osrelease | lower | contains "microsoft") }}
   wsl: true
 {{- else }}
