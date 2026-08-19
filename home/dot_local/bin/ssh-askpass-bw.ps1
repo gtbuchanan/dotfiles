@@ -55,18 +55,27 @@ function Get-PromptHost {
   return $null
 }
 
-# Bitwarden's --url filter uses each item's own match-detection setting, which
-# defaults to fuzzy. Fuzzy is fine for autofill and dangerous here: a near match
-# would hand a different host's password to whatever is asking. So the filter is
-# treated as a prefilter only, and the URI is re-checked exactly.
+# Matching happens here rather than via `bw list --url`, which honours each item's
+# own URI match detection. That defaults to base domain, so ssh://sw01.example.com
+# also returns every unrelated item under example.com -- observed returning five
+# items, four of them different hosts. Handing a near miss to a password prompt
+# means giving one host's credential to another, so --url cannot be trusted even
+# as a filter; making it safe would require Exact on every item in the vault, and
+# one future item added with defaults would silently undo that.
+#
+# --search is a prefilter only. It is issued once and both plausible spellings of
+# the host are compared against the result in memory, because each bw invocation
+# costs several seconds -- roughly four of which are Node startup before the vault
+# is even touched. The comparison is an exact string match on the full URI, and an
+# ambiguous result is refused rather than guessed.
 function Get-VaultPassword {
   param([string]$TargetHost)
-  $uri = "ssh://$TargetHost"
 
   # Session comes from the cache beside this script, which prompts for biometrics
   # only when its idle window has lapsed -- otherwise every connection would cost
   # an unlock.
-  $session = (& (Join-Path $PSScriptRoot 'bw-session-windows.ps1') get 2>$null | Out-String).Trim()
+  $sessionScript = Join-Path $PSScriptRoot 'bw-session-windows.ps1'
+  $session = (& $sessionScript get 2>$null | Out-String).Trim()
   if (-not $session) { return $null }
 
   # Plain bw, since the session is already in hand; and by environment rather
@@ -74,27 +83,39 @@ function Get-VaultPassword {
   $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
   if (-not $bw) { return $null }
 
+  # Whether ssh names the host by its config alias or its resolved HostName isn't
+  # something this can know, so both are accepted -- longest first, so a specific
+  # entry wins over a bare short name that another network might also use.
+  $shortName = $TargetHost.Split('.')[0]
+  $candidates = @("ssh://$TargetHost")
+  if ($shortName -ne $TargetHost) { $candidates += "ssh://$shortName" }
+
   # --nointeraction so a session the vault has since invalidated errors out
   # instead of prompting into a stdout ssh is reading as the secret.
   $json = $null
   try {
     $env:BW_SESSION = $session
-    $json = & $bw list items --url $uri --nointeraction --raw 2>$null
+    $json = & $bw list items --search $shortName --nointeraction --raw 2>$null
   }
   finally {
     Remove-Item Env:BW_SESSION -ErrorAction SilentlyContinue
   }
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return $null }
+  $found = @($json | ConvertFrom-Json)
 
-  $items = @($json | ConvertFrom-Json | Where-Object {
-      $_.login -and $_.login.uris -and ($_.login.uris.uri -contains $uri)
-    })
+  $items = @()
+  foreach ($uri in $candidates) {
+    $items = @($found | Where-Object {
+        $_.login -and $_.login.uris -and ($_.login.uris.uri -contains $uri)
+      })
+    if ($items.Count -gt 0) { break }
+  }
 
   # Ambiguity is refused rather than guessed: picking one of several would send
   # a credential the user never chose.
   if ($items.Count -ne 1) {
     if ($items.Count -gt 1) {
-      Write-Error "ssh-askpass-bw: $($items.Count) items carry $uri; refusing to guess"
+      Write-Error "ssh-askpass-bw: $($items.Count) items match $TargetHost; refusing"
     }
     return $null
   }
