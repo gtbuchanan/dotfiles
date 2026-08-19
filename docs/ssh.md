@@ -100,8 +100,8 @@ would break Git.
 
 | Flag       | Meaning                                                                 | Effect                                             |
 | ---------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
-| `:shell:`  | An interactive login lands in a general-purpose shell, not a vendor CLI | Starts or attaches a persistent tmux session       |
 | `:legacy:` | Host has not migrated to the primary ed25519 key                        | Pins `~/.ssh/legacy.pub` with `IdentitiesOnly yes` |
+| `:shell:`  | An interactive login lands in a general-purpose shell, not a vendor CLI | Starts or attaches a persistent tmux session       |
 
 `:shell:` is opt-in rather than opt-out because the failure modes are
 not symmetric: forgetting the flag costs a tmux session, while sending a
@@ -128,6 +128,75 @@ the private `*.conf` files are included before these `Match` blocks, and
 ssh takes the first value obtained — and they win per keyword rather
 than per block, so a host that inlines its own `RemoteCommand` still
 picks up `RequestTTY` from the flag block.
+
+## SSH Agent Forwarding
+
+No host enables `ForwardAgent` through this config, and none should.
+Forwarding is opt-in per invocation — `ssh -A <host>` — deliberately not
+a host flag.
+
+Forwarding publishes a socket on the remote that anyone able to open it
+can use to sign challenges as you: root there, and any process running
+as your user. No key material crosses — the remote relays signature
+requests back to the local agent — so exposure ends with the connection.
+What it does not bound is scope. The socket authenticates to every host
+that trusts the key, so forwarding to a low-value host lends it the
+authority of your strongest one. A flag would make that asymmetry
+standing; an `-A` typed when it's needed keeps it to a window you chose.
+
+The remote's supply chain is the practical threat, not its
+administrator. Anything running as you there inherits `SSH_AUTH_SOCK`
+from the environment — build steps, package post-install hooks, an agent
+started in that shell. Container hosts widen this further: reaching the
+container runtime's socket is generally equivalent to root on the host,
+so every container holding that socket is a path to the forwarded agent.
+
+### SSH Agent Forwarding Prompts
+
+As of 2026-08 the Bitwarden agent raises an approval dialog for every
+forwarded signature, even under _Remember until vault is locked_ — that
+cache covers local requests only. Worth knowing, not worth relying on:
+`main` in `bitwarden/clients` carries a fingerprint-keyed cache for
+forwarded approvals in
+`apps/desktop/src/autofill/services/ssh-agent.service.ts`, which would
+turn per-signature prompting into one prompt per host per unlock with no
+notice. Treat today's behavior as a happy accident rather than a
+control.
+
+The dialog identifies neither the destination nor the requesting host —
+only a generic forwarding warning — so an approval granted during your
+own work can't be distinguished from one solicited alongside it.
+
+### SSH Agent Forwarding Into tmux
+
+Hosts flagged `:shell:` reattach a persistent tmux that outlives the
+connection which started it. Panes keep whatever `SSH_AUTH_SOCK` the
+server was launched with, so a reattached session points at a socket
+that died with the previous connection — forwarding looks broken when it
+isn't. The `:shell:` `RemoteCommand` therefore points a fixed path at
+the live socket and exports that instead, giving long-lived panes a name
+that stays valid across reattaches. It is inert when nothing was
+forwarded.
+
+### Blocked Outbound 22 Versus Broken Forwarding
+
+This config rides 443, but a host you SSH into reads its own config, not
+this one, and a filtered network there drops outbound 22 while leaving
+443 open. A clone from the remote then hangs until it times out, which
+looks like broken agent forwarding despite never reaching
+authentication.
+
+Separate the two before touching the agent. A bare TCP probe to the
+forge on 22 settles the port question. `ssh -A <host> 'ssh-add -l'`
+settles the forwarding question independently — it lists the local
+agent's keys as seen from the remote, and supplying a command defeats
+the `:shell:` block's `command ""` guard, so the tmux `RemoteCommand`
+stays out of the way.
+
+Where the port is at fault, an unmanaged remote needs the same GitHub
+entry described under [Shared ssh_config](#shared-ssh_config) in its own
+`~/.ssh/config` — or, with no config change at all, the one-off URL
+`ssh://git@ssh.github.com:443/<owner>/<repo>.git`.
 
 ## Linux and macOS
 

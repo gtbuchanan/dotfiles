@@ -22,6 +22,16 @@ Include hosts/*.conf
 # none of them can supply their own command when RemoteCommand is already set, and
 # they invoke the sftp subsystem, git-upload-pack, and rsync --server respectively.
 #
+# The symlink hop keeps a forwarded agent usable across reattaches, for the
+# sessions started with `ssh -A` (no host forwards by config -- see docs/ssh.md).
+# Each connection gets a fresh /tmp/ssh-*/agent.N socket that dies with it, but the
+# tmux server outlives the connection and hands its panes whatever SSH_AUTH_SOCK it
+# was started with -- stale on every reattach. Pointing a fixed path at the live
+# socket and exporting that instead means long-lived panes keep a name that stays
+# valid. Inert when nothing was forwarded, since the -S test fails. -n so ln
+# replaces the existing link rather than resolving through it, and `;` not `&&` so
+# a read-only home leaves tmux to start anyway.
+#
 # Wrapped in a login shell because RemoteCommand otherwise runs non-login and
 # non-interactive, which on at least one host leaves PATH as a bare
 # /usr/bin:/bin:/usr/sbin:/sbin -- tmux is installed but invisible there, so a
@@ -34,7 +44,7 @@ Include hosts/*.conf
 # required: RemoteCommand alone gets no PTY and tmux won't start without one; it
 # also makes the fallback shell interactive.
 Match tagged *:shell:* command ""
-  RemoteCommand exec "$SHELL" -lc 'command -v tmux >/dev/null 2>&1 && exec tmux new-session -As main || exec "$SHELL" -l'
+  RemoteCommand exec "$SHELL" -lc '[ -S "$SSH_AUTH_SOCK" ] && ln -sfn "$SSH_AUTH_SOCK" "$HOME/.ssh/agent.sock" && export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"; command -v tmux >/dev/null 2>&1 && exec tmux new-session -As main || exec "$SHELL" -l'
   RequestTTY yes
 
 # Hosts not yet migrated to the primary ed25519 key. Pinning stops the agent
