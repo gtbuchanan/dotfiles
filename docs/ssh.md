@@ -11,6 +11,7 @@ checked in.
 
 | File                                                                                                                      | Role                                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                   | Clones the private host inventory to `~/.ssh/hosts` on personal hosts                                                  |
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android                                                               |
 | [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                                              |
@@ -23,7 +24,7 @@ checked in.
 | [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                                |
 | [`home/dot_local/bin/symlink_ssh-keygena`](../home/dot_local/bin/symlink_ssh-keygena)                                     | Android: `ssh-keygen` under Termux's agent wrapper, for commit signing                                                 |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
-| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: `Include ./*.conf` + macOS keychain                                                                  |
+| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: both `Include`s + macOS keychain                                                                     |
 | [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                                |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, sets the agent service per host type, sets `GIT_SSH` |
 
@@ -43,6 +44,35 @@ against the same `known_hosts` entry means trusting github.com once also
 covers the gist-backed `git-repo` externals (`git-unpicked`,
 `git-add-mergetool`) — no second interactive host-key prompt, which
 would otherwise stall a non-interactive `chezmoi apply`.
+
+## Private SSH Host Inventory
+
+Host definitions live in a separate private repo, `gtbuchanan/ssh-hosts`,
+cloned to `~/.ssh/hosts/` by a `git-repo` external gated to personal
+hosts. `config.tmpl` picks them up with `Include hosts/*.conf`, listed
+after `Include ./*.conf` so an unversioned local file still wins on
+conflicts — ssh takes the first value obtained for each keyword. A glob
+matching nothing is not an error, so the include is inert on hosts
+without the clone.
+
+The alternative was committing the definitions here encrypted. A public
+repo archives its ciphertext permanently — forks, clones, GH Archive —
+so anything published stays exposed even after deletion, and re-keying
+later cannot undo that for what was already pushed. A separate repo
+removes the exposure rather than shrinking it, and keeps diffs readable
+and mergeable. A submodule would have worked too, but its pinned SHA
+means every private host edit needs a pointer-bump commit here, which
+publishes the timing of private config changes.
+
+The split between the two repos is worth stating precisely, because it
+decides where any new piece belongs:
+
+- **This repo holds identity and behavior.** Public keys, and any
+  connection settings shared by a class of hosts. Public keys are
+  not secret by construction — they go to every server you touch — and
+  `.chezmoi.yaml.tmpl` already carries the ed25519 signing key in the
+  clear.
+- **The private repo holds topology.** Hostnames, users, and ports.
 
 ## Linux and macOS
 

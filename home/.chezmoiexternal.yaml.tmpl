@@ -96,6 +96,22 @@
   url: https://github.com/RyanMacG/tpm-redux/archive/refs/tags/v1.2.0.tar.gz
 {{- end }}
 
+{{- if eq .hosttype "personal" }}
+# Internal host definitions, pulled in by private_dot_ssh/config.tmpl via
+# `Include hosts/*.conf`. Kept in a private repo rather than encrypted into this
+# public one: a public repo archives its ciphertext permanently — forks, clones,
+# GH Archive — so a later re-key can't undo whatever was already published.
+# Splitting the repo removes the exposure instead of shrinking it, and keeps
+# diffs readable. An external rather than a submodule because these are plain
+# conf files needing no source-state semantics, and a submodule's pinned SHA
+# would make every private host edit require a pointer-bump commit here —
+# publishing the timing of private config changes.
+'.ssh/hosts':
+  refreshPeriod: 168h
+  type: git-repo
+  url: git@github.com:gtbuchanan/ssh-hosts.git
+{{- end }}
+
 '.vim/autoload/plug.vim':
   refreshPeriod: 168h
   type: file

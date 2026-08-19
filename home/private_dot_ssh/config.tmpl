@@ -2,6 +2,14 @@
 # https://superuser.com/a/1142813
 Include ./*.conf
 
+# Internal hosts, versioned in the private gtbuchanan/ssh-hosts repo and cloned
+# here by .chezmoiexternal.yaml.tmpl, so internal hostnames stay out of this public
+# repo entirely -- not even as ciphertext, which a public repo would archive
+# permanently. Listed after ./*.conf so an unversioned local file still wins on
+# conflicts (ssh takes the first value obtained). A glob matching nothing is not an
+# error, so this is inert on hosts without the clone. See docs/ssh.md.
+Include hosts/*.conf
+
 # gist.github.com shares github.com's SSH infra and host keys. Verify it
 # against the github.com known_hosts entry so trusting github.com once also
 # covers gist clones (the git-unpicked / git-add-mergetool git-repo externals).
