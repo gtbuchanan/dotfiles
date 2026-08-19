@@ -46,11 +46,22 @@ Match tagged *:legacy:*
   IdentityFile ~/.ssh/legacy.pub
   IdentitiesOnly yes
 
-# gist.github.com shares github.com's SSH infra and host keys. Verify it
-# against the github.com known_hosts entry so trusting github.com once also
-# covers gist clones (the git-unpicked / git-add-mergetool git-repo externals).
-Host gist.github.com
+# GitHub's SSH service, pinned to its :443 endpoint. Networks that filter egress
+# routinely drop outbound 22 while leaving 443 open, and ssh.github.com answers with
+# the same service and the same host keys -- ordinary repos and gists both clone
+# over it -- so riding 443 everywhere costs nothing and keeps working on restricted
+# networks. The one place it can lose to :22 is behind a TLS-inspecting middlebox
+# that objects to non-TLS traffic on 443; override per-invocation with
+# `-o HostName=github.com -o Port=22` if that ever shows up.
+#
+# gist.github.com shares that infrastructure, so both names get the same treatment.
+# HostKeyAlias collapses them onto one known_hosts entry, which is what stops a
+# second interactive host-key prompt from stalling a non-interactive `chezmoi apply`
+# on the gist-backed git-repo externals (git-unpicked / git-add-mergetool).
+Host github.com gist.github.com
   HostKeyAlias github.com
+  HostName ssh.github.com
+  Port 443
 
 {{- if eq .chezmoi.os "darwin" }}
 Host *

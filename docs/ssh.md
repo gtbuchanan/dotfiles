@@ -33,18 +33,21 @@ checked in.
 
 The committed `~/.ssh/config` does essentially three things: it pulls
 in sibling `*.conf` files via `Include`, on macOS it tells the agent to
-persist keys in the system keychain, and it aliases `gist.github.com`'s
-host key to `github.com`'s. The include pattern is the key piece — it
+persist keys in the system keychain, and it routes GitHub over that
+service's `:443` endpoint. The include pattern is the key piece — it
 lets each host drop its own infrastructure-specific entries into
 `~/.ssh/something.conf` without those entries ever needing to land in
 this repo. Anything you don't want public stays out of chezmoi.
 
-The `gist.github.com` entry sets `HostKeyAlias github.com` because gists
-share github.com's SSH infrastructure and host keys. Verifying both
-against the same `known_hosts` entry means trusting github.com once also
-covers the gist-backed `git-repo` externals (`git-unpicked`,
-`git-add-mergetool`) — no second interactive host-key prompt, which
-would otherwise stall a non-interactive `chezmoi apply`.
+One entry covers `github.com` and `gist.github.com` together. It is
+unconditional rather than reserved for networks that need it: 443 is no
+worse than 22 where both are open, and the failure it avoids — a clone
+that hangs until it times out — reads like anything but a blocked port.
+`HostKeyAlias` is the piece the `git-repo` externals depend on, since a
+second host-key prompt would stall a non-interactive `chezmoi apply`.
+That entry's comment in
+[`config.tmpl`](../home/private_dot_ssh/config.tmpl) carries the
+mechanics and the one case where 443 loses to 22.
 
 ## Private SSH Host Inventory
 
