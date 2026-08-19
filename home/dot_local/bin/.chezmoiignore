@@ -11,6 +11,7 @@ tsgolint
        because that is where the desktop app's biometric IPC lives, personal
        because work hosts use Dashlane and have no password-auth hosts. */}}
 {{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
+bw-session-windows.ps1
 ssh-askpass-bw.cmd
 ssh-askpass-bw.ps1
 {{- end }}

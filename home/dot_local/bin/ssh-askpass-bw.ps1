@@ -63,24 +63,27 @@ function Get-VaultPassword {
   param([string]$TargetHost)
   $uri = "ssh://$TargetHost"
 
-  # The .cmd shim, not the .ps1 one pnpm also installs: through the .ps1 shim
-  # PowerShell folds bwbio's stderr into stdout, and its "Authenticate with
-  # Windows Hello" chatter would then be parsed as vault JSON.
-  $bwbio = (Get-Command bwbio.cmd -ErrorAction SilentlyContinue).Source
-  if (-not $bwbio) { return $null }
+  # Session comes from the cache beside this script, which prompts for biometrics
+  # only when its idle window has lapsed -- otherwise every connection would cost
+  # an unlock.
+  $session = (& (Join-Path $PSScriptRoot 'bw-session-windows.ps1') get 2>$null | Out-String).Trim()
+  if (-not $session) { return $null }
 
-  # Unlock and query are separate calls because --nointeraction suppresses the
-  # biometric prompt too, so the unlock has to run without it. Its exit code is
-  # unreliable -- a denied prompt falls through to a master-password prompt that
-  # dies on this process's closed stdin and still exits 0 -- so success is judged
-  # by whether stdout holds something session-key shaped.
-  $session = & $bwbio unlock --raw 2>$null
-  $session = ($session | Out-String).Trim()
-  if ($session.Length -lt 40 -or $session -notmatch '^[A-Za-z0-9+/=]+$') { return $null }
+  # Plain bw, since the session is already in hand; and by environment rather
+  # than --session, which would put the key in the process command line.
+  $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
+  if (-not $bw) { return $null }
 
-  # --nointeraction so a stale session errors out rather than prompting into a
-  # stdout ssh is reading as the secret.
-  $json = & $bwbio list items --url $uri --session $session --nointeraction --raw 2>$null
+  # --nointeraction so a session the vault has since invalidated errors out
+  # instead of prompting into a stdout ssh is reading as the secret.
+  $json = $null
+  try {
+    $env:BW_SESSION = $session
+    $json = & $bw list items --url $uri --nointeraction --raw 2>$null
+  }
+  finally {
+    Remove-Item Env:BW_SESSION -ErrorAction SilentlyContinue
+  }
   if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return $null }
 
   $items = @($json | ConvertFrom-Json | Where-Object {
