@@ -12,7 +12,7 @@ checked in.
 | File                                                                                                                      | Role                                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                   | Clones the private host inventory to `~/.ssh/hosts` on personal hosts                                                  |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android                                                               |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android, `legacy.pub` to personal                                     |
 | [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                                              |
 | [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
@@ -24,7 +24,8 @@ checked in.
 | [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                                |
 | [`home/dot_local/bin/symlink_ssh-keygena`](../home/dot_local/bin/symlink_ssh-keygena)                                     | Android: `ssh-keygen` under Termux's agent wrapper, for commit signing                                                 |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
-| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: both `Include`s + macOS keychain                                                                     |
+| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: both `Include`s, the tag-driven `Match` blocks, macOS keychain                                       |
+| [`home/private_dot_ssh/legacy.pub`](../home/private_dot_ssh/legacy.pub)                                                   | Public half of the pre-migration key, pinned by the `:legacy:` flag                                                    |
 | [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                                |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, sets the agent service per host type, sets `GIT_SSH` |
 
@@ -67,12 +68,63 @@ publishes the timing of private config changes.
 The split between the two repos is worth stating precisely, because it
 decides where any new piece belongs:
 
-- **This repo holds identity and behavior.** Public keys, and any
-  connection settings shared by a class of hosts. Public keys are
+- **This repo holds identity and behavior.** Public keys, and the
+  `Match` blocks deciding what each host flag implies. Public keys are
   not secret by construction — they go to every server you touch — and
   `.chezmoi.yaml.tmpl` already carries the ed25519 signing key in the
   clear.
-- **The private repo holds topology.** Hostnames, users, and ports.
+- **The private repo holds topology.** Hostnames, users, ports, and the
+  flags each host claims. Nothing there describes behavior.
+
+## SSH Host Tags
+
+Hosts in the private repo describe themselves with flags; this repo
+attaches behavior to each flag. That keeps the host list private while
+the policy stays reviewable here.
+
+ssh allows only **one `Tag` per host** — a second `Tag` line is silently
+ignored, and `Tag a,b` parses as a single literal tag rather than a
+list. Independent axes therefore have to share one string. Hosts use a
+colon-wrapped flag list (`Tag :shell:legacy:`) matched by glob, and the
+wrapping is what makes matching order-independent: `*:legacy:*` hits
+whether `legacy` is first, last, or alone. `Match tagged` does accept a
+pattern list and supports negation, so widen or exclude on the matching
+side rather than tagging a host twice.
+
+Every block needs a positive pattern. A bare `*` also matches the empty
+tag on untagged hosts such as `github.com`, and a `RemoteCommand` there
+would break Git.
+
+| Flag       | Meaning                                                                 | Effect                                             |
+| ---------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
+| `:shell:`  | An interactive login lands in a general-purpose shell, not a vendor CLI | Starts or attaches a persistent tmux session       |
+| `:legacy:` | Host has not migrated to the primary ed25519 key                        | Pins `~/.ssh/legacy.pub` with `IdentitiesOnly yes` |
+
+`:shell:` is opt-in rather than opt-out because the failure modes are
+not symmetric: forgetting the flag costs a tmux session, while sending a
+`RemoteCommand` to an appliance whose shell is restricted or absent can
+break the session outright.
+
+The tmux block is additionally gated on `command ""` so it applies only
+to interactive sessions and leaves file transfers alone; the `:legacy:`
+block deliberately is not, since transfers must authenticate too. Each
+block's comment in [`config.tmpl`](../home/private_dot_ssh/config.tmpl)
+carries the mechanics.
+
+`Tag`, `Match tagged`, and the `command` criterion all require OpenSSH
+9.4 or newer on the client; the remote's version is irrelevant.
+
+To add a host, commit a `*.conf` to the private repo with its
+`HostName`, `User`, and flags. Nothing in this repo changes unless the
+host needs a flag that doesn't exist yet.
+
+Flags are for settings shared by a class of hosts; genuinely
+host-specific ones can be written inline in the private repo instead,
+since a flag matching a set of one buys nothing. Inline directives win —
+the private `*.conf` files are included before these `Match` blocks, and
+ssh takes the first value obtained — and they win per keyword rather
+than per block, so a host that inlines its own `RemoteCommand` still
+picks up `RequestTTY` from the flag block.
 
 ## Linux and macOS
 

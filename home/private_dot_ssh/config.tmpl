@@ -10,6 +10,42 @@ Include ./*.conf
 # error, so this is inert on hosts without the clone. See docs/ssh.md.
 Include hosts/*.conf
 
+# Behavior attached to the flags private hosts set on themselves. The flag list and
+# the one-Tag-per-host constraint these glob patterns work around are documented in
+# docs/ssh.md. Both blocks must follow the Includes, since Match only sees tags set
+# earlier in the file, and both need a positive pattern -- a bare `*` would match
+# the empty tag on untagged hosts like github.com.
+
+# Hosts whose interactive login lands in a general-purpose shell get a persistent
+# tmux rather than a bare one. `command ""` restricts this to sessions requesting
+# no remote command or subsystem, which is what keeps scp/sftp/rsync/git working:
+# none of them can supply their own command when RemoteCommand is already set, and
+# they invoke the sftp subsystem, git-upload-pack, and rsync --server respectively.
+#
+# Wrapped in a login shell because RemoteCommand otherwise runs non-login and
+# non-interactive, which on at least one host leaves PATH as a bare
+# /usr/bin:/bin:/usr/sbin:/sbin -- tmux is installed but invisible there, so a
+# direct `command -v tmux` reports it missing and silently falls back. `-l` sources
+# the profile that puts it on PATH.
+#
+# Falls back to a login shell where tmux genuinely isn't installed, since a missing
+# tmux would otherwise drop the connection. `exec` so no wrapper shell lingers, and
+# $SHELL rather than a hardcoded bash so it follows the remote user. RequestTTY is
+# required: RemoteCommand alone gets no PTY and tmux won't start without one; it
+# also makes the fallback shell interactive.
+Match tagged *:shell:* command ""
+  RemoteCommand exec "$SHELL" -lc 'command -v tmux >/dev/null 2>&1 && exec tmux new-session -As main || exec "$SHELL" -l'
+  RequestTTY yes
+
+# Hosts not yet migrated to the primary ed25519 key. Pinning stops the agent
+# offering the primary key first and burning an auth attempt; the .pub merely
+# selects the matching identity from Bitwarden's agent, so no private key is on
+# disk. Deliberately not gated on `command ""` -- transfers must authenticate too.
+# Drop a host's :legacy: flag once it is migrated.
+Match tagged *:legacy:*
+  IdentityFile ~/.ssh/legacy.pub
+  IdentitiesOnly yes
+
 # gist.github.com shares github.com's SSH infra and host keys. Verify it
 # against the github.com known_hosts entry so trusting github.com once also
 # covers gist clones (the git-unpicked / git-add-mergetool git-repo externals).

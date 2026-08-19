@@ -60,6 +60,13 @@ Library
 .config/git/allowed_signers
 {{- end }}
 
+{{- if ne .hosttype "personal" }}
+# Public half of the personal legacy SSH key, deployed so host configs can pin
+# it by path (see the private ssh-hosts repo). Not secret, but pointless off
+# personal hosts since the agent there never holds the matching private key.
+.ssh/legacy.pub
+{{- end }}
+
 **/*.cmm
 **/*.orig
 **/*.src.ini
