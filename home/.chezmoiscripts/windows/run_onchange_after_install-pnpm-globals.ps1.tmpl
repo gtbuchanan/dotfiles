@@ -6,6 +6,15 @@ $ErrorActionPreference = 'Stop'
   "vscode-langservers-extracted" -}}
 {{- /* CLI for Microsoft 365 is work-only (Outlook / M365 tenant). */ -}}
 {{- if eq .hosttype "ewn" }}{{ $globals = append $globals "@pnp/cli-microsoft365" }}{{ end }}
+{{- /* Backs ssh-askpass-bw, which serves passwords for hosts that can't do key
+       auth. bitwarden-cli-bio wraps the official CLI to unlock via the desktop
+       app's biometrics rather than a master-password prompt; it needs
+       @bitwarden/cli on PATH. Personal-only -- work hosts have no such hosts
+       and use Dashlane. */ -}}
+{{- if eq .hosttype "personal" }}
+{{-   $globals = append $globals "@bitwarden/cli" }}
+{{-   $globals = append $globals "bitwarden-cli-bio" }}
+{{- end }}
 {{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" $globals }}
 
 # Codex CLI is now installed via winget (OpenAI.Codex). Remove the legacy
