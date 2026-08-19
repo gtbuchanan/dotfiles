@@ -3,7 +3,19 @@ if ([Environment]::UserInteractive -and $Host.UI.RawUI) {
   # The value is arbitrary; the wrapper script only checks if the variable is set
   $env:GPG_TTY = "CON"
 }
-
+{{ if and (eq .chezmoi.os "windows") (eq .hosttype "personal") }}
+# Serve passwords for hosts that can't do key auth from the Bitwarden vault.
+# `force` rather than `prefer`: prefer only consults an askpass when DISPLAY is
+# set, which it never is on Windows, so it would silently never fire. force
+# therefore routes every prompt through the helper -- including git's, and hosts
+# with no vault entry -- which is why the helper always answers, falling back to
+# its own dialog rather than failing and aborting the connection.
+$sshAskpass = "$HOME\.local\bin\ssh-askpass-bw.cmd"
+if (Test-Path $sshAskpass) {
+  $env:SSH_ASKPASS = $sshAskpass
+  $env:SSH_ASKPASS_REQUIRE = 'force'
+}
+{{ end }}
 # Activate mise (tool version + env + task manager); prepends real tool
 # paths, overriding the shims dir that stays on the user PATH (added by the
 # winget config on Windows) for non-interactive contexts
