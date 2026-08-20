@@ -15,6 +15,15 @@ param([Parameter(Position = 0)][string]$Prompt = '')
 
 $ErrorActionPreference = 'Stop'
 
+# Diagnostics go to stderr directly rather than through Write-Error, which
+# $ErrorActionPreference = 'Stop' turns into a terminating error -- that would
+# abort before the dialog below, defeating the guarantee that this always
+# answers. ssh discards our stderr, so these are for a human running it by hand.
+function Write-Diag {
+  param([string]$Message)
+  [Console]::Error.WriteLine("ssh-askpass-bw: $Message")
+}
+
 # A native dialog rather than Read-Host: ssh owns this process's stdout and may
 # redirect stdin, so console input can't be relied on. Same reasoning as
 # ssh-askpass-termux's termux-dialog popup.
@@ -115,7 +124,7 @@ function Get-VaultPassword {
   # a credential the user never chose.
   if ($items.Count -ne 1) {
     if ($items.Count -gt 1) {
-      Write-Error "ssh-askpass-bw: $($items.Count) items match $TargetHost; refusing"
+      Write-Diag "$($items.Count) items match $TargetHost; refusing to guess"
     }
     return $null
   }
@@ -127,10 +136,10 @@ if ($targetHost) {
   try {
     $password = Get-VaultPassword -TargetHost $targetHost
     if ($password) { Write-Output $password; exit 0 }
-    Write-Error "ssh-askpass-bw: no vault item with URI ssh://$targetHost; prompting"
+    Write-Diag "no vault item for $targetHost; prompting"
   }
   catch {
-    Write-Error "ssh-askpass-bw: vault lookup failed ($($_.Exception.Message)); prompting"
+    Write-Diag "vault lookup failed ($($_.Exception.Message)); prompting"
   }
 }
 
