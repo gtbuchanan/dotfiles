@@ -77,6 +77,47 @@ function Get-PromptHost {
 # costs several seconds -- roughly four of which are Node startup before the vault
 # is even touched. The comparison is an exact string match on the full URI, and an
 # ambiguous result is refused rather than guessed.
+# The session travels by environment rather than --session, which would put the
+# key in the process command line, and is cleared again however the call ends.
+# --nointeraction is applied to every call so a session the vault has since
+# invalidated errors out instead of prompting into a stdout ssh reads as the
+# secret; --raw likewise keeps bw's descriptive chatter out of that stream.
+function Invoke-Bw {
+  param(
+    [string]$Bw,
+    [string]$Session,
+    [string[]]$Arguments
+  )
+  try {
+    $env:BW_SESSION = $Session
+    & $Bw @Arguments --nointeraction --raw 2>$null
+  }
+  finally {
+    Remove-Item Env:BW_SESSION -ErrorAction SilentlyContinue
+  }
+}
+
+function Find-VaultItem {
+  param(
+    [string]$Bw,
+    [string]$Session,
+    [string]$SearchTerm,
+    [string[]]$Candidates
+  )
+
+  $json = Invoke-Bw -Bw $Bw -Session $Session -Arguments @('list', 'items', '--search', $SearchTerm)
+  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return @() }
+
+  $found = @($json | ConvertFrom-Json)
+  foreach ($uri in $Candidates) {
+    $matched = @($found | Where-Object {
+        $_.login -and $_.login.uris -and ($_.login.uris.uri -contains $uri)
+      })
+    if ($matched.Count -gt 0) { return $matched }
+  }
+  @()
+}
+
 function Get-VaultPassword {
   param([string]$TargetHost)
 
@@ -87,8 +128,7 @@ function Get-VaultPassword {
   $session = (& $sessionScript get 2>$null | Out-String).Trim()
   if (-not $session) { return $null }
 
-  # Plain bw, since the session is already in hand; and by environment rather
-  # than --session, which would put the key in the process command line.
+  # Plain bw, since the session is already in hand.
   $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
   if (-not $bw) { return $null }
 
@@ -99,26 +139,7 @@ function Get-VaultPassword {
   $candidates = @("ssh://$TargetHost")
   if ($shortName -ne $TargetHost) { $candidates += "ssh://$shortName" }
 
-  # --nointeraction so a session the vault has since invalidated errors out
-  # instead of prompting into a stdout ssh is reading as the secret.
-  $json = $null
-  try {
-    $env:BW_SESSION = $session
-    $json = & $bw list items --search $shortName --nointeraction --raw 2>$null
-  }
-  finally {
-    Remove-Item Env:BW_SESSION -ErrorAction SilentlyContinue
-  }
-  if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($json)) { return $null }
-  $found = @($json | ConvertFrom-Json)
-
-  $items = @()
-  foreach ($uri in $candidates) {
-    $items = @($found | Where-Object {
-        $_.login -and $_.login.uris -and ($_.login.uris.uri -contains $uri)
-      })
-    if ($items.Count -gt 0) { break }
-  }
+  $items = Find-VaultItem -Bw $bw -Session $session -SearchTerm $shortName -Candidates $candidates
 
   # Ambiguity is refused rather than guessed: picking one of several would send
   # a credential the user never chose.
