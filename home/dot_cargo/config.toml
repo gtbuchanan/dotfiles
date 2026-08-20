@@ -1,0 +1,18 @@
+# Fetch git dependencies by shelling out to the git CLI instead of cargo's
+# bundled libgit2. The bundled stack reimplements just enough of SSH to clone,
+# and it authenticates against none of this machine's setup: it cannot reach the
+# Bitwarden desktop agent that holds the keys, so every `ssh://` git source dies
+# with "attempted ssh-agent authentication, but no usernames succeeded" even
+# though `ssh -T git@github.com` authenticates fine from the same shell.
+#
+# It also never reads ~/.ssh/config, so none of what lives there applies -- not
+# the `Host github.com` block that rides ssh.github.com:443 for networks that
+# filter outbound 22, not the per-host IdentityFile pins, not the internal host
+# aliases from the hosts/*.conf includes. A private git dependency on anything
+# but a plain public github.com name would be unresolvable.
+#
+# Shelling out puts real OpenSSH back in the path, which reads that config,
+# finds the agent, and shares the same known_hosts. cargo recommends this itself
+# in the error it fails with. See docs/ssh.md for the agent and :443 setup.
+[net]
+git-fetch-with-cli = true
