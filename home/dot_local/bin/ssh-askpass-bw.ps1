@@ -24,29 +24,111 @@ function Write-Diag {
   [Console]::Error.WriteLine("ssh-askpass-bw: $Message")
 }
 
+# SSH_ASKPASS_REQUIRE is `force`, so ssh routes *every* prompt here, not just
+# requests for a secret. Host key verification is the notable other one: its text
+# spans several lines, carries the fingerprint the user is being asked to check,
+# and wants a literal yes/no rather than a password. Rendering that in a
+# single-line masked box shows neither the fingerprint nor what you typed.
+#
+# ssh gives no machine-readable hint about which kind of prompt this is --
+# SSH_ASKPASS_PROMPT is unset on this build -- so classify on the text.
+#
+# Only the first line is available to classify on. SSH_ASKPASS names a bare
+# executable with no arguments, so reaching PowerShell requires a .cmd shim, and
+# cmd.exe ends its command line at the first newline: the fingerprint and the
+# yes/no question are gone before this script starts. Matching the authenticity
+# line is therefore the only handle, and it is also why these prompts are
+# declined rather than answered -- approving a host key whose fingerprint cannot
+# be displayed defeats the point of being asked.
+function Test-HostKeyPrompt {
+  param([string]$Text)
+  $Text -match "authenticity of host"
+}
+
+function Get-HostKeyHost {
+  param([string]$Text)
+  if ($Text -match "authenticity of host '(?<h>[^' ]+)") { return $Matches.h }
+  $null
+}
+
+function Test-SecretPrompt {
+  param([string]$Text)
+  $Text -match 'password:\s*$' -or $Text -match 'passphrase'
+}
+
 # A native dialog rather than Read-Host: ssh owns this process's stdout and may
 # redirect stdin, so console input can't be relied on. Same reasoning as
 # ssh-askpass-termux's termux-dialog popup.
-function Read-SecretDialog {
-  param([string]$Message)
+function Read-PromptDialog {
+  param(
+    [string]$Message,
+    [switch]$Mask,
+    [switch]$Notice
+  )
   Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+
+  # A multiline TextBox renders only CRLF; a bare LF is dropped silently, running
+  # the surrounding words together. This file is LF, as is anything ssh passes in,
+  # so normalize rather than rely on the source's line endings.
+  $Message = ($Message -replace "`r`n", "`n") -replace "`n", "`r`n"
+
+  # Multiline and read-only rather than a Label so the full prompt is visible and
+  # selectable -- a host key prompt is several lines and the fingerprint in it is
+  # the entire point of asking.
+  $text = New-Object System.Windows.Forms.TextBox -Property @{
+    Text = $Message; Multiline = $true; ReadOnly = $true; WordWrap = $true
+    ScrollBars = 'Vertical'; BackColor = [System.Drawing.SystemColors]::Control
+    BorderStyle = 'None'; Width = 440; Height = 96; Left = 12; Top = 12
+    TabStop = $false
+  }
   $form = New-Object System.Windows.Forms.Form -Property @{
-    Text = 'SSH'; Width = 460; Height = 190; StartPosition = 'CenterScreen'
-    FormBorderStyle = 'FixedDialog'; MaximizeBox = $false; MinimizeBox = $false; TopMost = $true
+    Text = 'SSH'; Width = 480; StartPosition = 'CenterScreen'
+    FormBorderStyle = 'FixedDialog'; MaximizeBox = $false; MinimizeBox = $false
+    TopMost = $true
   }
-  $label = New-Object System.Windows.Forms.Label -Property @{
-    Text = $Message; AutoSize = $false; Width = 420; Height = 40; Left = 12; Top = 12
+  $form.Controls.Add($text)
+
+  if ($Notice) {
+    # No input: the caller has already decided the answer, and this only explains
+    # why and how to proceed. Height follows the text so the commands aren't
+    # buried in whitespace or hidden behind a scrollbar.
+    # Wider than the prompt case so the suggested commands sit on one line --
+    # wrapping them mid-argument makes them awkward to read and to copy.
+    $form.Width = 660
+    $text.Width = 620
+    $text.Font = New-Object System.Drawing.Font('Consolas', 9)
+
+    # Allow for wrapping: a long line occupies more than one row, and
+    # underestimating leaves a scrollbar over content that had room to show.
+    $wrapAt = 74
+    $rows = 0
+    foreach ($line in ($Message -split "`r`n")) {
+      $rows += [Math]::Max(1, [Math]::Ceiling($line.Length / $wrapAt))
+    }
+    $text.Height = [Math]::Min(420, [Math]::Max(120, $rows * 15))
+    $form.Height = $text.Height + 110
+    $ok = New-Object System.Windows.Forms.Button -Property @{
+      Text = 'OK'; DialogResult = 'OK'; Width = 90; Left = 540; Top = $text.Height + 24
+    }
+    $form.Controls.Add($ok)
+    $form.AcceptButton = $ok
+    $form.CancelButton = $ok
+    $form.Add_Shown({ $form.Activate(); $ok.Focus() })
+    $form.ShowDialog() | Out-Null
+    return $null
   }
+
+  $form.Height = 240
   $box = New-Object System.Windows.Forms.TextBox -Property @{
-    UseSystemPasswordChar = $true; Width = 420; Left = 12; Top = 60
+    UseSystemPasswordChar = [bool]$Mask; Width = 440; Left = 12; Top = 118
   }
   $ok = New-Object System.Windows.Forms.Button -Property @{
-    Text = 'OK'; DialogResult = 'OK'; Width = 90; Left = 240; Top = 100
+    Text = 'OK'; DialogResult = 'OK'; Width = 90; Left = 258; Top = 154
   }
   $cancel = New-Object System.Windows.Forms.Button -Property @{
-    Text = 'Cancel'; DialogResult = 'Cancel'; Width = 90; Left = 342; Top = 100
+    Text = 'Cancel'; DialogResult = 'Cancel'; Width = 90; Left = 360; Top = 154
   }
-  $form.Controls.AddRange(@($label, $box, $ok, $cancel))
+  $form.Controls.AddRange(@($box, $ok, $cancel))
   $form.AcceptButton = $ok
   $form.CancelButton = $cancel
   $form.Add_Shown({ $form.Activate(); $box.Focus() })
@@ -177,6 +259,33 @@ function Get-VaultPassword {
   $items[0].login.password
 }
 
+# Handled before any vault work: there is nothing to look up, and answering
+# would mean vouching for a key whose fingerprint was truncated away.
+if (Test-HostKeyPrompt -Text $Prompt) {
+  $unknownHost = Get-HostKeyHost -Text $Prompt
+  $target = if ($unknownHost) { $unknownHost } else { 'the host' }
+  $guidance = @"
+$target is not in known_hosts, and its fingerprint cannot be shown here --
+Windows truncates the prompt before this helper sees it.
+
+Declining, rather than vouch for a key you have not seen.
+
+Accept it once, in a terminal:
+
+    `$env:SSH_ASKPASS_REQUIRE = 'never'; ssh $target
+
+That gives ssh's own prompt, fingerprint included.
+
+To check that fingerprint against the device first:
+
+    ssh-keyscan $target | ssh-keygen -lf -
+"@
+  Read-PromptDialog -Message $guidance -Notice | Out-Null
+  Write-Diag "declined host key prompt for $target; see the dialog for how to accept it"
+  Write-Output 'no'
+  exit 0
+}
+
 $targetHost = Get-PromptHost -Text $Prompt
 if ($targetHost) {
   try {
@@ -189,6 +298,7 @@ if ($targetHost) {
   }
 }
 
-$typed = Read-SecretDialog -Message $(if ($Prompt) { $Prompt } else { 'Password:' })
+$message = if ($Prompt) { $Prompt } else { 'Password:' }
+$typed = Read-PromptDialog -Message $message -Mask:(Test-SecretPrompt -Text $message)
 if ($null -eq $typed) { exit 1 }
 Write-Output $typed

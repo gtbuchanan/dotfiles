@@ -312,6 +312,38 @@ native dialog rather than failing, since a failure aborts the connection
 outright. The dialog rather than `Read-Host` because ssh owns the
 helper's stdout and may redirect its stdin.
 
+### Host Keys Under the Windows Askpass
+
+`force` also routes host key verification here, and that one cannot be
+answered honestly. `SSH_ASKPASS` names a bare executable with no
+arguments, so reaching PowerShell needs a `.cmd` shim — and `cmd.exe`
+ends its command line at the first newline. ssh's prompt is several
+lines, so the fingerprint and the `yes/no` question are discarded before
+the script starts; only the opening `The authenticity of host …` line
+survives. Approving a key whose fingerprint cannot be shown would defeat
+the check the prompt exists to perform.
+
+So the helper recognises those prompts, declines with `no`, and shows a
+dialog explaining how to accept the host deliberately:
+
+```powershell
+$env:SSH_ASKPASS_REQUIRE = 'never'; ssh <host>
+```
+
+That gives ssh's own prompt, fingerprint included; once accepted the key
+is in `known_hosts` and the situation does not recur for that host.
+
+`ssh-keyscan` is offered only for comparing a fingerprint against one
+read off the device. It is not a substitute for the above: it fetches
+the key over a _separate_ connection, so under an active
+machine-in-the-middle it can show a different key than the session is
+negotiating, and appending its output to `known_hosts` verifies nothing
+at all.
+
+Fixing this properly means dropping `cmd.exe` from the path, which needs
+a compiled launcher that forwards `argv` to PowerShell intact — a build
+step this repo does not otherwise have.
+
 Mark a host by adding a `ssh://<host>` URI to its vault item. Either the
 alias or the `HostName` works: the helper tries the host named in the
 prompt, the `HostName` that `ssh -G` resolves it to, and the short name,
