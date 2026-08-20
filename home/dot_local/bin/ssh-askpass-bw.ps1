@@ -139,7 +139,24 @@ function Get-VaultPassword {
   $candidates = @("ssh://$TargetHost")
   if ($shortName -ne $TargetHost) { $candidates += "ssh://$shortName" }
 
-  $items = Find-VaultItem -Bw $bw -Session $session -SearchTerm $shortName -Candidates $candidates
+  $query = @{
+    Bw = $bw
+    Session = $session
+    SearchTerm = $shortName
+    Candidates = $candidates
+  }
+  $items = Find-VaultItem @query
+
+  # The CLI serves a local copy of the vault and refreshes it only on an explicit
+  # sync -- not on unlock, and not on list -- so a URI added from another device
+  # stays invisible here indefinitely. Syncing only on a miss keeps the cost off
+  # the common path: a hit already costs several seconds, and a miss would
+  # otherwise have fallen through to prompting by hand anyway. Failure is ignored
+  # so an offline lookup still proceeds against the cached copy.
+  if ($items.Count -eq 0) {
+    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
+    $items = Find-VaultItem @query
+  }
 
   # Ambiguity is refused rather than guessed: picking one of several would send
   # a credential the user never chose.
