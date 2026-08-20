@@ -403,6 +403,38 @@ fire.
 Like the GPG pinentry, this depends on the **Termux:API** companion
 app from F-Droid for `termux-dialog` to surface UI.
 
+Because `force` routes _every_ prompt here, the script sorts them by
+shape rather than assuming each is a secret:
+
+- **Host keys.** `Are you sure you want to continue connecting
+(yes/no/[fingerprint])?` is a question, not a secret, so it gets a
+  confirm dialog, whose hint renders as body text — the host, address,
+  and full fingerprint wrapped and legible. ssh accepts a third answer,
+  the expected fingerprint, which a text field could return and two
+  buttons cannot; but `termux-dialog` draws a text field's hint as a
+  _placeholder_, truncated mid-fingerprint and erased the moment typing
+  starts, leaving nothing to compare against. Being able to read the key
+  beats being able to paste it, so `[fingerprint]` is stripped from the
+  question shown rather than offered and not delivered. Anything but an
+  explicit yes — a dismissed dialog included — declines. Windows refuses
+  these outright: its `.cmd` entry point truncates the multi-line
+  prompt, and approving a fingerprint you cannot read is worse than not
+  approving it.
+- **Host passwords.** `user@host's password:` and the
+  keyboard-interactive `(user@host) Password:` name a host, which is
+  looked up in the vault by the same client-side URI matching the
+  Windows helper uses (see [Bitwarden-Backed Passwords on
+  Windows](#bitwarden-backed-passwords-on-windows)). A hit answers without
+  any dialog; a miss, an ambiguous match, or an unavailable vault falls
+  through to the masked field rather than failing, which would abort the
+  connection.
+- **Everything else.** Key passphrases and the like have no host to key
+  on and go straight to the masked field.
+
+The vault lookup degrades on its own — it checks for `bw` and
+`bw-session-termux` first — so no host-type gating is needed: a host
+without a vault simply gets the dialog.
+
 Separately, Git on Android uses `core.sshCommand = ssha` —
 [Termux's wrapper](https://wiki.termux.com/wiki/Remote_Access#SSH_Agent)
 that ensures `ssh-agent` is running before invoking `ssh`, so the

@@ -1,7 +1,154 @@
 #!/data/data/com.termux/files/usr/bin/bash
-# ssh-askpass-termux: SSH_ASKPASS using termux-dialog (native Android popup)
+# ssh-askpass-termux: SSH_ASKPASS using termux-dialog (native Android popup),
+# answering password-auth hosts from the Bitwarden vault where it can.
+#
+# OpenSSH passes the prompt as the sole argument and reads the answer from
+# stdout, so nothing else may be written there -- diagnostics go to stderr.
+# SSH_ASKPASS_REQUIRE=force routes *every* prompt here, so this must always
+# yield something rather than fail, which would abort the connection.
+#
+# Three shapes arrive. Host-key questions are not secrets and get a confirm
+# dialog showing the fingerprint being vouched for. Host passwords are looked up
+# in the vault. Everything else -- notably key passphrases -- gets a masked
+# field.
+
+set -uo pipefail
+
+SESSION=""
+CANDIDATES=()
+
+diag() {
+  printf 'ssh-askpass-termux: %s\n' "$1" >&2
+}
+
+# `user@host's password:` covers password auth; keyboard-interactive words it as
+# `(user@host) Password:`. Anything else has no host to key on.
+prompt_host() {
+  local text=$1
+  local re_password="^[^@]+@([^']+)'s password:"
+  local re_interactive="^\(([^@)]+@)?([^)]+)\)[[:space:]]*Password:"
+
+  if [[ "$text" =~ $re_password ]]; then
+    printf '%s' "${BASH_REMATCH[1]}"
+  elif [[ "$text" =~ $re_interactive ]]; then
+    printf '%s' "${BASH_REMATCH[2]}"
+  else
+    return 1
+  fi
+}
+
+# The session travels by environment rather than --session, which would put the
+# key in the process command line. --nointeraction so a session the vault has
+# since invalidated errors out instead of prompting into a stdout ssh reads as
+# the answer; --raw keeps bw's chatter out of that stream.
+bw_run() {
+  BW_SESSION="$SESSION" bw "$@" --nointeraction --raw 2>/dev/null
+}
+
+# Matched here rather than via `bw list --url`, which honours each item's own URI
+# match detection. That defaults to base domain, so ssh://sw01.example.com also
+# returns unrelated items under example.com -- and handing a near miss to a
+# password prompt gives one host's credential to another.
+find_items() {
+  local json=$1 uri matched
+  for uri in "${CANDIDATES[@]}"; do
+    matched=$(jq -c --arg uri "$uri" \
+      '[.[] | select((.login.uris // []) | any(.uri == $uri))]' <<<"$json")
+    if [[ "$(jq 'length' <<<"$matched")" -gt 0 ]]; then
+      printf '%s' "$matched"
+      return 0
+    fi
+  done
+  printf '[]'
+}
+
+vault_password() {
+  local target=$1 json items count resolved short alt
+
+  command -v bw >/dev/null || return 1
+  command -v bw-session-termux >/dev/null || return 1
+
+  # Prompts for biometrics only when its idle window has lapsed -- otherwise
+  # every connection would cost an unlock.
+  SESSION=$(bw-session-termux get 2>/dev/null) || return 1
+  [[ -n "$SESSION" ]] || return 1
+
+  # The prompt may name the host either way -- `ssh sw01` gives the alias while
+  # the vault entry may hold the FQDN, or the reverse -- so ask ssh to resolve
+  # its own config and accept every spelling, most specific first. `ssh -G` only
+  # parses config; it does not connect.
+  short=${target%%.*}
+  resolved=$(ssh -G "$target" 2>/dev/null |
+    awk '$1 == "hostname" { print $2; exit }')
+
+  CANDIDATES=("ssh://$target")
+  for alt in "$resolved" "$short"; do
+    [[ -n "$alt" && "$alt" != "$target" ]] && CANDIDATES+=("ssh://$alt")
+  done
+
+  # --search is a prefilter only, issued once because each bw invocation costs
+  # several seconds -- roughly four of them Node startup before the vault is even
+  # touched. Every spelling is compared in memory against that one result.
+  json=$(bw_run list items --search "$short") || return 1
+  [[ -n "$json" ]] || return 1
+  items=$(find_items "$json")
+
+  # The CLI refreshes its local vault copy only on an explicit sync, so an entry
+  # added from another device stays invisible indefinitely. Syncing only on a
+  # miss keeps the cost off the common path, and failure is ignored so an offline
+  # lookup still proceeds against the cached copy.
+  if [[ "$(jq 'length' <<<"$items")" -eq 0 ]]; then
+    bw_run sync >/dev/null
+    json=$(bw_run list items --search "$short") || return 1
+    items=$(find_items "$json")
+  fi
+
+  # Ambiguity is refused rather than guessed: picking one of several would send a
+  # credential the user never chose.
+  count=$(jq 'length' <<<"$items")
+  if [[ "$count" -ne 1 ]]; then
+    [[ "$count" -gt 1 ]] && diag "$count items match $target; refusing to guess"
+    return 1
+  fi
+
+  jq -r '.[0].login.password // empty' <<<"$items"
+}
 
 prompt="${1:-Enter passphrase}"
+
+# `Are you sure you want to continue connecting (yes/no/[fingerprint])?` and the
+# changed-host-key variants. Windows has to refuse these: routing through a .cmd
+# truncates the multi-line prompt, and approving a fingerprint you cannot read is
+# worse than not approving it. termux-dialog shows it in full, so answer here.
+if [[ "$prompt" == *"(yes/no"* ]]; then
+  # A confirm dialog, whose hint renders as body text -- wrapped and legible,
+  # fingerprint included. A text field would also allow ssh's third answer, the
+  # expected fingerprint, but termux-dialog draws its hint as a placeholder:
+  # truncated mid-fingerprint, and erased the moment typing starts, leaving
+  # nothing to compare against. Reading the key beats being able to paste it.
+  #
+  # So drop that third option from the question rather than offer what two
+  # buttons cannot return.
+  display=$(printf '%s' "$prompt" | sed 's|/\[fingerprint\])|)|')
+  result=$(termux-dialog confirm -t "SSH Host Key" -i "$display")
+  # Anything but an explicit yes -- including a dismissed dialog -- declines, so
+  # an unverified host key is never accepted by default.
+  if [[ "$(jq -r '.text // empty' <<<"$result")" == "yes" ]]; then
+    printf 'yes'
+  else
+    printf 'no'
+  fi
+  exit 0
+fi
+
+if target=$(prompt_host "$prompt"); then
+  if password=$(vault_password "$target") && [[ -n "$password" ]]; then
+    printf '%s' "$password"
+    exit 0
+  fi
+  diag "no vault item for $target; prompting"
+fi
+
 result=$(termux-dialog text -p -t "SSH" -i "$prompt")
 passphrase=$(jq -r '.text // empty' <<<"$result")
 
