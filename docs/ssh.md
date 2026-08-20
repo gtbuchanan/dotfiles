@@ -312,11 +312,13 @@ native dialog rather than failing, since a failure aborts the connection
 outright. The dialog rather than `Read-Host` because ssh owns the
 helper's stdout and may redirect its stdin.
 
-Mark a host by adding a `ssh://<host>` URI to its vault item. Prefer the
-alias you actually type: the helper tries the full host from the prompt
-and then its short name, so an alias entry matches under either spelling,
-and whether OpenSSH names a host by config alias or resolved `HostName`
-is not knowable from the prompt alone.
+Mark a host by adding a `ssh://<host>` URI to its vault item. Either the
+alias or the `HostName` works: the helper tries the host named in the
+prompt, the `HostName` that `ssh -G` resolves it to, and the short name,
+in that order. Resolving through ssh itself is what makes the choice
+free — whether OpenSSH names a host by alias or by resolved `HostName`
+is not knowable from the prompt, and without the resolution step an alias
+prompt can never reach an FQDN-stored URI.
 
 Matching is done in the helper, **not** with `bw list --url`, which
 honours each item's own URI match detection. That defaults to base

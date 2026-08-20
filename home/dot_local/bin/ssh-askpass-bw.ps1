@@ -132,12 +132,20 @@ function Get-VaultPassword {
   $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
   if (-not $bw) { return $null }
 
-  # Whether ssh names the host by its config alias or its resolved HostName isn't
-  # something this can know, so both are accepted -- longest first, so a specific
-  # entry wins over a bare short name that another network might also use.
+  # The prompt may name a host either way -- `ssh sw01` gives the alias while the
+  # vault entry may hold the FQDN, or the reverse -- so ask ssh to resolve its own
+  # config and accept every spelling. Most specific first, so a full name wins over
+  # a bare short name another network might reuse. `ssh -G` only parses config; it
+  # does not connect, and ssh is necessarily present, having invoked this script.
   $shortName = $TargetHost.Split('.')[0]
+  $resolved = $null
+  $line = & ssh -G $TargetHost 2>$null | Where-Object { $_ -match '^hostname ' }
+  if ($line) { $resolved = ($line -split ' ', 2)[1].Trim() }
+
   $candidates = @("ssh://$TargetHost")
-  if ($shortName -ne $TargetHost) { $candidates += "ssh://$shortName" }
+  foreach ($alt in @($resolved, $shortName)) {
+    if ($alt -and ("ssh://$alt" -notin $candidates)) { $candidates += "ssh://$alt" }
+  }
 
   $query = @{
     Bw = $bw
