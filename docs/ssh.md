@@ -9,25 +9,29 @@ checked in.
 
 ## File Map
 
-| File                                                                                                                      | Role                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                   | Clones the private host inventory to `~/.ssh/hosts` on personal hosts                                                  |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                           | Gates `ssh-askpass-termux` and the agent hook to Android, `legacy.pub` to personal                                     |
-| [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh) | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs `openssh` from Termux's pkg repo                                                                              |
-| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                             | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
-| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                 | Disables WezTerm's built-in agent mux so the native agent stays in charge                                              |
-| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                   | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                                  |
-| [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                               | Gates `ssh-agent-pipe` to WSL                                                                                          |
-| [`home/dot_local/bin/executable_bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)                   | Supplies the Bitwarden vault session the agent hook needs                                                              |
-| [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe)                         | WSL→Windows agent bridge (socat + npiperelay)                                                                          |
-| [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                 | Android SSH_ASKPASS via `termux-dialog`                                                                                |
-| [`home/dot_local/bin/symlink_ssh-keygena`](../home/dot_local/bin/symlink_ssh-keygena)                                     | Android: `ssh-keygen` under Termux's agent wrapper, for commit signing                                                 |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
-| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                 | Top-level config: both `Include`s, the tag-driven `Match` blocks, macOS keychain                                       |
-| [`home/private_dot_ssh/legacy.pub`](../home/private_dot_ssh/legacy.pub)                                                   | Public half of the pre-migration key, pinned by the `:legacy:` flag                                                    |
-| [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                           | Android: seeds ssh-agent from Bitwarden instead of disk                                                                |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Windows: removes built-in OpenSSH client, installs Preview build, sets the agent service per host type, sets `GIT_SSH` |
+| File                                                                                                                                | Role                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                             | Clones the private host inventory to `~/.ssh/hosts` on personal hosts                                                  |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                     | Gates `ssh-askpass-termux` and the agent hook to Android, `legacy.pub` to personal                                     |
+| [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh)           | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)           | Installs `openssh` from Termux's pkg repo                                                                              |
+| [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                                       | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
+| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | Points `SSH_ASKPASS` at the Bitwarden helper on personal Windows                                                       |
+| [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                           | Disables WezTerm's built-in agent mux so the native agent stays in charge                                              |
+| [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                             | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                                  |
+| [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                                         | Gates `ssh-agent-pipe` to WSL, the Bitwarden askpass to personal Windows                                               |
+| [`home/dot_local/bin/bw-session-windows.ps1`](../home/dot_local/bin/bw-session-windows.ps1)                                         | Windows: DPAPI-cached vault session, so unlocks are amortized                                                          |
+| [`home/dot_local/bin/executable_bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)                             | Supplies the Bitwarden vault session the agent hook needs                                                              |
+| [`home/dot_local/bin/executable_ssh-agent-pipe`](../home/dot_local/bin/executable_ssh-agent-pipe)                                   | WSL→Windows agent bridge (socat + npiperelay)                                                                          |
+| [`home/dot_local/bin/executable_ssh-askpass-termux`](../home/dot_local/bin/executable_ssh-askpass-termux)                           | Android SSH_ASKPASS via `termux-dialog`                                                                                |
+| [`home/dot_local/bin/ssh-askpass-bw.cmd`](../home/dot_local/bin/ssh-askpass-bw.cmd)                                                 | Windows SSH_ASKPASS entry point; `SSH_ASKPASS` needs an executable                                                     |
+| [`home/dot_local/bin/ssh-askpass-bw.ps1`](../home/dot_local/bin/ssh-askpass-bw.ps1)                                                 | Resolves a host password from the vault, else prompts via a dialog                                                     |
+| [`home/dot_local/bin/symlink_ssh-keygena`](../home/dot_local/bin/symlink_ssh-keygena)                                               | Android: `ssh-keygen` under Termux's agent wrapper, for commit signing                                                 |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                 | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
+| [`home/private_dot_ssh/config.tmpl`](../home/private_dot_ssh/config.tmpl)                                                           | Top-level config: both `Include`s, the tag-driven `Match` blocks, macOS keychain                                       |
+| [`home/private_dot_ssh/legacy.pub`](../home/private_dot_ssh/legacy.pub)                                                             | Public half of the pre-migration key, pinned by the `:legacy:` flag                                                    |
+| [`home/private_dot_ssh/start_agent.sh`](../home/private_dot_ssh/start_agent.sh)                                                     | Android: seeds ssh-agent from Bitwarden instead of disk                                                                |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                 | Windows: removes built-in OpenSSH client, installs Preview build, sets the agent service per host type, sets `GIT_SSH` |
 
 ## Shared ssh_config
 
@@ -286,6 +290,97 @@ never been exercised. Verify before relying on it.
 The trade is availability. The Windows service started at boot and
 never asked for anything; Bitwarden must be running and unlocked or
 every SSH operation fails — Git, manual `ssh`, and WSL alike.
+
+### Bitwarden-Backed Passwords on Windows
+
+Some hosts only offer password auth. Rather than copying those out of
+the vault by hand, `SSH_ASKPASS` points at a helper that looks them up:
+OpenSSH passes the prompt as the sole argument and reads the secret from
+the helper's stdout, so nothing else may be written there.
+
+The chain is `SSH_ASKPASS` → `ssh-askpass-bw.cmd` → `ssh-askpass-bw.ps1`
+→ `bw-session-windows.ps1` → `bw`. The `.cmd` exists only because
+`SSH_ASKPASS` must name an executable and a `.ps1` is not one.
+
+`SSH_ASKPASS_REQUIRE` is **`force`**, not `prefer`. `prefer` only
+consults an askpass when `DISPLAY` is set, which it never is on Windows,
+so it would read as configured and silently never fire. Because `force`
+routes _every_ prompt through the helper — Git's included, and hosts
+absent from the vault — the helper always answers, falling back to a
+native dialog rather than failing, since a failure aborts the connection
+outright. The dialog rather than `Read-Host` because ssh owns the
+helper's stdout and may redirect its stdin.
+
+Mark a host by adding a `ssh://<host>` URI to its vault item. Prefer the
+alias you actually type: the helper tries the full host from the prompt
+and then its short name, so an alias entry matches under either spelling,
+and whether OpenSSH names a host by config alias or resolved `HostName`
+is not knowable from the prompt alone.
+
+Matching is done in the helper, **not** with `bw list --url`, which
+honours each item's own URI match detection. That defaults to base
+domain, so querying `ssh://sw01.home.gbcelt.com` also returns every
+unrelated item under `gbcelt.com` — observed returning five items, four
+of them different hosts. For a password prompt that means handing one
+host's credential to another. Setting the target item to Exact does not
+help, because the loose settings live on the _other_ items; making
+`--url` safe would need Exact across the whole vault, and one item added
+later with defaults would silently undo it. So `--search` is a prefilter
+only, the URI is compared exactly, and an ambiguous result is refused
+rather than guessed.
+
+Expect several seconds per lookup. Roughly four of those are Node
+starting up before the vault is touched, so neither the filter nor the
+vault size is the lever; only caching the password itself would help,
+which is not worth it for hosts reached this rarely.
+
+### Bitwarden Session Cache on Windows
+
+`bw` never persists the key that decrypts vault items — `bw unlock`
+returns it and expects the caller to carry it in `BW_SESSION` — so
+without a cache every lookup means another unlock, and under
+`SSH_ASKPASS` that is a biometric prompt per connection.
+`bw-session-windows.ps1` caches it under DPAPI with a sliding idle
+window, and offers the same `get|check|lock|reset|status` surface as its
+Termux counterpart.
+
+The unlock itself comes from `bitwarden-cli-bio`, which asks the desktop
+app for a session over the IPC channel the browser extension uses. The
+official CLI has no biometric unlock, so the alternative is feeding it a
+master password. Bitwarden has an open PR adopting the same mechanism
+upstream; **this wrapper is a bridge until that lands**, at which point
+it should collapse back to plain `bw`.
+
+Two of its behaviours are worth knowing before changing anything.
+`--nointeraction` suppresses the biometric prompt as well as the
+master-password one, so the unlock must run without it and only the
+query carries it. And the unlock's exit code is unreliable — a denied
+prompt falls through to a master-password prompt that dies on closed
+stdin and still exits `0` — so success is judged by whether stdout holds
+something session-key shaped.
+
+This is deliberately weaker than
+[`bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux),
+which derives its key-encryption key from a signature made inside the
+Android hardware keystore and so demands a fingerprint per read. The
+Windows counterpart is `KeyCredentialManager`, whose key lives in the
+TPM — but that is the Windows Hello **for Business** API, and these hosts
+run a convenience PIN on a domain-joined account with WHfB not deployed
+(`NgcSet: NO`, `AllowDomainPINLogon: 1`). No container exists for it to
+open, so it is unavailable rather than merely inconvenient.
+`KeyCredentialManager.IsSupportedAsync` returning true is misleading: it
+reports device capability, not account provisioning.
+
+DPAPI therefore binds to the user identity rather than to presence — any
+process running as this user can unseal the cache with no prompt. It
+defends a copied cache file, a second account, and offline disk access,
+and nothing against code already running as you. A consent-style Hello
+gate would not change that, since DPAPI still unseals for anything that
+skips the prompt and calls `Unprotect` directly. Exposure is bounded by
+the idle window rather than by the wrapping, which is why the window is
+short; the expiry is bound as the DPAPI entropy, so editing it in the
+file breaks decryption instead of extending it — the role additional
+authenticated data plays in the Termux cache.
 
 ## Android
 
