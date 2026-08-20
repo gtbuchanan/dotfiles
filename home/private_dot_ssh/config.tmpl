@@ -56,6 +56,19 @@ Match tagged *:legacy:*
   IdentityFile ~/.ssh/legacy.pub
   IdentitiesOnly yes
 
+# Hosts that only accept a password, typically appliances with no way to install
+# a key. Offering keys there is not merely useless: each one is a round trip, and
+# network gear often sets MaxAuthTries low enough that a loaded agent exhausts the
+# server's budget and the connection fails before a password is ever tried.
+#
+# Only PubkeyAuthentication is set. PreferredAuthentications would be redundant --
+# with keys off, the default order already falls through to keyboard-interactive
+# and password, and gssapi is off by default rather than something to rule out.
+#
+# The password itself comes from the vault via SSH_ASKPASS; see docs/ssh.md.
+Match tagged *:password:*
+  PubkeyAuthentication no
+
 # GitHub's SSH service, pinned to its :443 endpoint. Networks that filter egress
 # routinely drop outbound 22 while leaving 443 open, and ssh.github.com answers with
 # the same service and the same host keys -- ordinary repos and gists both clone

@@ -102,10 +102,11 @@ Every block needs a positive pattern. A bare `*` also matches the empty
 tag on untagged hosts such as `github.com`, and a `RemoteCommand` there
 would break Git.
 
-| Flag       | Meaning                                                                 | Effect                                             |
-| ---------- | ----------------------------------------------------------------------- | -------------------------------------------------- |
-| `:legacy:` | Host has not migrated to the primary ed25519 key                        | Pins `~/.ssh/legacy.pub` with `IdentitiesOnly yes` |
-| `:shell:`  | An interactive login lands in a general-purpose shell, not a vendor CLI | Starts or attaches a persistent tmux session       |
+| Flag         | Meaning                                                                 | Effect                                               |
+| ------------ | ----------------------------------------------------------------------- | ---------------------------------------------------- |
+| `:legacy:`   | Host has not migrated to the primary ed25519 key                        | Pins `~/.ssh/legacy.pub` with `IdentitiesOnly yes`   |
+| `:password:` | Host only accepts a password, typically an appliance                    | Disables key auth; password served via `SSH_ASKPASS` |
+| `:shell:`    | An interactive login lands in a general-purpose shell, not a vendor CLI | Starts or attaches a persistent tmux session         |
 
 `:shell:` is opt-in rather than opt-out because the failure modes are
 not symmetric: forgetting the flag costs a tmux session, while sending a
