@@ -21,7 +21,7 @@ catalogs:
     '@vtsls/language-server': 0.3.0
     '@vue/language-server': 2.2.12
     bitwarden-cli-bio: 1.4.2
-    tweakcc: 4.3.2
+    tweakcc: 4.3.3
     vscode-langservers-extracted: 4.10.0
     # eslint-enable pnpm/yaml-no-unused-catalog-item
 
