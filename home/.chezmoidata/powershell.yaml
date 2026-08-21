@@ -5,4 +5,4 @@
 #
 ---
 # renovate: datasource=github-releases depName=PowerShell/PowerShell
-powershell_version: '7.6.3'
+powershell_version: '7.6.5'
