@@ -58,6 +58,12 @@ HK_PKL_BACKEND = "pkl"
 # so disable the mise one and let PATH fall through to the pkg build. It tracks
 # Termux's chezmoi release, which may lag the [tools] pin used elsewhere.
 #
+# age / sops: `aqua` keys off android/arm64, for which neither project
+# publishes an asset. Termux packages both natively (run_onchange_before.sh),
+# so let hk and anything else resolve them from PATH. A repo that pins them —
+# any repo keeping SOPS-encrypted secrets — otherwise fails `mise x` outright,
+# which takes every hook step with it whether or not the step touches secrets.
+#
 # clang-format (`pipx:clang-format`): the pipx/uv install path has no
 # bionic-compatible wheel, and `uv` itself has no android asset. Termux's
 # `clang` package supplies clang-format natively (same source), so `uv` is
@@ -66,6 +72,7 @@ HK_PKL_BACKEND = "pkl"
 [settings]
 disable_tools = [
   "actionlint",
+  "age",
   "chezmoi",
   "hk",
   "node",
@@ -76,5 +83,6 @@ disable_tools = [
   "ruff",
   "shellcheck",
   "shfmt",
+  "sops",
   "uv",
 ]
