@@ -1,0 +1,14 @@
+#!/bin/sh
+# Wrapper for pnpm on Android/Termux, where a project's `packageManager` pin
+# cannot be honored: pnpm satisfies a pin by downloading that version of itself
+# as `@pnpm/exe.<platform>`, and no android-arm64 package exists on the
+# registry. Every pnpm command in a project whose pin differs from the pnpm
+# installed here then fails with "Cannot verify the identity of the
+# @pnpm/exe.android-arm64 native binary", hk hook steps included — so an
+# upstream pin bump is enough to stop commits working on the phone.
+#
+# --pm-on-fail=warn runs the installed pnpm and reports the disagreement rather
+# than trying to resolve it, accepting drift from what a project pins. It has
+# to be passed as a flag: pnpm reads this setting from neither an rc file nor
+# the environment.
+exec /data/data/com.termux/files/usr/bin/pnpm --pm-on-fail=warn "$@"

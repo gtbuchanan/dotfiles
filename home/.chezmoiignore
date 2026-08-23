@@ -18,6 +18,7 @@ Documents
 .config/mise
 .local/bin/bw-session-termux
 .local/bin/pinentry-termux
+.local/bin/pnpm
 .local/bin/ssh-askpass-termux
 .local/bin/ssh-keygena
 .ssh/start_agent.sh
