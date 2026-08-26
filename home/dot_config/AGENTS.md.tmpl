@@ -291,6 +291,21 @@
 - For `devops invoke`, pass project via `--route-parameters project=proddev`
   (`--project` is not supported by `az devops invoke`)
 {{- end }}
+{{- if and (eq .chezmoi.os "windows") (eq .hosttype "personal") }}
+
+## Home Assistant
+
+- Use `hass-cli` to read and control Home Assistant. Auth is already configured
+  — mise supplies `HASS_SERVER`/`HASS_TOKEN` — so just run it. Don't probe for
+  env vars or config files, and don't try to locate the instance on the network.
+- If it reports it can't find Home Assistant on the local network, the
+  credentials failed to resolve rather than being absent. Run `hass-vault check`
+  to see the real error; mise hides it.
+- Never run `hass-vault token` or `hass-vault server`. Those print the
+  credential to stdout for mise to capture, so running one persists a
+  long-lived token in the transcript. `hass-vault check` reports the same
+  outcome without emitting it.
+{{- end }}
 
 ## .NET
 

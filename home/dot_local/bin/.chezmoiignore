@@ -7,6 +7,16 @@ android-patch-claude-code-tmpdir
 tsgolint
 {{- end }}
 
+{{- /* Serves the Home Assistant CLI's server and token to mise's [env] from the
+       Bitwarden vault. Windows because that is where the desktop app's
+       biometric IPC and the DPAPI-wrapped caches live, personal because
+       hass-cli is only deployed there. The other platforms install the CLI but
+       have no resolver yet, so they get no credentials either. */}}
+{{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
+hass-vault.cmd
+hass-vault.ps1
+{{- end }}
+
 {{- /* Serves host passwords from the Bitwarden vault via SSH_ASKPASS. Windows
        because that is where the desktop app's biometric IPC lives, personal
        because work hosts use Dashlane and have no password-auth hosts. */}}

@@ -13,6 +13,9 @@
 # native bionic builds in pkg — but they back SOPS-encrypted secrets rather
 # than a lint hook, and a repo pinning them fails `mise x` for every hook step
 # until they resolve from PATH.
+#
+# uv likewise: aqua ships no android asset, so the pkg build serves from PATH as
+# the engine mise's pipx backend installs `pipx:` tools with.
 PKG_PACKAGES=(
   "age"
   "bash-completion"
@@ -38,6 +41,7 @@ PKG_PACKAGES=(
   "tmux"
   "tudo"
   "turbo"
+  "uv"
   "vim"
 )
 pkg update
