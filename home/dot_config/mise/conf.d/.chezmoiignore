@@ -1,0 +1,7 @@
+{{- /* Every fragment is plain TOML so Renovate's mise manager can parse it,
+       which is why the platform split has to happen here rather than in
+       `{{ if }}` gates inside the files. Fragments deployed everywhere need no
+       entry. See docs/mise.md. */}}
+{{- if ne .chezmoi.os "android" }}
+termux.toml
+{{- end }}

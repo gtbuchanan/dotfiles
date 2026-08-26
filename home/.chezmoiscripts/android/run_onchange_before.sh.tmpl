@@ -5,9 +5,9 @@
 #
 # shellcheck/shfmt/ruff and clang (for clang-format) back the hk lint hooks:
 # mise can't install them on android, so they come from pkg as native bionic
-# builds and hk resolves them from PATH (see dot_config/mise/config.toml).
+# builds and hk resolves them from PATH (see dot_config/mise/conf.d/termux.toml).
 # chezmoi is here too: the aqua build installs but can't resolve DNS on bionic,
-# so the pkg build is the working one (same file — see config.toml disable_tools).
+# so the pkg build is the working one (same file — see termux.toml disable_tools).
 #
 # age/sops are the same story as the lint tools — no android asset upstream,
 # native bionic builds in pkg — but they back SOPS-encrypted secrets rather

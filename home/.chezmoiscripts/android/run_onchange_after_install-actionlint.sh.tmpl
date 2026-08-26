@@ -4,9 +4,9 @@
 
   actionlint is aqua-backed in gtbuchanan/tooling's mise.toml (hk runs it
   as a workflow-lint step), but Termux-native mise resolves android/arm64,
-  for which aqua has no asset (see dot_config/mise/config.toml). actionlint
-  is a static Go binary, so the prebuilt linux_arm64 release runs unmodified
-  on bionic — no loader shim, unlike pkl.
+  for which aqua has no asset (see dot_config/mise/conf.d/termux.toml).
+  actionlint is a static Go binary, so the prebuilt linux_arm64 release runs
+  unmodified on bionic — no loader shim, unlike pkl.
 
   It's a standalone linter that hk merely orchestrates, not an hk runtime
   dependency (cf. pkl in install-hk.sh), so it's installed on its own and

@@ -1,0 +1,90 @@
+# Termux/Android-only mise fragment, deployed by the conf.d/.chezmoiignore
+# gate. See docs/mise.md.
+
+[env]
+# hk 1.48.0 defaults to an embedded pkl evaluator; on Termux its bundled
+# rustls/reqwest client can't build without a system CA bundle and, even given
+# one, hangs fetching the remote pkl package over HTTPS. Route pkl through the
+# external CLI (installed + grun-wrapped out of band; see the `pkl` note below)
+# instead. Scoped here because the embedded backend works fine on glibc
+# Linux/CI — this fragment is android-only — so downstream repos stay
+# platform-pure.
+HK_PKL_BACKEND = "pkl"
+
+[settings]
+# mise itself is packaged by Termux (installed via run_onchange_before.sh), but
+# mise's tool-install backends have no Android target for the tools below. Each
+# entry carries the backend that fails and where the replacement comes from;
+# keep the rationale next to the entry so the two can't drift apart.
+disable_tools = [
+  # `aqua:rhysd/actionlint` has no android asset (only linux_arm64 exists).
+  # It's a static Go binary that runs unmodified on bionic, so the prebuilt
+  # linux_arm64 release is installed directly (in
+  # run_onchange_after_install-actionlint.sh). Unlike pkl it isn't an hk runtime
+  # dependency — hk just orchestrates it as a workflow-lint step.
+  "actionlint",
+  # `aqua` keys off android/arm64, for which neither age nor sops publishes an
+  # asset. Termux packages both natively (run_onchange_before.sh), so let hk and
+  # anything else resolve them from PATH. A repo that pins them -- any repo
+  # keeping SOPS-encrypted secrets -- otherwise fails `mise x` outright, which
+  # takes every hook step with it whether or not the step touches secrets.
+  "age",
+  # Unlike every other tool here, aqua *does* ship an android asset and mise
+  # installs it — but the generic linux-arm64 Go binary can't resolve DNS on
+  # bionic (it queries localhost:53 instead of Android's resolver), so every
+  # `.chezmoiexternal` fetch fails with "lookup github.com ... connection
+  # refused". Termux packages a bionic-native chezmoi (in
+  # run_onchange_before.sh), so disable the mise one and let PATH fall through
+  # to the pkg build. It tracks Termux's chezmoi release, which may lag the
+  # [tools] pin used elsewhere.
+  "chezmoi",
+  # `aqua:jdx/hk` ships release tarballs for linux/darwin/windows only; its aqua
+  # manifest rejects android/arm64 ("unsupported env"). hk is a static musl
+  # aarch64 binary that runs unmodified on bionic, so install the release
+  # tarball directly (in run_onchange_after_install-hk.sh).
+  "hk",
+  # `core:node` has no Android tarball and falls back to building from source,
+  # which doesn't compile cleanly against bionic. Use Termux's `nodejs-lts`
+  # package (installed in run_onchange_before.sh) instead — mise picks up system
+  # node via PATH when needed.
+  "node",
+  # The pipx/uv install path has no bionic-compatible wheel. Termux's `clang`
+  # package supplies clang-format natively (same source), so take it from PATH
+  # instead. clang-format then tracks Termux's clang release, which may lag a
+  # downstream project's pin.
+  "pipx:clang-format",
+  # `aqua:apple/pkl` has no android asset — it keys off `android` while only
+  # `pkl-linux-aarch64` exists. That binary is glibc-dynamic and needs the
+  # glibc-runner (`grun`) loader shim to run on bionic, so install it and a grun
+  # wrapper out of band (same run_onchange_after_install-hk.sh). hk only invokes
+  # pkl for validate/check/fix/install.
+  "pkl",
+  # `aqua:pnpm/pnpm` lists linux/{x64,arm64}, darwin/arm64, windows — no
+  # android/arm64. Install via `npm i -g pnpm` instead (also in
+  # run_onchange_before.sh).
+  "pnpm",
+  # `aqua:PowerShell/PowerShell` has no android asset — it keys off `android`
+  # while only `powershell-linux-arm64` (glibc) exists. Unlike pkl (an hk
+  # runtime dependency), PowerShell is only needed by the psscriptanalyzer hk
+  # step, which isn't run on Termux, so just disable it rather than shimming a
+  # glibc build with grun.
+  "powershell",
+  # `aqua` keys off android/arm64, for which ruff publishes no asset (only
+  # linux/darwin/windows). Termux packages it natively to bionic, so install
+  # from `pkg` (run_onchange_before.sh) and let hk resolve it from PATH.
+  "ruff",
+  # Same as ruff: no android/arm64 asset upstream, native Termux package
+  # installed from `pkg`, resolved by hk from PATH.
+  "shellcheck",
+  # Same as ruff: no android/arm64 asset upstream, native Termux package
+  # installed from `pkg`, resolved by hk from PATH.
+  "shfmt",
+  # Disabled for the same reason as age, above -- the two are always pinned
+  # together by a repo keeping SOPS-encrypted secrets.
+  "sops",
+  # `aqua:astral-sh/uv` has no android asset either. Unlike the tools above it
+  # gets no replacement: uv's only consumer here is `pipx:clang-format`, which
+  # comes from Termux's `clang` package instead, so there's nothing left for it
+  # to install.
+  "uv",
+]

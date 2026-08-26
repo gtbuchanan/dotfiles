@@ -15,7 +15,6 @@ Documents
 
 {{- if ne .chezmoi.os "android" }}
 .chezmoiscripts/android/**
-.config/mise
 .local/bin/bw-session-termux
 .local/bin/pinentry-termux
 .local/bin/pnpm

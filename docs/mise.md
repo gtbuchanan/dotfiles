@@ -21,14 +21,14 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoidata/actionlint.yaml`](../home/.chezmoidata/actionlint.yaml)                                                                                   | Pinned `actionlint` version for the Termux install (Renovate-tracked)  |
 | [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                   | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked) |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                       | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`            |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                               | Gates `.config/mise` (and the android scripts) to Termux only          |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                               | Gates the android scripts to Termux only                               |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl) | Termux out-of-band `actionlint` install                                |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                 | Termux out-of-band `hk` + `pkl` install                                |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                     | Termux mise + native-bionic linters (`pkg`)                            |
 | [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                       | macOS mise install (Homebrew formula)                                  |
 | [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)                                         | Linux mise install (`mise.run`)                                        |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                     |
-| [`home/dot_config/mise/config.toml`](../home/dot_config/mise/config.toml)                                                                                     | Global mise config — **Android-only** (Termux backend workarounds)     |
+| [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                              | Global mise config fragments, gated per-platform by their own ignore   |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)                           | `mise activate pwsh`                                                   |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                           | Shims dir on PATH (non-interactive)                                    |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Windows mise install + shims-dir PATH entry                            |
@@ -61,17 +61,39 @@ Non-interactive POSIX contexts don't run `mise activate`, so
 system tools). Windows covers the same gap via the user-PATH shims entry
 above.
 
-## Global mise Config Is Android-Only
+## Global mise Config Fragments
 
-[`dot_config/mise/config.toml`](../home/dot_config/mise/config.toml) is the
-**only** repo-managed global mise config, and it is gated to Termux —
-[`.chezmoiignore`](../home/.chezmoiignore) excludes `.config/mise` on every OS
-except android. On glibc Linux, macOS, and Windows there is intentionally no
-global config: mise's `core`/`aqua` backends install everything cleanly, so
-the repo leaves the global namespace empty and lets each project's `mise.toml`
-drive tool versions.
+The repo-managed global config is a set of fragments under
+[`dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d), not a single
+`config.toml`. mise loads every non-hidden `.toml` in that directory
+alphabetically, below `~/.config/mise/config.toml` in precedence, which leaves
+the plain config file free for anything hand-written on a host. The only
+fragment so far is [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml),
+deployed on android alone.
 
-The Termux config exists only because mise's backend OS detection is
+**Dev toolchains stay out of the global namespace** on every platform. mise's
+`core`/`aqua` backends install them cleanly, so each project's `mise.toml`
+drives those versions, and the global namespace holds only what no project
+would own.
+
+The split into fragments is what keeps them **plain TOML instead of chezmoi
+templates**, and that is the point of the layout. Renovate's own `mise` manager
+parses these files and resolves their datasources directly, so a version pinned
+here needs no hand-written `# renovate:` annotation and no custom regex
+manager. Go template directives would make a file unparseable and push it back
+onto one. So the per-platform split lives in
+[`conf.d/.chezmoiignore`](../home/dot_config/mise/conf.d/.chezmoiignore) rather
+than in `{{ if }}` gates inside the files.
+
+The manager needs one nudge to find them: its built-in patterns key on a literal
+`.config/mise/conf.d`, which the chezmoi `dot_config` source path doesn't match,
+so [`renovate.json`](../.github/renovate.json) adds a pattern for this
+directory. `managerFilePatterns` is additive, so the repo-root `mise.toml` keeps
+matching by default.
+
+## Global mise Config Termux Fragment
+
+The Termux fragment exists only because mise's backend OS detection is
 **compile-time**: Termux-native mise always resolves `android/arm64`, for
 which aqua publishes no assets and `core` backends fall back to
 from-source builds that don't compile against bionic. The config therefore:
@@ -92,8 +114,9 @@ from-source builds that don't compile against bionic. The config therefore:
   resolve DNS on bionic (breaking `.chezmoiexternal` fetches), so it too is
   disabled in favor of the `pkg` build.
 
-Each disabled tool's per-tool rationale lives inline in the config — keep that
-as the source of truth and update it when a tool's Android story changes.
+Each disabled tool's rationale lives beside its own `disable_tools` entry —
+keep that as the source of truth and update it when a tool's Android story
+changes.
 
 ## hk Pre-Commit Toolchain on Termux
 
@@ -122,8 +145,8 @@ landing wrappers/symlinks in `~/.local/bin`:
     runtime dependency.
 
 The full per-tool breakdown (which backend fails and why each tool takes the
-route it does) lives inline in
-[`dot_config/mise/config.toml`](../home/dot_config/mise/config.toml).
+route it does) lives beside each entry in
+[`conf.d/termux.toml`](../home/dot_config/mise/conf.d/termux.toml).
 
 ## hk Toolchain Version Pinning
 

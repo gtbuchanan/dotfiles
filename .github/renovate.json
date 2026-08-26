@@ -47,6 +47,12 @@
   "extends": [
     "local>gtbuchanan/tooling"
   ],
+  "mise": {
+    "description": "The deployed global mise fragments live under a chezmoi `dot_config` source path, which the manager's built-in patterns (keyed on a literal `.config`) can't match. Every fragment is kept as plain TOML rather than a chezmoi template so this manager can parse it, which is what makes per-dep `# renovate:` annotations unnecessary there; docs/mise.md carries the rationale. managerFilePatterns is additive, so the repo-root mise.toml keeps matching by default.",
+    "managerFilePatterns": [
+      "/^home/dot_config/mise/conf\\.d/.+\\.toml$/"
+    ]
+  },
   "packageRules": [
     {
       "description": "Restrict noisy agent-skill digest updates to a single early-morning window on the 1st and 15th (America/Chicago). The narrow window keeps the snapshot of `main` to one PR per dep per cycle: daytime merges fall outside it, so a freshly-advanced `main` can't trigger a same-day follow-up PR.",

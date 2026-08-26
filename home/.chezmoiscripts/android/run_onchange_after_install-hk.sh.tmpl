@@ -4,9 +4,9 @@
 
   Termux-native mise can't install hk, pkl, or actionlint via aqua — its
   OS detection is compile-time, so it always resolves android/arm64, for
-  which aqua has no assets (see dot_config/mise/config.toml's disable_tools
-  and the per-tool rationale there). This installs the two tools hk needs
-  to run locally out of band.
+  which aqua has no assets (see dot_config/mise/conf.d/termux.toml's
+  disable_tools and the per-tool rationale there). This installs the two
+  tools hk needs to run locally out of band.
 
   hk:  static musl aarch64 release tarball, runs unmodified on bionic.
   pkl: glibc-dynamic `pkl-linux-aarch64`, launched through glibc-runner
