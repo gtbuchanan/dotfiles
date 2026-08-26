@@ -29,5 +29,18 @@ foreach ($name in $modules.Keys) {
   if (Test-Path (Join-Path $dest "$name/$version")) { continue }
 
   [Console]::Error.WriteLine("Provisioning $name $version into .psmodules")
-  Save-Module -Name $name -RequiredVersion $version -Repository PSGallery -Path $dest
+
+  # PSResourceGet rather than PowerShellGet's Save-Module, which cannot run
+  # under globalization-invariant mode -- it resolves an en-us culture and
+  # fails ("en-us is an invalid culture identifier"). Termux runs pwsh that way
+  # by necessity, since no ICU its runtime accepts is packaged there (see
+  # dot_config/mise/conf.d/termux.toml), so Save-Module makes .psmodules
+  # unprovisionable on that host and takes the psscriptanalyzer hk step with
+  # it. Both write the same $dest/<name>/<version> layout, so the idempotency
+  # check above and PSModulePath resolution are unaffected.
+  #
+  # The version is a bracketed NuGet range, which is how PSResourceGet spells
+  # "exactly this one" -- a bare version is a minimum.
+  Save-PSResource -Name $name -Version "[$version]" -Repository PSGallery `
+    -TrustRepository -Path $dest
 }
