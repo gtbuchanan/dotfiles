@@ -4,7 +4,7 @@ Function ccc { clear; claude @args }
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
 {{- if eq .chezmoi.os "windows" }}
-Function ls { eza --icons @args }
+Function ls { eza --icons=auto @args }
 
 Function su { sudo pwsh -NoLogo }
 
