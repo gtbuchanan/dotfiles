@@ -1,11 +1,12 @@
+{{- if eq .chezmoi.os "android" -}}
 #!/data/data/com.termux/files/usr/bin/bash
 # Runs hass-cli with credentials in its environment and nowhere else.
 #
 # hass-cli reads its server and token from the environment on every invocation
 # and has no config file, so something must put them there. Doing it in mise's
-# `[env]`, as the Windows half does, exports them to every process mise spawns
-# through a shim -- `redact` hides them from `mise doctor` but not from `mise
-# env`. This wrapper narrows that to the one process that needs them.
+# `[env]` exported them to every process mise spawns through a shim -- `redact`
+# hid them from `mise doctor` but not from `mise env`. This wrapper narrows that
+# to the one process that needs them.
 #
 # It works because PATH puts ~/.local/bin/wrappers ahead of mise's shims, in
 # .profile for non-interactive callers and again after `mise activate` in
@@ -20,7 +21,7 @@
 # command; here a fingerprint prompt is exactly what the caller asked for.
 #
 # And a failure is this command's failure alone, so it exits non-zero and says
-# why, rather than the `|| exit 0` the fragment needs to keep a locked vault
+# why, rather than the `|| exit 0` the fragment needed to keep a locked vault
 # from breaking every mise command on the host.
 #
 # One `hass-vault` call, not two: resolving costs a keystore round trip, and
@@ -53,3 +54,19 @@ export HASS_SERVER HASS_TOKEN
 # exec, so hass-cli inherits this process rather than gaining a parent holding
 # the same credentials.
 exec "$SHIM" "$@"
+{{- else -}}
+#!/usr/bin/env sh
+# Git Bash entry point for the hass-cli wrapper. The wrapper itself is
+# hass-cli.cmd beside this file; this only exists so bash can find it.
+#
+# MSYS bash does not honour PATHEXT, so a bare `hass-cli` never matches a .cmd
+# no matter where the wrappers directory sits on PATH -- bash walks straight
+# past it to mise's shim and runs hass-cli with no credentials, failing over to
+# zeroconf discovery exactly as it did before any of this existed. An
+# extensionless file is the only name bash will resolve, and bash can execute a
+# .cmd given a path, so the two facts meet here.
+#
+# Deliberately a hand-off rather than a second implementation: duplicating the
+# credential handling in two languages would mean two places to get it wrong.
+exec "$(dirname "$0")/hass-cli.cmd" "$@"
+{{- end }}

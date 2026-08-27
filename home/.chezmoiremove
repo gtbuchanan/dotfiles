@@ -19,3 +19,9 @@ AppData/Roaming/wt
 .local/bin/wt-bootstrap.bat
 .local/bin/wt-bootstrap.ps1
 .agents/skills/wt
+
+# The hass-cli wrapper replaced the mise [env] fragment that used to supply
+# HASS_SERVER/HASS_TOKEN. Dropping it from the source only stops chezmoi
+# managing it, so a host that already has it would keep exporting the token to
+# everything mise spawns — the exact exposure the wrapper closes.
+.config/mise/conf.d/home-assistant-credentials.toml

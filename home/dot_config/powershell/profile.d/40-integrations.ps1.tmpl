@@ -28,6 +28,15 @@ if ($mise) {
   & $mise activate pwsh | Out-String | Invoke-Expression
 }
 
+# Re-prepend the wrapper directory, since activation puts mise's real tool paths
+# in front of whatever the user PATH set. A wrapper is only reachable ahead of
+# the tool it wraps, and mise-managed tools resolve to their install directory
+# here, not the shim. See the winget config's wrappersPath resource.
+$wrappers = Join-Path $HOME '.local\bin\wrappers'
+if (Test-Path $wrappers) {
+  $env:PATH = "$wrappers$([IO.Path]::PathSeparator)$env:PATH"
+}
+
 # Worktrunk shell integration: subprocesses can't change the parent shell's
 # cwd, so `wt config shell init powershell` emits a wrapper function that
 # reads directive files written by the binary and runs `cd` in the host

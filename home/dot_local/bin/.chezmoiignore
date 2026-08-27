@@ -13,9 +13,10 @@ tsgolint
        each is its own implementation rather than a port. Personal because
        hass-cli is only deployed there; Linux and macOS have neither yet.
 
-       The Windows pair keeps the `hass-vault` name because mise's [env] names a
-       bare command on PATH and the .cmd shim is how a .ps1 becomes one. Termux
-       reaches its resolver from the wrappers/ directory instead. */}}
+       The Windows half is a pair because a .ps1 is not executable: the wrapper
+       invokes `hass-vault` as a bare command and the .cmd shim is how a .ps1
+       becomes one. Both halves live here rather than in wrappers/, which holds
+       only commands that must outrank a mise shim of the same name. */}}
 {{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
 hass-vault.cmd
 hass-vault.ps1

@@ -1,8 +1,15 @@
 {{- /* The hass-cli wrapper puts credentials in that one process's environment
        instead of exporting them from mise's [env] to everything mise spawns.
-       Termux because that is where the resolver behind it lives; personal
-       because hass-cli is only deployed there. Windows still uses [env] —
-       see docs/home-assistant.md. */}}
-{{- if or (ne .chezmoi.os "android") (ne .hosttype "personal") }}
+       Personal because hass-cli is only deployed there; Linux and macOS have
+       neither a resolver nor a wrapper yet. See docs/home-assistant.md.
+
+       Windows takes two files for the one command. `hass-cli.cmd` is the
+       wrapper, and the extensionless `hass-cli` is a hand-off to it for Git
+       Bash, which does not honour PATHEXT and would otherwise walk past the
+       .cmd to mise's shim. Termux needs only the extensionless one. */}}
+{{- if or (and (ne .chezmoi.os "android") (ne .chezmoi.os "windows")) (ne .hosttype "personal") }}
 hass-cli
+{{- end }}
+{{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
+hass-cli.cmd
 {{- end }}

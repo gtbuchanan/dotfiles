@@ -1,20 +1,20 @@
-# Resolves one Home Assistant CLI credential from the Bitwarden vault and prints
-# it, for the `[env]` entries in mise's home-assistant.toml fragment to capture.
+# Resolves the Home Assistant CLI's server and token from the Bitwarden vault,
+# for the hass-cli wrapper in ~/.local/bin/wrappers to put in that one process's
+# environment.
 #
-# One value per call because mise `[env]` templating sets a single variable per
-# `exec()`, so HASS_SERVER and HASS_TOKEN are two separate invocations. A vault
-# lookup costs several seconds -- roughly four of which are Node starting up
-# before the vault is even touched -- and mise's computed-env cache does not
-# engage on the shims-only path that non-interactive callers take, so an
-# uncached resolver would pay that on every command. Hence the cache below: the
-# first call fetches both values and wraps them, the second reads them back.
+# Both values in one call, because that is one vault round trip rather than two.
+# The pair used to be fetched separately, a variable per `exec()`, back when
+# mise's `[env]` set them -- the cache below exists because that path re-ran the
+# resolver on every command. The wrapper runs it once per hass-cli invocation
+# instead, but the cache still earns its place: a lookup costs several seconds,
+# roughly four of them Node starting up before the vault is even touched.
 #
 # One resolver per platform rather than one ported around, and the wrapping
 # below is why: it is bound to DPAPI. The Termux counterpart is `hass-vault`,
 # which wraps against the Android hardware keystore instead and diverges on the
 # points that follow from it. Linux and macOS are simply not built yet -- on
-# those hosts hass-cli installs but has no credentials, and the mise fragment
-# that sets them is not deployed.
+# those hosts hass-cli installs but has no credentials, and no wrapper is
+# deployed to supply them.
 #
 # The at-rest wrapping is DPAPI, matching bw-session-windows.ps1 -- see that
 # file for why Windows Hello for Business isn't available here and what DPAPI
@@ -26,17 +26,18 @@
 # This caches the credential itself rather than a key that unlocks a vault, so
 # it is deliberately shorter-lived than the bw session cache beneath it.
 #
-# `token` and `server` exist to be captured by mise, not to be read by a human:
-# they print a credential to stdout, so running one to "see if it works" puts a
-# long-lived token into a terminal, a shell history, a log, or an agent
-# transcript. Use `check` to diagnose instead -- it resolves the same way and
-# reports the outcome without emitting either value.
+# `credential` exists to be read by the wrapper, not by a human: it prints the
+# token to stdout, so running it to "see if it works" puts a long-lived
+# credential into a terminal, a shell history, a log, or an agent transcript.
+# Use `check` to diagnose instead -- it resolves the same way and reports the
+# outcome without emitting either value. It is the only subcommand that emits
+# one, matching Termux, so the rule agents are given is the same on both.
 #
-# Commands: token (default) | server | check | reset | status
+# Commands: credential (default) | check | reset | status
 [CmdletBinding()]
 param(
-  [ValidateSet('token', 'server', 'check', 'reset', 'status')]
-  [string]$Command = 'token'
+  [ValidateSet('credential', 'check', 'reset', 'status')]
+  [string]$Command = 'credential'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -179,8 +180,7 @@ switch ($Command) {
   }
   'check' {
     # Reports shape, never values: the whole point is that a failure can be
-    # diagnosed without printing a secret somewhere it will persist. The error
-    # goes to stderr, where mise would have swallowed it.
+    # diagnosed without printing a secret somewhere it will persist.
     try {
       $creds = Get-VaultCredential
     }
@@ -202,9 +202,10 @@ switch ($Command) {
     break
   }
   default {
-    # Diagnostics go to stderr and the exit code carries the failure: mise
-    # swallows an `[env]` exec's stderr, so a bad lookup must not put an error
-    # message on stdout where it would be captured as the credential.
+    # Server first, then token, one per line -- the order the wrapper reads
+    # them in. Diagnostics go to stderr and the exit code carries the failure,
+    # so a bad lookup can never put an error message on stdout where the
+    # wrapper would read it as a credential.
     try {
       $creds = Get-VaultCredential
     }
@@ -212,7 +213,8 @@ switch ($Command) {
       Write-Diag $_.Exception.Message
       exit 1
     }
-    if ($Command -eq 'server') { Write-Output $creds.Server } else { Write-Output $creds.Token }
+    Write-Output $creds.Server
+    Write-Output $creds.Token
   }
 }
 
