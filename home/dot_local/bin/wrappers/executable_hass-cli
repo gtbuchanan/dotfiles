@@ -1,0 +1,55 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Runs hass-cli with credentials in its environment and nowhere else.
+#
+# hass-cli reads its server and token from the environment on every invocation
+# and has no config file, so something must put them there. Doing it in mise's
+# `[env]`, as the Windows half does, exports them to every process mise spawns
+# through a shim -- `redact` hides them from `mise doctor` but not from `mise
+# env`. This wrapper narrows that to the one process that needs them.
+#
+# It works because PATH puts ~/.local/bin/wrappers ahead of mise's shims, in
+# .profile for non-interactive callers and again after `mise activate` in
+# .bashrc. So agents, scripts, and interactive shells all reach this rather than
+# the shim -- which is what a shell function could never do, and why `[env]` was
+# the original answer.
+#
+# Two things follow from only running when someone asked for hass-cli.
+#
+# It may prompt. mise cannot tell hass-cli from anything else it runs, so an
+# `[env]` resolver had to stay silent rather than raise a dialog on an unrelated
+# command; here a fingerprint prompt is exactly what the caller asked for.
+#
+# And a failure is this command's failure alone, so it exits non-zero and says
+# why, rather than the `|| exit 0` the fragment needs to keep a locked vault
+# from breaking every mise command on the host.
+#
+# One `hass-vault` call, not two: resolving costs a keystore round trip, and
+# splitting it across `server` and `token` would pay that twice.
+
+set -euo pipefail
+
+readonly SHIM="$HOME/.local/share/mise/shims/hass-cli"
+
+if [ ! -x "$SHIM" ]; then
+  printf 'hass-cli: mise shim not found at %s\n' "$SHIM" >&2
+  printf "hass-cli: run 'mise install' to install the pinned CLI\n" >&2
+  exit 127
+fi
+
+# Read the pair over a pipe rather than through argv or a file, and hold it only
+# for as long as it takes to exec.
+if ! credential=$(hass-vault credential); then
+  printf "hass-cli: could not resolve credentials; run 'hass-vault check'\n" >&2
+  exit 1
+fi
+
+{
+  IFS= read -r HASS_SERVER
+  IFS= read -r HASS_TOKEN
+} <<<"$credential"
+unset credential
+export HASS_SERVER HASS_TOKEN
+
+# exec, so hass-cli inherits this process rather than gaining a parent holding
+# the same credentials.
+exec "$SHIM" "$@"

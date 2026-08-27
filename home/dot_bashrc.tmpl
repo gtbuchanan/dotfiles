@@ -67,6 +67,11 @@ command -v wt >/dev/null && eval "$(wt config shell init bash)"
 # paths, overriding the shims that .profile adds for non-interactive use
 command -v mise >/dev/null && eval "$(mise activate bash)"
 
+# Re-prepend the wrapper directory, since activation puts mise's paths in front
+# of whatever .profile set. A wrapper is only reachable ahead of the shim for
+# the tool it wraps. See dot_profile.tmpl.
+[ -d "$HOME/.local/bin/wrappers" ] && export PATH="$HOME/.local/bin/wrappers:$PATH"
+
 # Add aliases
 . "$HOME/.bash_aliases"
 

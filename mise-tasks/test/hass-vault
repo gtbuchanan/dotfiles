@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Unit-test the Termux hass-vault resolver with shUnit2 (device-only)"
+#
+# Renders hass-vault from the chezmoi source and drives it against a stubbed
+# vault, so no prompt is raised and no credential is touched. See
+# test/hass_vault_test.sh.
+#
+# Unlike test:templates-android, this cannot be borrowed from termux-docker: it
+# exercises the Android hardware keystore through Termux:API, which needs the
+# Termux:API app on a real device. So it is not wired into hk or CI, and skips
+# cleanly anywhere it cannot apply.
+#
+#   mise run test:hass-vault [-- shUnit2 args, e.g. a test_* name filter]
+set -euo pipefail
+
+exec bash "$MISE_PROJECT_ROOT/test/hass_vault_test.sh" "$@"

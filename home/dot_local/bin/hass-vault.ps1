@@ -9,10 +9,12 @@
 # uncached resolver would pay that on every command. Hence the cache below: the
 # first call fetches both values and wraps them, the second reads them back.
 #
-# Windows-only so far, and the wrapping below is why: it is bound to DPAPI, so
-# each platform needs its own resolver rather than a port of this one. The
-# others are simply not built yet -- on those hosts hass-cli installs but has no
-# credentials, and the mise fragment that sets them is not deployed.
+# One resolver per platform rather than one ported around, and the wrapping
+# below is why: it is bound to DPAPI. The Termux counterpart is `hass-vault`,
+# which wraps against the Android hardware keystore instead and diverges on the
+# points that follow from it. Linux and macOS are simply not built yet -- on
+# those hosts hass-cli installs but has no credentials, and the mise fragment
+# that sets them is not deployed.
 #
 # The at-rest wrapping is DPAPI, matching bw-session-windows.ps1 -- see that
 # file for why Windows Hello for Business isn't available here and what DPAPI

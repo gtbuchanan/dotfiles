@@ -102,6 +102,8 @@ Key variables available in `.tmpl` files:
 package.json                       # Dev-tooling devDependencies; Renovate-managed
 pnpm-workspace.yaml                # pnpm catalogs: dev toolchain + globals (pnpm add -g)
 scripts/                           # Repo-local dev/lint scripts wired into hk (not deployed)
+test/                              # shUnit2 suites, run via `mise run test:*` (not deployed)
+vendor/                            # Vendored dev dependencies (shUnit2); excluded from lint
 home/
 ├── .chezmoi.yaml.tmpl           # Chezmoi config; prompts for hosttype on first run
 ├── .chezmoiexternal.yaml.tmpl   # External resources fetched during apply (skills, vim-plug, ~/Code dev repos)

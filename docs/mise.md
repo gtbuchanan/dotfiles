@@ -69,12 +69,12 @@ The repo-managed global config is a set of fragments under
 alphabetically, below `~/.config/mise/config.toml` in precedence, which leaves
 the plain config file free for anything hand-written on a host.
 
-| Fragment                                                                                            | Deployed on      | Holds                                              |
-| --------------------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------- |
-| [`home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | personal Windows | `HASS_SERVER` / `HASS_TOKEN` from the vault        |
-| [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | personal hosts   | The `pipx:homeassistant-cli` pin                   |
-| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                                         | android          | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
-| [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | every host       | uv, the engine mise's `pipx:` backend installs via |
+| Fragment                                                                                            | Deployed on      | Holds                                                                      |
+| --------------------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------- |
+| [`home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | personal Windows | `HASS_SERVER` / `HASS_TOKEN` from the vault; Termux uses a wrapper instead |
+| [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | personal hosts   | The `pipx:homeassistant-cli` pin                                           |
+| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                                         | android          | `HK_PKL_BACKEND` + the `disable_tools` workarounds                         |
+| [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | every host       | uv, the engine mise's `pipx:` backend installs via                         |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`
