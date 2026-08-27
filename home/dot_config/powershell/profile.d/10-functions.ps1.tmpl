@@ -11,9 +11,10 @@ Function cmcd { Set-Location $ChezmoiSourcePath }
 
 # Pre-approve the MCP servers registered in dot_copilot/mcp-config.json — the
 # same read-only set Claude auto-allows via permissions.allow. Copilot CLI has
-# no persistent equivalent (its config exposes only allowedUrls, deniedUrls,
-# and trustedFolders), so tool approval has to be re-passed on every launch.
-# Shell and file-write tools are untouched and still prompt.
+# no persistent equivalent: its config exposes only allowedUrls, deniedUrls,
+# and trustedFolders, and an approval granted in-session dies with it, so the
+# grant has to be re-passed at every launch. Shell and file-write tools are
+# untouched and still prompt.
 #
 # The `=` form is load-bearing: --allow-tool is variadic, so the space form
 # swallows whatever follows it — `copilot --allow-tool readonly mcp list`
