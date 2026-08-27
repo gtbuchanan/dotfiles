@@ -2,6 +2,15 @@
 # gate. See docs/mise.md.
 
 [env]
+# PowerShell's .NET runtime refuses to start without an ICU it recognises:
+# "Couldn't find a valid ICU package installed on the system". Termux's
+# libicu-glibc is present and is not the problem -- it ships a soname newer
+# than this runtime will load, and there is no older one to install. Invariant
+# globalization is the documented escape hatch and costs nothing here: the only
+# consumer is the psscriptanalyzer hk step, which lints ASCII source and has no
+# culture-sensitive behaviour to lose. That step is otherwise unrunnable on
+# Termux, which means any commit touching a .ps1 file cannot pass the hook.
+DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1"
 # hk 1.48.0 defaults to an embedded pkl evaluator; on Termux its bundled
 # rustls/reqwest client can't build without a system CA bundle and, even given
 # one, hangs fetching the remote pkl package over HTTPS. Route pkl through the
