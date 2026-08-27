@@ -7,14 +7,21 @@ android-patch-claude-code-tmpdir
 tsgolint
 {{- end }}
 
-{{- /* Serves the Home Assistant CLI's server and token to mise's [env] from the
-       Bitwarden vault. Windows because that is where the desktop app's
-       biometric IPC and the DPAPI-wrapped caches live, personal because
-       hass-cli is only deployed there. The other platforms install the CLI but
-       have no resolver yet, so they get no credentials either. */}}
+{{- /* Resolves the Home Assistant CLI's server and token from the Bitwarden
+       vault. One resolver per platform, since the at-rest wrapping is bound to
+       a platform API -- DPAPI on Windows, the Android keystore on Termux -- so
+       each is its own implementation rather than a port. Personal because
+       hass-cli is only deployed there; Linux and macOS have neither yet.
+
+       The Windows pair keeps the `hass-vault` name because mise's [env] names a
+       bare command on PATH and the .cmd shim is how a .ps1 becomes one. Termux
+       reaches its resolver from the wrappers/ directory instead. */}}
 {{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
 hass-vault.cmd
 hass-vault.ps1
+{{- end }}
+{{- if or (ne .chezmoi.os "android") (ne .hosttype "personal") }}
+hass-vault
 {{- end }}
 
 {{- /* Serves host passwords from the Bitwarden vault via SSH_ASKPASS. Windows

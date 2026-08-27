@@ -1,0 +1,8 @@
+{{- /* The hass-cli wrapper puts credentials in that one process's environment
+       instead of exporting them from mise's [env] to everything mise spawns.
+       Termux because that is where the resolver behind it lives; personal
+       because hass-cli is only deployed there. Windows still uses [env] —
+       see docs/home-assistant.md. */}}
+{{- if or (ne .chezmoi.os "android") (ne .hosttype "personal") }}
+hass-cli
+{{- end }}

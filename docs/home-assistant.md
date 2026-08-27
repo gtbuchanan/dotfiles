@@ -2,19 +2,23 @@
 
 [`hass-cli`](https://github.com/home-assistant-ecosystem/home-assistant-cli)
 drives a Home Assistant instance from the terminal. It is deployed on **personal
-hosts only**, on every platform this repo supports. Credentials are wired up on
-**Windows so far** — see [Credentials](#credentials).
+hosts only**, on every platform this repo supports. Credentials are wired up on **Windows and Termux**, by deliberately different mechanisms — see [Credentials](#credentials).
 
 ## File Map
 
-| File                                                                                                                            | Role                                                            |
-| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)       | Installs Termux's native `uv`, the install engine on Android    |
-| [`home/dot_config/mise/conf.d/home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | `HASS_SERVER` / `HASS_TOKEN` via `[env]`, personal Windows only |
-| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | The version pin, personal hosts                                 |
-| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | uv, the engine mise's `pipx:` backend installs through          |
-| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                                     | Shim, so `[env]` can name a bare command on PATH                |
-| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                                     | Vault resolver + DPAPI-wrapped credential cache                 |
+| File                                                                                                                            | Role                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)       | Installs Termux's native `uv`, the install engine on Android |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                               | Re-prepends `wrappers/` after `mise activate`                |
+| [`home/dot_config/mise/conf.d/home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | `HASS_SERVER` / `HASS_TOKEN` via `[env]`, personal Windows   |
+| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | The version pin, personal hosts                              |
+| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | uv, the engine mise's `pipx:` backend installs through       |
+| [`home/dot_local/bin/executable_hass-vault`](../home/dot_local/bin/executable_hass-vault)                                       | Vault resolver + keystore-sealed cache, Termux               |
+| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                                     | Shim, so `[env]` can name a bare command on PATH             |
+| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                                     | Vault resolver + DPAPI-wrapped cache, Windows                |
+| [`home/dot_local/bin/wrappers/executable_hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli)                         | Scopes the credentials to hass-cli's process, Termux         |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                             | Puts `wrappers/` ahead of the mise shims                     |
+| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                         | shUnit2 suite, device-only (`mise run test:hass-vault`)      |
 
 ## Installation
 
@@ -33,98 +37,95 @@ same `pipx:` pin resolves there.
 
 ## Credentials
 
-hass-cli takes its server and token from `HASS_SERVER` / `HASS_TOKEN` (or from
-flags) on **every** invocation. It has no config file and no hook for fetching a
-secret, so something has to put them in the environment.
+hass-cli takes its server and token from `HASS_SERVER` / `HASS_TOKEN` (or from flags) on **every** invocation. It has no config file and no hook for fetching a secret, so something has to put them in the environment. The two platforms answer that differently, and the difference is the interesting part.
 
-That something is mise's `[env]`, not a shell wrapper, and the reason is worth
-recording because the wrapper is the obvious design and it does not work.
+|               | Windows                                  | Termux                             |
+| ------------- | ---------------------------------------- | ---------------------------------- |
+| Delivery      | mise `[env]`                             | `hass-cli` wrapper on PATH         |
+| Token reaches | every process mise spawns through a shim | hass-cli's process                 |
+| At rest       | DPAPI                                    | Android hardware keystore          |
+| On a miss     | resolves silently, fails soft            | resolves, may prompt, fails loudly |
 
 ### Why Not a Shell Wrapper
 
-A function named `hass-cli` that resolves credentials and forwards to the binary
-only exists in shells that loaded a profile. Agent harnesses, scripts, and any
-non-interactive shell resolve the mise shim on PATH instead, get no credentials,
-and fall through to zeroconf discovery — `Found no Home Assistant on local
-network. Using defaults`. That is the common case, not an edge case: it is how
-every agent-driven invocation behaves.
+A shell _function_ named `hass-cli` only exists in shells that loaded a profile. Agent harnesses, scripts, and any non-interactive shell resolve the mise shim on PATH instead, get no credentials, and fall through to zeroconf discovery — `Found no Home Assistant on local network. Using defaults`. That is the common case, not an edge case: it is how every agent-driven invocation behaves. It is also why the Windows half uses `[env]`.
 
 Two smaller traps ruled out alongside it:
 
-- Dispatching through `mise exec -- hass-cli` looks tidier and is worse. In an
-  activated shell `mise` is itself a function (installed by `mise activate
-pwsh`), and forwarding through it drops the standalone `--`, so mise's parser
-  claims the first hass-cli flag that collides with one of its own
-  (`error: unexpected argument '--timeout' found`). It fails only on colliding
-  arguments, so it looks fine until it doesn't.
-- Passing `--server` / `--token` as flags would put a long-lived token in the
-  command line, readable from any process listing. Same reason the resolver
-  hands `bw` its session through the environment rather than `--session`,
-  matching [`ssh.md`](ssh.md)'s askpass helper.
+- Dispatching through `mise exec -- hass-cli` looks tidier and is worse. In an activated shell `mise` is itself a function, and forwarding through it drops the standalone `--`, so mise's parser claims the first hass-cli flag that collides with one of its own (`error: unexpected argument '--timeout' found`). It fails only on colliding arguments, so it looks fine until it doesn't.
+- Passing `--server` / `--token` as flags would put a long-lived token in the command line, readable from any process listing.
 
-`[env]` has none of these problems: mise applies it in the shim path too, so
-activated shells, `mise exec`, scripts, and agents are all covered by one
-mechanism. The residual gap is running the binary by its absolute path inside
-mise's install directory, which nothing does by accident.
+### The Termux Wrapper
 
-### Resolution and Caching
+A wrapper _executable_ is a different thing from a shell function, and it does work — every caller reaches a file on PATH. The obstacle is that mise puts its shims directory ahead of `~/.local/bin`, so a wrapper there is shadowed by the tool's own shim.
 
-`[env]` templating sets one variable per `exec()`, so `HASS_SERVER` and
-`HASS_TOKEN` are two separate calls to `hass-vault`. A vault lookup costs ~11s —
-several of those seconds are Node starting up before the vault is touched — and
-mise's computed-env cache is session-scoped, so it does **not** engage on the
-shims-only path non-interactive callers take. An uncached resolver would
-therefore pay that on every command, twice.
+The fix is ordering, and both mutations belong to this repo:
+[`dot_profile`](../home/dot_profile.tmpl) prepends `~/.local/bin/wrappers` after the shims for non-interactive callers, and
+[`dot_bashrc`](../home/dot_bashrc.tmpl) prepends it again after `mise activate`, which rewrites PATH on activation. Verified in all three paths — non-interactive, activated, and after repeated `hook-env` runs.
 
-So `hass-vault` caches the resolved pair itself, wrapped with DPAPI exactly as
-[`bw-session-windows.ps1`](../home/dot_local/bin/bw-session-windows.ps1) wraps
-the vault session key — same protection, same sliding idle window, expiry bound
-as the entropy so editing it breaks decryption rather than extending the window.
-It is deliberately shorter-lived than the session cache beneath it, because it
-holds the credential rather than a key that unlocks a vault. Measured: ~11s
-cold, ~0.1s warm.
+It gets its own directory rather than putting `~/.local/bin` in front, which would change resolution for everything in there to win one name. Nothing in `~/.local/bin` collides with a shim today — but only because the tools that would (`pnpm`, `node`) are the ones `termux.toml`'s `disable_tools` disables, so mise generates no shim for them. Should one leave that list later, it would start shadowing mise's copy by way of a PATH change made years earlier for hass-cli. A dedicated directory keeps the reordering scoped to what asked for it, and says so.
 
-`env_cache_ttl` sits above that as a second cache, sparing activated shells from
-spawning the resolver at all on each directory change. Staleness is harmless
-because Home Assistant long-lived tokens don't rotate.
+**What this buys, beyond scoping the token:** the wrapper runs only because someone ran hass-cli. That dissolves the constraint behind most of the Windows design — mise cannot tell hass-cli from anything else it runs, but the wrapper does not have to. So the Termux resolver may prompt on a miss, since a fingerprint dialog is then exactly what the caller asked for, and it fails loudly, because the failure is hass-cli's alone rather than every mise command's.
 
-`hass-vault reset` drops the cache; `hass-vault status` reports what's left of
-the window.
+`disable_tools` would also drop the shim and free the name, and is not needed: the wrapper simply wins. It would additionally stop mise installing the tool, which is the pin's whole purpose.
 
-### Failure Is Silent by Design
+### The Cost
 
-The `[env]` entries end in `|| exit 0`, so a failed lookup yields an empty value
-instead of an error. Without it, a locked vault, a renamed item, or an offline
-`bw` would fail **every** mise command on the host rather than just hass-cli.
+hass-cli's own startup dominates any invocation, which is what makes the sealed cache affordable without a faster tier above it. Measured on-device:
 
-The cost is that failure is quiet: mise swallows an `[env]` exec's stderr, so
-hass-cli simply falls back to zeroconf and reports it cannot find Home
-Assistant. When that happens, run `hass-vault check` — it resolves the same way
-and prints the real reason to stderr.
+|                                 | per `hass-cli` call |
+| ------------------------------- | ------------------: |
+| hass-cli's own startup (floor)  |              876 ms |
+| wrapper + keystore-sealed cache |            ~1610 ms |
 
-Use `check` for this, never `token` or `server`. Those exist to be captured by
-mise and print a credential to stdout, so running one to test the setup writes a
-long-lived token into a terminal, a shell history, a log, or an agent
-transcript. `check` reports the outcome and the token's length, nothing more.
+The keystore round trip is a `termux-api` IPC call costing the better part of a second. One per invocation is affordable against that floor plus a network round trip; one per _mise command_ would not have been, which is the trap `[env]` falls into and the reason the Windows resolver needs a second cache tier.
+
+`hass-vault` resolves both values in a single call for the same reason — splitting them across two commands would pay for the keystore twice.
+
+### What `redact` Does Not Do
+
+The Windows `[env]` entries are marked `redact = true`, which may do less than the name suggests. **Measured on Termux:** the values stay out of `mise doctor`, but `mise env` prints both in full, and `mise env --redacted` narrows the listing to the redacted variables rather than masking their values — a shortcut to the secrets, not a mask.
+
+**Whether Windows behaves identically is unverified.** It is a reasonable assumption and not a safe one: mise's handling of an `[env]` exec's stderr already differs between the two platforms, so `redact` may too. Worth measuring before relying on it; until then, treat `mise env` output as the token itself.
+
+The wrapper removes this class of exposure on Termux by not putting the token in `[env]` at all. It remains open on Windows.
+
+### Failure
+
+The Windows `[env]` entries end in `|| exit 0`, so a failed lookup yields an empty value rather than breaking **every** mise command on the host. The cost is that hass-cli simply falls back to zeroconf.
+
+The Termux wrapper needs none of that: a failure there stops hass-cli and says why.
+
+Whether mise shows an `[env]` exec's stderr **differs by platform**, which is worth knowing before trusting either behaviour. On Windows it is swallowed, so a failed lookup really is silent and `hass-vault check` is the only way to see the reason. On Termux it is printed, once per variable — better, since a real fault surfaces unasked, but it means anything routine written there would repeat on every mise command. That is moot now that Termux resolves through a wrapper rather than `[env]`, and it is why the Termux resolver reserves stderr for genuine faults.
+
+`hass-vault check` reports whether credentials resolve without emitting either value; `hass-vault status` answers whether any are cached without touching the keystore or the vault. `hass-vault credential` exists for the wrapper and prints the pair, so it is not a command to run by hand.
 
 ### Vault Item
 
 The resolver expects one vault item carrying:
 
 - a **login URI** — the first one becomes `HASS_SERVER`; and
-- a **custom field named `CLI Token`** — a
-  [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile),
-  which becomes `HASS_TOKEN`.
+- a **custom field named `CLI Token`** — a [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile), which becomes `HASS_TOKEN`.
 
-The item is found by search rather than by a fixed id, so it stays renameable
-and no vault identifier is committed here. `bw`'s search matches names and URIs
-loosely, so it is only a prefilter: the result is narrowed to items that
-actually carry the `CLI Token` field, and **an ambiguous match is refused rather
-than guessed**. A miss triggers one `bw sync` and a retry, because the CLI
-serves a local copy of the vault that never refreshes on unlock — an item added
-from another device is otherwise invisible indefinitely.
+The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. A miss triggers one `bw sync` and a retry, because the CLI serves a local copy of the vault that never refreshes on unlock.
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
+
+### The Sealed Cache
+
+A vault lookup costs seconds and may prompt, so `hass-vault` caches the resolved pair, wrapped against the Android hardware keystore exactly as [`bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux) wraps the vault session key: a KEK derived from a deterministic signature by a non-extractable key, AES-256-GCM, the expiry bound as additional authenticated data so editing it breaks decryption rather than extending the window. The cache is therefore inert on any other device, which DPAPI's binding to the user identity does not give.
+
+The idle window slides, but only once more than half spent — rewriting costs another keystore round trip, and an idle timeout need not be exact. It stays under `bw-session-termux`'s, so the credential cache cannot outlive the session cache beneath it. `HASS_VAULT_IDLE_TIMEOUT` overrides it; a lapse costs a vault lookup, not a silent failure.
+
+**`termux-keystore` reports a missing alias by writing nothing and exiting 0.** A resolver that signs without checking therefore folds to the SHA-256 of the empty string and uses that public constant as its key — identically on write and read, so the cache round-trips perfectly while bound to nothing. The key is created up front on the write path, and that constant is refused. The test suite asserts the binding directly, because no assertion about behaviour can detect this.
+
+`hass-vault reset` drops the cache and the hardware key, making any surviving copy permanently unreadable.
+
+## Other Platforms
+
+Linux and macOS install the CLI but have no resolver, so they get no credentials. Each needs its own wrapping (Keychain, libsecret) because the at-rest binding is a platform API.
+
+Windows could take the wrapper approach too — that is what would close the `mise env` exposure there — but it needs its own wrapper and its own PATH ordering, and is not attempted here.
 
 ## Git Bash Path Arguments
 
@@ -147,13 +148,3 @@ MSYS2_ARG_CONV_EXCL='*' hass-cli raw get /api/
 
 Subcommands that take no path-shaped argument (`entity list`, `state get`, …)
 are unaffected, as is PowerShell.
-
-## Other Platforms
-
-Linux, macOS, and Termux install the CLI but have no resolver yet, so they get
-no credentials — the `[env]` fragment is gated to Windows and is not deployed
-there. This is unimplemented, not opted out. Each platform needs its own
-resolver rather than a port, because the at-rest wrapping is bound to a platform
-API (DPAPI here, the Android keystore in
-[`bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux)); the
-credential fragment gains that platform in its gate once one exists.

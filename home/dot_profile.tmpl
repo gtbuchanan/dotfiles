@@ -33,3 +33,14 @@ PATH="$(brew --prefix node@20)/bin:$PATH"
 # `mise activate` from bashrc instead, which prepends real tool paths).
 # Prepended last so mise-pinned tool versions win over system/Homebrew.
 [ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"
+
+# Wrappers that must outrank the shim for the tool they wrap — a wrapper named
+# after a mise-managed tool is only reachable ahead of that tool's shim.
+#
+# Its own directory rather than putting ~/.local/bin in front, which would
+# change resolution for everything in there to win one name. Nothing collides
+# today, but only because the tools that would are the ones disable_tools
+# disables; a tool leaving that list later would start shadowing mise's copy
+# from a PATH change made for something unrelated. This way the reordering
+# reaches exactly what asked for it.
+[ -d "$HOME/.local/bin/wrappers" ] && PATH="$HOME/.local/bin/wrappers:$PATH"

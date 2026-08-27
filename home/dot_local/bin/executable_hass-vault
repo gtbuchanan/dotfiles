@@ -1,0 +1,377 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Resolves the Home Assistant CLI's server and token from the Bitwarden vault,
+# for the hass-cli wrapper in ~/.local/bin/wrappers to put in that one process's
+# environment. The Termux counterpart of hass-vault.ps1, which serves mise's
+# `[env]` instead.
+#
+# HOW THIS DIFFERS FROM hass-vault.ps1, deliberately:
+#
+# The cache wraps against the Android hardware keystore, not DPAPI, reusing
+# bw-session-termux's scheme (see it for the full rationale): a KEK from a
+# deterministic signature by a non-extractable key, AES-256-GCM, the expiry
+# bound as AAD so editing it breaks decryption rather than extending the window.
+# The cache is therefore inert off-device, which DPAPI's binding to the user
+# identity does not give.
+#
+# It is called by a wrapper rather than by `[env]`, which is the larger
+# difference and the reason this file is simpler than its Windows counterpart.
+# `[env]` runs for every mise command and cannot tell hass-cli from anything
+# else, so the Windows resolver must never prompt, must fail soft, and must be
+# fast enough to pay twice per command -- constraints that bought it a second
+# cache tier. None of them apply here: this runs only when someone ran hass-cli.
+#
+# So it may prompt on a miss, since a fingerprint dialog is then exactly what
+# the caller asked for; a failure is hass-cli's alone, so it can be loud; and
+# one keystore round trip per invocation is affordable against hass-cli's own
+# startup, which is the larger cost either way.
+#
+# `credential` exists for the wrapper, not for a human: it prints the pair to
+# stdout, so running it to "see if it works" persists a long-lived token in a
+# terminal, a log, or an agent transcript. `check` reports the same outcome
+# without emitting either value, and `status` answers whether anything is cached
+# without touching the vault.
+#
+# Commands: credential | check | status | reset
+
+set -euo pipefail
+
+# Stable identifiers, deliberately independent of this script's filename:
+# changing the alias or the context string orphans the existing hardware key and
+# makes an already-cached credential undecryptable. Distinct from
+# bw-session-termux's pair so that resetting either leaves the other intact.
+#
+# HASS_VAULT_KEY_ALIAS lets a test run keep off the real key, and is not to be
+# set casually: another alias orphans every cache sealed under the old one, and
+# `reset` deletes whichever is named. The keystore is device-wide, so isolating
+# XDG_STATE_HOME does not cover it.
+readonly KEY_ALIAS="${HASS_VAULT_KEY_ALIAS:-hass-vault-kek}"
+readonly KEK_CONTEXT="$KEY_ALIAS/v1"
+
+readonly CACHE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hass-vault"
+readonly CACHE="$CACHE_DIR/cache.enc"
+
+# Sliding idle window, in seconds. A read past the halfway mark pushes the
+# expiry out again; earlier reads leave it alone, since rewriting costs another
+# keystore round trip and an idle timeout need not be exact. It stays under
+# bw-session-termux's, so this cache cannot outlive the session cache beneath
+# it. A lapse costs a vault lookup, not a silent failure.
+readonly IDLE_TIMEOUT="${HASS_VAULT_IDLE_TIMEOUT:-604800}"
+
+# Searched by name, not opened by item id, so the item stays renameable and no
+# vault identifier is committed here. bw matches names and URIs loosely, so this
+# is a prefilter: the result is narrowed to items carrying the token field, and
+# an ambiguous match is refused rather than guessed.
+readonly ITEM_QUERY="${HASS_VAULT_ITEM:-Home Assistant}"
+readonly TOKEN_FIELD='CLI Token'
+
+SCRIPT_DIR=${BASH_SOURCE[0]%/*}
+[[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]] && SCRIPT_DIR=.
+readonly SCRIPT_DIR
+
+# Diagnostics to stderr, failure in the exit code: stdout carries the credential
+# for `credential`, so an error written there would be consumed as one.
+die() {
+  printf '%s: %s\n' "${0##*/}" "$1" >&2
+  exit 1
+}
+
+# Writes $2 to $1 through a private temporary file, so a reader never sees a
+# half-written cache and never sees one world-readable.
+write_private() {
+  local path=$1 content=$2 tmp
+  mkdir -p "${path%/*}"
+  chmod 700 "${path%/*}"
+  tmp=$(mktemp "${path}.XXXXXX")
+  chmod 600 "$tmp"
+  printf '%s' "$content" >"$tmp"
+  mv "$tmp" "$path"
+}
+
+# --- hardware key -----------------------------------------------------------
+
+# SHA-256 of the empty string, and why the guard below exists. termux-keystore
+# reports a missing alias by writing nothing and raising a Termux:API error
+# notification -- then exits 0. So a blind sign does not fail; it folds to this
+# constant, which anyone can compute. Unrecognised, it becomes a hardcoded KEK,
+# and since the same constant comes out on write and read the cache round-trips
+# perfectly while bound to nothing.
+readonly EMPTY_SIGNATURE_KEK=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+# Signs the context string and folds the signature to a hex key. The signature
+# never lands in a variable or a file -- it is the key material, and bash cannot
+# hold its NUL bytes regardless.
+sign_context() {
+  printf '%s' "$KEK_CONTEXT" |
+    termux-keystore sign "$KEY_ALIAS" SHA256withRSA 2>/dev/null |
+    sha256sum | cut -d' ' -f1
+}
+
+# Derives the KEK as hex, or fails. Deliberately does not create the key --
+# ensure_key does, on the write path only. On a read a missing alias is a miss,
+# not cause to mint a key the existing cache was never sealed with.
+derive_kek() {
+  local kek
+  kek=$(sign_context) || return 1
+  [[ -n "$kek" && "$kek" != "$EMPTY_SIGNATURE_KEK" ]] || return 1
+  printf '%s' "$kek"
+}
+
+# Creates the hardware key if absent, so everything written is sealed under a
+# real one. Probes with `list` rather than letting a sign fail: signing a missing
+# alias costs an error notification and reports nothing, exiting 0 either way.
+#
+# No -u validity window: nothing here gates on presence, and -u expires relative
+# to the last device unlock, stranding the cache mid-session.
+ensure_key() {
+  termux-keystore list 2>/dev/null | jq -e --arg a "$KEY_ALIAS" \
+    'map(select(.alias == $a)) | length > 0' >/dev/null && return
+
+  termux-keystore generate "$KEY_ALIAS" -a RSA -s 2048 >/dev/null ||
+    die 'could not create hardware key'
+}
+
+# --- cache ------------------------------------------------------------------
+
+# The KEK travels to node via the environment rather than argv, which would be
+# visible in any process listing.
+# The AAD binds the expiry and the item query together: the expiry so editing it
+# breaks decryption rather than extending the window, and the query so a cache
+# filled for one vault item cannot be served for another. Without the latter,
+# HASS_VAULT_ITEM=Other returns the previous item's credentials until the window
+# lapses -- the read consults the cache before it ever reaches the vault.
+#
+# NUL-separated so a query cannot be crafted to collide with an expiry.
+encrypt_cache() {
+  local kek=$1 exp=$2
+  HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+    const crypto = require("crypto");
+    const kek = Buffer.from(process.env.HASS_KEK, "hex");
+    const exp = process.env.HASS_EXP;
+    const iv = crypto.randomBytes(12);
+    const cipher = crypto.createCipheriv("aes-256-gcm", kek, iv);
+    cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY));
+    const ct = Buffer.concat([
+      cipher.update(require("fs").readFileSync(0)),
+      cipher.final(),
+    ]);
+    process.stdout.write(JSON.stringify({
+      v: 1,
+      exp: Number(exp),
+      iv: iv.toString("base64"),
+      tag: cipher.getAuthTag().toString("base64"),
+      ct: ct.toString("base64"),
+    }));
+  '
+}
+
+decrypt_cache() {
+  local kek=$1
+  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+    const crypto = require("crypto");
+    const kek = Buffer.from(process.env.HASS_KEK, "hex");
+    const o = JSON.parse(require("fs").readFileSync(0, "utf8"));
+    const d = crypto.createDecipheriv("aes-256-gcm", kek,
+      Buffer.from(o.iv, "base64"));
+    d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY));
+    d.setAuthTag(Buffer.from(o.tag, "base64"));
+    process.stdout.write(Buffer.concat([
+      d.update(Buffer.from(o.ct, "base64")),
+      d.final(),
+    ]).toString());
+  '
+}
+
+# The unauthenticated expiry, read without touching the keystore, so a lapsed or
+# absent cache is rejected before paying for a round trip. Decryption
+# authenticates it properly, so trusting it here only risks work that then fails.
+cache_expiry() {
+  if [[ -s "$CACHE" ]]; then
+    jq -r '.exp // 0' "$CACHE" 2>/dev/null || printf '0'
+  else
+    printf '0'
+  fi
+}
+
+store_credential() {
+  local plain=$1 kek exp
+  ensure_key
+  kek=$(derive_kek) || die 'could not sign with the hardware key'
+  exp=$((EPOCHSECONDS + IDLE_TIMEOUT))
+  write_private "$CACHE" "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp")"
+}
+
+discard_cache() {
+  rm -f "$CACHE"
+}
+
+# Prints the cached "server\ntoken" pair, or fails. A wrong device, a rewritten
+# expiry, and a dropped hardware key are indistinguishable here and all equally
+# unusable, so each is treated as a miss.
+read_cache() {
+  local exp kek plain
+
+  exp=$(cache_expiry)
+  if [[ "$EPOCHSECONDS" -ge "$exp" ]]; then
+    discard_cache
+    return 1
+  fi
+
+  kek=$(derive_kek) || {
+    discard_cache
+    return 1
+  }
+
+  if ! plain=$(decrypt_cache "$kek" <"$CACHE" 2>/dev/null) || [[ -z "$plain" ]]; then
+    discard_cache
+    return 1
+  fi
+
+  if [[ $((exp - EPOCHSECONDS)) -lt $((IDLE_TIMEOUT / 2)) ]]; then
+    store_credential "$plain"
+  fi
+
+  printf '%s' "$plain"
+}
+
+# --- resolution -------------------------------------------------------------
+
+# The session travels by environment rather than --session, which would put the
+# key in the process command line. --nointeraction so a session the vault has
+# since invalidated errors out instead of prompting into the stdout this parses;
+# --raw likewise keeps bw's descriptive chatter out of that stream.
+find_vault_item() {
+  local session=$1
+  BW_SESSION="$session" bw list items --search "$ITEM_QUERY" \
+    --nointeraction --raw 2>/dev/null |
+    jq -c --arg f "$TOKEN_FIELD" \
+      '[.[] | select((.fields // []) | map(.name) | index($f))]' 2>/dev/null ||
+    printf '[]'
+}
+
+resolve_from_vault() {
+  local session items count item name server token
+
+  command -v bw >/dev/null || die 'bw not found'
+
+  # May raise a fingerprint dialog, and a master-password one past
+  # bw-session-termux's idle window -- native Android dialogs, so they reach the
+  # user though nothing here has a terminal. Its stderr passes through rather
+  # than being suppressed: it is all diagnosis, and only the key reaches stdout.
+  session=$("$SCRIPT_DIR/bw-session-termux" get) || session=''
+  [[ -n "$session" ]] || die 'could not unlock the vault'
+
+  items=$(find_vault_item "$session")
+  count=$(jq 'length' <<<"$items")
+
+  # The CLI serves a local copy of the vault and refreshes it only on an
+  # explicit sync -- not on unlock, and not on list -- so an item added from
+  # another device stays invisible here indefinitely. Syncing only on a miss
+  # keeps the cost off the common path.
+  if [[ "$count" -eq 0 ]]; then
+    BW_SESSION="$session" bw sync --nointeraction --raw >/dev/null 2>&1 || true
+    items=$(find_vault_item "$session")
+    count=$(jq 'length' <<<"$items")
+  fi
+
+  # Ambiguity is refused rather than guessed: picking one of several would hand
+  # over a credential the user never chose.
+  if [[ "$count" -gt 1 ]]; then
+    die "$count vault items match '$ITEM_QUERY'; refusing to guess"
+  fi
+  if [[ "$count" -eq 0 ]]; then
+    die "no vault item matching '$ITEM_QUERY' has a '$TOKEN_FIELD' field; set HASS_VAULT_ITEM to search another name"
+  fi
+
+  item=$(jq -c '.[0]' <<<"$items")
+  name=$(jq -r '.name // "?"' <<<"$item")
+  server=$(jq -r '[.login.uris[]?.uri] | first // empty' <<<"$item")
+  token=$(jq -r --arg f "$TOKEN_FIELD" \
+    '[.fields[] | select(.name == $f) | .value] | first // empty' <<<"$item")
+
+  [[ -n "$server" ]] || die "vault item '$name' has no URI to use as the server"
+  [[ -n "$token" ]] || die "vault item '$name' has an empty '$TOKEN_FIELD' field"
+
+  # A long-lived token over cleartext is worth failing over. Home Assistant is
+  # commonly reached at http:// on a LAN, so this is a policy rather than a
+  # universal truth -- but it is the right one where the URI comes from a vault
+  # item that is expected to be https, and a loud failure beats silently
+  # shipping the token in the clear if that item is ever edited.
+  [[ "$server" == https://* ]] ||
+    die "vault item '$name' has a non-https URI; refusing to send the token in the clear"
+
+  store_credential "$server"$'\n'"$token"
+  printf '%s\n%s' "$server" "$token"
+}
+
+get_credential() {
+  local plain
+
+  if plain=$(read_cache); then
+    printf '%s' "$plain"
+    return
+  fi
+
+  resolve_from_vault
+}
+
+# --- commands ---------------------------------------------------------------
+
+cmd_credential() {
+  get_credential
+  printf '\n'
+}
+
+# Reports shape, never values, so a failure can be diagnosed without printing a
+# secret somewhere it persists; the reason itself already went to stderr.
+cmd_check() {
+  local creds server token
+  if ! creds=$(get_credential); then
+    printf 'credentials did not resolve\n'
+    exit 1
+  fi
+  {
+    IFS= read -r server
+    IFS= read -r token
+  } <<<"$creds"
+  printf 'credentials resolved (server set, token %d chars)\n' "${#token}"
+}
+
+# Drops the hardware key too, making any surviving cache permanently
+# undecryptable -- the Windows reset can only delete the file.
+cmd_reset() {
+  discard_cache
+  termux-keystore delete "$KEY_ALIAS" 2>/dev/null || true
+  printf 'cache and hardware key removed\n'
+}
+
+# Deliberately touches neither the keystore nor the vault, so it answers
+# "is anything cached?" without a round trip or a prompt.
+cmd_status() {
+  local exp remaining
+
+  exp=$(cache_expiry)
+  remaining=$((exp - EPOCHSECONDS))
+  if [[ "$remaining" -gt 0 ]]; then
+    printf 'cached credentials valid for %ds\n' "$remaining"
+  elif [[ "$exp" -gt 0 ]]; then
+    printf 'cached credentials expired; hass-cli will resolve them again\n'
+  else
+    printf 'no cached credentials; hass-cli will resolve them on next use\n'
+  fi
+}
+
+# bw is checked lazily in resolve_from_vault instead: a cached read never
+# touches it, and failing over a tool that path does not use would turn a
+# working cache into an error.
+command -v jq >/dev/null || die 'jq not found'
+command -v node >/dev/null || die 'node not found'
+command -v termux-keystore >/dev/null ||
+  die 'termux-keystore not found (pkg install termux-api)'
+
+case "${1:-credential}" in
+check) cmd_check ;;
+credential) cmd_credential ;;
+reset) cmd_reset ;;
+status) cmd_status ;;
+*) die "unknown command: $1 (expected credential|check|status|reset)" ;;
+esac

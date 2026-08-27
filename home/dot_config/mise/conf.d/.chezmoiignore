@@ -11,9 +11,11 @@ termux.toml
 home-assistant.toml
 {{- end }}
 
-{{- /* Its credentials additionally need the vault resolver, which so far exists
-       only on Windows. Deploying them without one would export empty values
-       rather than none — see the fragment's own comment. */}}
+{{- /* Windows alone, and the resolver's existence is not the reason — Termux has
+       one too. It reaches hass-cli through a wrapper on PATH instead, which
+       keeps the token out of every other process mise spawns; `[env]` cannot,
+       so it is not deployed where a wrapper serves. Linux and macOS have
+       neither yet. See docs/home-assistant.md. */}}
 {{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
 home-assistant-credentials.toml
 {{- end }}
