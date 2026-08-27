@@ -4,6 +4,22 @@ Function ccc { clear; claude @args }
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
 {{- if eq .chezmoi.os "windows" }}
+{{- $allowMcp := list -}}
+{{- range $name, $_ := (include "dot_copilot/mcp-config.json" | fromJson).mcpServers -}}
+{{- $allowMcp = append $allowMcp (printf "--allow-tool=%s" $name) -}}
+{{- end }}
+
+# Pre-approve the MCP servers registered in dot_copilot/mcp-config.json — the
+# same read-only set Claude auto-allows via permissions.allow. Copilot CLI has
+# no persistent equivalent (its config exposes only allowedUrls, deniedUrls,
+# and trustedFolders), so tool approval has to be re-passed on every launch.
+# Shell and file-write tools are untouched and still prompt.
+#
+# The `=` form is load-bearing: --allow-tool is variadic, so the space form
+# swallows whatever follows it — `copilot --allow-tool readonly mcp list`
+# reads `mcp` and `list` as tool names and never runs the subcommand.
+Function copilot { copilot.exe {{ join " " $allowMcp }} @args }
+
 Function ls { eza --icons=auto @args }
 
 Function su { sudo pwsh -NoLogo }

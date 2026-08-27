@@ -17,6 +17,7 @@ Android only — Linux and macOS would need install scripts added.
 | [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Windows: install + register `readonly-mcp` (stdio)                      |
 | [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json)                                                                     | VS Code `mcp.servers` config (shared across OSes)                       |
 | [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                       | Claude permissions `allow` list — explicitly enumerates every MCP tool  |
+| [`home/dot_config/powershell/profile.d/10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl)                                       | `copilot` wrapper re-passing each server as `--allow-tool` (Windows)    |
 | [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json)                                                                                           | Copilot CLI `mcpServers` config (shared across OSes)                    |
 | [`package.json`](../package.json)                                                                                                                                   | `@readonly-mcp/core` pin (GitHub-spec)                                  |
 
@@ -83,10 +84,14 @@ hashing, so they re-execute when the rendered registration command
 changes.
 
 Tool permissions diverge too. Claude auto-allows each MCP tool by name
-in `permissions.allow`, but Copilot CLI has no persistent equivalent —
-its config exposes `allowedUrls`, `deniedUrls`, and `trustedFolders`,
-and tool approval is flag-only (`--allow-tool 'readonly'`). So readonly
-tools still prompt in a default `copilot` session.
+in `permissions.allow`; Copilot CLI has no persistent equivalent, so a
+`copilot` function in
+[`10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl)
+shadows the binary and re-passes the servers as launch flags, deriving
+their names from `mcp-config.json` so registering one stays a one-file
+change. The reasoning and the flag's variadic footgun are commented
+there. It's PowerShell-only because Copilot CLI comes from winget, so
+Windows is the only platform that has it.
 
 ## Gaps
 
