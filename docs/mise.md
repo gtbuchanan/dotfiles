@@ -67,21 +67,27 @@ The repo-managed global config is a set of fragments under
 [`dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d), not a single
 `config.toml`. mise loads every non-hidden `.toml` in that directory
 alphabetically, below `~/.config/mise/config.toml` in precedence, which leaves
-the plain config file free for anything hand-written on a host. The only
-fragment so far is [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml),
-deployed on android alone.
+the plain config file free for anything hand-written on a host.
+
+| Fragment                                                                                            | Deployed on      | Holds                                              |
+| --------------------------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------- |
+| [`home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | personal Windows | `HASS_SERVER` / `HASS_TOKEN` from the vault        |
+| [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | personal hosts   | The `pipx:homeassistant-cli` pin                   |
+| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                                         | android          | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
+| [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | every host       | uv, the engine mise's `pipx:` backend installs via |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`
-drives those versions, and the global namespace holds only what no project
-would own.
+drives those versions. hass-cli is the standing exception, and it earns that by
+not being a dev toolchain: it is a user-facing application, so no project
+`mise.toml` would ever pin it and nothing downstream can be shadowed by it.
 
 The split into fragments is what keeps them **plain TOML instead of chezmoi
 templates**, and that is the point of the layout. Renovate's own `mise` manager
-parses these files and resolves their datasources directly, so a version pinned
-here needs no hand-written `# renovate:` annotation and no custom regex
-manager. Go template directives would make a file unparseable and push it back
-onto one. So the per-platform split lives in
+parses these files and resolves both the `pipx:` (PyPI) and `core` datasources,
+so no version here needs a hand-written `# renovate:` annotation or a custom
+regex manager. Go template directives would make a file unparseable and push it
+back onto one. So the per-platform split lives in
 [`conf.d/.chezmoiignore`](../home/dot_config/mise/conf.d/.chezmoiignore) rather
 than in `{{ if }}` gates inside the files.
 
@@ -105,14 +111,12 @@ from-source builds that don't compile against bionic. The config therefore:
   package over HTTPS on bionic; and
 - lists every tool with no usable Android backend in `disable_tools`. Most
   are then supplied from PATH instead — either native `pkg` builds or
-  out-of-band release fetches (below). The exceptions are `uv` and
-  `powershell`, which get no replacement: `uv` is disabled only because its
-  sole consumer here (`clang-format`) is satisfied by Termux's `clang`
-  package, and `powershell`'s only consumer (the psscriptanalyzer hk step)
-  isn't run on Termux. `chezmoi` is a further special case — aqua _does_ ship
-  an Android asset and mise installs it, but the generic Go binary can't
-  resolve DNS on bionic (breaking `.chezmoiexternal` fetches), so it too is
-  disabled in favor of the `pkg` build.
+  out-of-band release fetches (below). The exception is `powershell`, which
+  gets no replacement: its only consumer, the psscriptanalyzer hk step, isn't
+  run on Termux. `chezmoi` is a special case in the other direction — aqua
+  _does_ ship an Android asset and mise installs it, but the generic Go binary
+  can't resolve DNS on bionic (breaking `.chezmoiexternal` fetches), so it too
+  is disabled in favor of the `pkg` build.
 
 Each disabled tool's rationale lives beside its own `disable_tools` entry —
 keep that as the source of truth and update it when a tool's Android story

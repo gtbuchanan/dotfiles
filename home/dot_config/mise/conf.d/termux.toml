@@ -91,9 +91,9 @@ disable_tools = [
   # Disabled for the same reason as age, above -- the two are always pinned
   # together by a repo keeping SOPS-encrypted secrets.
   "sops",
-  # `aqua:astral-sh/uv` has no android asset either. Unlike the tools above it
-  # gets no replacement: uv's only consumer here is `pipx:clang-format`, which
-  # comes from Termux's `clang` package instead, so there's nothing left for it
-  # to install.
+  # `aqua:astral-sh/uv` has no android asset, so the uv.toml pin can't install
+  # here. Termux packages uv natively; disabling the mise one lets PATH fall
+  # through to that pkg build (installed in run_onchange_before.sh), which then
+  # serves as the engine mise's pipx backend shells out to.
   "uv",
 ]
