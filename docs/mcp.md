@@ -50,6 +50,8 @@ Microsoft's hosted HTTP MCP. Registered per client:
 
 - **Claude**: each OS's `claude-configure` script registers the
   endpoint as a user-scope HTTP MCP.
+- **VS Code**: an `mcp.servers.microsoft-learn` entry in the shared
+  [`vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) template.
 - **Copilot CLI**: an `mcpServers.microsoft-learn` entry in
   [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json).
 
@@ -92,5 +94,6 @@ tools still prompt in a default `copilot` session.
   deployed but no `readonly-mcp` binary installed and no Claude
   registration script. If Claude or Copilot is used there, add an
   install script modeled on the Windows or Android version.
-- **`microsoft-learn`** is registered with Claude and Copilot CLI;
-  whether VS Code should also register it hasn't been decided.
+- **Codex** is configured by this repo (see
+  [`agent-config.md`](agent-config.md)) but gets no MCP registration
+  at all — it reads `~/.codex/config.toml`, which isn't managed here.

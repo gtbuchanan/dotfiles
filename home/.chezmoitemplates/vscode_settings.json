@@ -31,6 +31,10 @@
   "markdown-preview-enhanced.previewTheme": "github-dark.css",
   "mcp": {
     "servers": {
+      "microsoft-learn": {
+        "type": "http",
+        "url": "https://learn.microsoft.com/api/mcp"
+      },
       "readonly": {
         "command": "readonly-mcp"
       }
