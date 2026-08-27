@@ -6,19 +6,21 @@ hosts only**, on every platform this repo supports. Credentials are wired up on 
 
 ## File Map
 
-| File                                                                                                                            | Role                                                         |
-| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)       | Installs Termux's native `uv`, the install engine on Android |
-| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                               | Re-prepends `wrappers/` after `mise activate`                |
-| [`home/dot_config/mise/conf.d/home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | `HASS_SERVER` / `HASS_TOKEN` via `[env]`, personal Windows   |
-| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | The version pin, personal hosts                              |
-| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | uv, the engine mise's `pipx:` backend installs through       |
-| [`home/dot_local/bin/executable_hass-vault`](../home/dot_local/bin/executable_hass-vault)                                       | Vault resolver + keystore-sealed cache, Termux               |
-| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                                     | Shim, so `[env]` can name a bare command on PATH             |
-| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                                     | Vault resolver + DPAPI-wrapped cache, Windows                |
-| [`home/dot_local/bin/wrappers/executable_hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli)                         | Scopes the credentials to hass-cli's process, Termux         |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                             | Puts `wrappers/` ahead of the mise shims                     |
-| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                         | shUnit2 suite, device-only (`mise run test:hass-vault`)      |
+| File                                                                                                                            | Role                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)       | Installs Termux's native `uv`, the install engine on Android        |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                               | Re-prepends `wrappers/` after `mise activate`                       |
+| [`home/dot_config/mise/conf.d/home-assistant-credentials.toml`](../home/dot_config/mise/conf.d/home-assistant-credentials.toml) | `HASS_SERVER` / `HASS_TOKEN` via `[env]`, personal Windows          |
+| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                         | The version pin, personal hosts                                     |
+| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                                 | uv, the engine mise's `pipx:` backend installs through              |
+| [`home/dot_local/bin/executable_hass-cli-postinstall`](../home/dot_local/bin/executable_hass-cli-postinstall)                   | Event-loop shim for Python 3.14 venvs, run by the pin's postinstall |
+| [`home/dot_local/bin/executable_hass-vault`](../home/dot_local/bin/executable_hass-vault)                                       | Vault resolver + keystore-sealed cache, Termux                      |
+| [`home/dot_local/bin/hass-cli-postinstall.cmd`](../home/dot_local/bin/hass-cli-postinstall.cmd)                                 | Windows no-op, so the shared pin's postinstall resolves there       |
+| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                                     | Shim, so `[env]` can name a bare command on PATH                    |
+| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                                     | Vault resolver + DPAPI-wrapped cache, Windows                       |
+| [`home/dot_local/bin/wrappers/executable_hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli)                         | Scopes the credentials to hass-cli's process, Termux                |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                             | Puts `wrappers/` ahead of the mise shims                            |
+| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                         | shUnit2 suite, device-only (`mise run test:hass-vault`)             |
 
 ## Installation
 
@@ -34,6 +36,26 @@ itself. On Termux it can't: aqua ships no android asset, so the mise-managed uv
 is in `termux.toml`'s `disable_tools` and Termux's own `pkg` build serves from
 PATH instead. Termux packages a Python new enough for the CLI's floor, so the
 same `pipx:` pin resolves there.
+
+### Python 3.14 and the Event-Loop Shim
+
+Termux's Python is past the CLI's ceiling, not just its floor. hass-cli 1.0.0 still calls `asyncio.get_event_loop()` from a thread with no running loop, which Python deprecated in 3.10 and removed in 3.14, so on Termux the affected subcommands died before reaching the network:
+
+```text
+error: RuntimeError: There is no current event loop in thread 'MainThread'.
+```
+
+`entity list` and `area list` take that path; `raw`, `state`, and `service` do not. It is unrelated to credentials — the failing commands are authenticated, they just never get that far.
+
+The pin therefore carries a `postinstall` that runs [`hass-cli-postinstall`](../home/dot_local/bin/executable_hass-cli-postinstall), which drops a `sitecustomize.py` into the tool venv — Python imports that at startup, ahead of any application code, and establishing a loop there restores what the interpreter used to do implicitly.
+
+Three things shaped that:
+
+- **A setting would have been lighter.** The usual fix for a misbehaving `pipx:` tool is an environment variable steering uv — `UV_PRERELEASE` to let a pre-release dependency resolve, `UV_PYTHON` to pin an interpreter. `UV_PYTHON` is the analogue and is unavailable: Termux packages only 3.14 and uv cannot supply another, since python-build-standalone is glibc-linked and bionic won't run it.
+- **`postinstall`, not a chezmoi script**, because the shim goes in a directory mise owns and discards on any reinstall or version bump. A `run_after_` script would only fire on the next `chezmoi apply`.
+- **The install path comes from the environment.** mise sets `MISE_TOOL_INSTALL_PATH`, with `MISE_TOOL_NAME` and `MISE_TOOL_VERSION`. Templating the command does not survive: there is no install-path variable, and `{{version}}` reaches the script as the literal `{version}`.
+
+The script gates on the venv's interpreter rather than the OS, so a Linux or macOS host whose uv lands on 3.14 is repaired too, and one on an older interpreter has any stale shim removed. Windows gets a deliberate no-op `.cmd`, because the pin is plain TOML shared by every personal host and a command that did not resolve there would fail `mise install`.
 
 ## Credentials
 

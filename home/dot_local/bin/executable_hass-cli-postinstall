@@ -1,0 +1,72 @@
+#!/bin/sh
+# Repairs the hass-cli tool venv after mise's `pipx:` backend installs it, from
+# the `postinstall` on the pin in mise's home-assistant.toml fragment. Named the
+# same on every platform so that one plain-TOML entry can reach it -- the .cmd
+# beside this file is the Windows half. See docs/home-assistant.md.
+#
+# hass-cli 1.0.0 calls asyncio.get_event_loop() with no running loop, removed in
+# Python 3.14, so on a 3.14 interpreter some subcommands die before the network:
+#
+#   error: RuntimeError: There is no current event loop in thread 'MainThread'.
+#
+# `entity list` and `area list` take that path; `raw`, `state`, and `service` do
+# not. Not credential-related -- those commands are authenticated, they just
+# never get that far.
+#
+# A setting would be lighter: an environment variable steering uv, UV_PRERELEASE
+# for a pre-release dependency, UV_PYTHON to pin an interpreter. UV_PYTHON is
+# the analogue and is unavailable -- Termux packages only 3.14 and uv cannot
+# supply another, python-build-standalone being glibc-linked. The interpreter is
+# fixed, so the package bends.
+#
+# Hung off postinstall because this writes into a directory mise owns and
+# discards on any reinstall or version bump; a chezmoi script would re-run only
+# on the next apply, leaving the CLI broken between.
+#
+# Idempotent and reversible: an interpreter needing no shim has any existing one
+# removed. So an upstream fix needs only a pin bump -- delete this and the
+# postinstall then, not before, or the shim lingers in venvs that have it.
+set -eu
+
+# mise names the install directory in the environment, beside MISE_TOOL_NAME and
+# MISE_TOOL_VERSION. Templating the command is the obvious alternative and does
+# not survive: there is no install-path variable, and `{{version}}` arrives as
+# the literal `{version}`. `mise where` covers a run by hand.
+root=${MISE_TOOL_INSTALL_PATH:-}
+[ -n "$root" ] || root=$(mise where pipx:homeassistant-cli 2>/dev/null || true)
+[ -n "$root" ] && [ -d "$root" ] || {
+  echo "hass-cli-postinstall: no hass-cli install to repair" >&2
+  exit 0
+}
+
+# uv's tool layout nests the venv under the tool name inside the install dir.
+for site in "$root"/homeassistant-cli/lib/python*/site-packages; do
+  [ -d "$site" ] || continue
+
+  # Read the interpreter from the directory uv created for it: a uv tool venv
+  # has only the entry point in its bin, so there is no python to ask.
+  version=${site%/site-packages}
+  version=${version##*/python}
+  major=${version%%.*}
+  minor=${version#*.}
+
+  if [ "$major" -gt 3 ] || { [ "$major" -eq 3 ] && [ "$minor" -ge 14 ]; }; then
+    # Python imports sitecustomize at startup, ahead of application code -- the
+    # only hook that does not mean editing the package.
+    cat >"$site/sitecustomize.py" <<'PY'
+# Installed by hass-cli-postinstall, not by the package. hass-cli 1.0.0 calls
+# asyncio.get_event_loop() with no running loop, which Python 3.14 rejects;
+# establishing one here restores what the interpreter did implicitly. Remove
+# once hass-cli no longer needs it.
+import asyncio
+
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
+PY
+    echo "hass-cli-postinstall: event-loop shim installed for python$version"
+  else
+    rm -f "$site/sitecustomize.py"
+  fi
+done

@@ -24,6 +24,16 @@ hass-vault.ps1
 hass-vault
 {{- end }}
 
+{{- /* The hass-cli pin's postinstall names this on every personal host, so both
+       halves are gated only by OS: the shell script everywhere but Windows, the
+       .cmd there. A missing one would fail `mise install`. */}}
+{{- if or (eq .chezmoi.os "windows") (ne .hosttype "personal") }}
+hass-cli-postinstall
+{{- end }}
+{{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
+hass-cli-postinstall.cmd
+{{- end }}
+
 {{- /* Serves host passwords from the Bitwarden vault via SSH_ASKPASS. Windows
        because that is where the desktop app's biometric IPC lives, personal
        because work hosts use Dashlane and have no password-auth hosts. */}}
