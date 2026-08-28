@@ -99,8 +99,11 @@ oneTimeSetUp() {
 printf 'c3R1Yi1zZXNzaW9uLWtleQ=='
 STUB
 
+  # Records each subcommand so a test can assert the vault was refreshed before
+  # it was searched, which is invisible from the returned credential alone.
   cat >"$BIN/bw" <<'STUB'
 #!/usr/bin/env bash
+printf '%s\n' "$1" >>"${STUB_BW_LOG:-/dev/null}"
 [ "$1" = sync ] && exit 0
 [ -z "${BW_SESSION:-}" ] && { echo "stub: no session" >&2; exit 1; }
 printf '%s' "${STUB_ITEMS:-[]}"
@@ -330,6 +333,44 @@ test_a_non_https_server_uri_is_refused() {
   out=$(env STUB_ITEMS="$items" hass-vault credential 2>&1)
   assertContains 'a long-lived token is not sent in the clear' "$out" 'non-https URI'
   assertNotContains 'and the token never reaches stdout' "$out" "$ITEM_TOKEN"
+}
+
+# A rotated token is the case this protects. bw serves a local copy of the vault
+# and refreshes it only on an explicit sync, so without one the resolver returns
+# the previous token -- still a valid, unexpired JWT, so `check` reports success
+# while hass-cli gets 401. Nothing about the returned credential reveals that,
+# which is why this asserts on the calls rather than the result.
+
+test_resolving_syncs_the_vault_before_searching() {
+  local log
+  log="$SANDBOX/bw-calls"
+  : >"$log"
+  env STUB_BW_LOG="$log" STUB_ITEMS="$(items_ok)" hass-vault check >/dev/null 2>&1
+  assertEquals 'the local copy is refreshed before it is read' \
+    'sync' "$(head -1 "$log")"
+  assertContains 'and then searched' "$(cat "$log")" 'list'
+}
+
+test_a_warm_cache_does_not_sync() {
+  local log
+  seed_cache
+  log="$SANDBOX/bw-calls-warm"
+  : >"$log"
+  env STUB_BW_LOG="$log" hass-vault credential >/dev/null 2>&1
+  assertEquals 'the cold path cost stays off cached reads' '' "$(cat "$log")"
+}
+
+test_an_offline_sync_does_not_block_resolution() {
+  # `bw sync` failing must not stop a resolve that the local copy can satisfy.
+  cat >"$BIN/bw" <<'STUB'
+#!/usr/bin/env bash
+[ "$1" = sync ] && { echo "stub: offline" >&2; exit 1; }
+printf '%s' "${STUB_ITEMS:-[]}"
+STUB
+  chmod +x "$BIN/bw"
+  local out
+  out=$(env STUB_ITEMS="$(items_ok)" hass-vault check 2>&1)
+  assertContains 'the local copy still resolves' "$out" 'credentials resolved'
 }
 
 test_an_ambiguous_vault_match_is_refused_not_guessed() {

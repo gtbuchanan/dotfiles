@@ -163,16 +163,22 @@ function Get-VaultCredential {
   $session = (& $sessionScript get 2>$null | Out-String).Trim()
   if (-not $session) { throw 'could not unlock the vault' }
 
-  $items = Find-VaultItem -Bw $bw -Session $session
+  # Sync before searching, not only when the item is missing. The CLI serves a
+  # local copy of the vault and refreshes it only on an explicit sync -- not on
+  # unlock, and not on list -- so a *rotated* token is invisible here until
+  # something else happens to sync. That failure is silent and misleading:
+  # hass-cli gets 401 while `check` reports a perfectly good credential, because
+  # the stale token is still a valid, unexpired JWT.
+  #
+  # Syncing only on a miss caught an item that was newly added and nothing else.
+  # This costs a network round trip, but only on the cold path -- a cache lapse
+  # or a reset -- which already costs a vault unlock and possibly a prompt.
+  #
+  # Failure is ignored rather than fatal, so an offline resolve still serves the
+  # local copy instead of refusing outright.
+  Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
 
-  # The CLI serves a local copy of the vault and refreshes it only on an
-  # explicit sync -- not on unlock, and not on list -- so an item added from
-  # another device stays invisible here indefinitely. Syncing only on a miss
-  # keeps the cost off the common path.
-  if ($items.Count -eq 0) {
-    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
-    $items = Find-VaultItem -Bw $bw -Session $session
-  }
+  $items = Find-VaultItem -Bw $bw -Session $session
 
   # Ambiguity is refused rather than guessed: picking one of several would hand
   # over a credential the user never chose.
