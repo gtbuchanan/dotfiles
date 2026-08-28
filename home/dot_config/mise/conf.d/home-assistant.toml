@@ -9,6 +9,15 @@
 # uv.toml — shared across every `pipx:` entry rather than owned by this one.
 #
 # Plain TOML rather than a chezmoi template, so Renovate's mise manager parses
-# the version below directly — see docs/mise.md.
+# the version below directly — see docs/mise.md. The table form keeps that
+# working; Renovate reads `version` out of it.
+#
+# The postinstall repairs the tool venv against Python 3.14, which drops the
+# implicit event loop hass-cli 1.0.0 still expects. It hangs off the install
+# rather than living in a chezmoi script because it writes into a directory mise
+# owns and discards on any reinstall or version bump. The command it names
+# resolves on every platform — a shell script on Unix, a .cmd on Windows, where
+# it is deliberately a no-op — because this fragment is plain TOML and cannot
+# gate itself by OS. See docs/home-assistant.md.
 [tools]
-"pipx:homeassistant-cli" = "1.0.0"
+"pipx:homeassistant-cli" = { version = "1.0.0", postinstall = "hass-cli-postinstall" }
