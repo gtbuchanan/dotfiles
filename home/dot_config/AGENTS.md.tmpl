@@ -298,9 +298,12 @@
 - Use `hass-cli` to read and control Home Assistant. Auth is already configured
   — the credentials are supplied for you — so just run it. Don't probe for env
   vars or config files, and don't try to locate the instance on the network.
-- If it reports it can't find Home Assistant on the local network, the
-  credentials failed to resolve rather than being absent. The wrapper says so
-  and exits non-zero; run `hass-vault check` for the underlying reason.
+- Two different failures, easily confused. `could not resolve credentials`
+  means the vault lookup failed and hass-cli never ran — `hass-vault check`
+  gives the reason. If it instead reports it can't find Home Assistant on the
+  local network, the wrapper was bypassed and nothing supplied credentials at
+  all; that happens when the binary is invoked directly rather than found on
+  PATH, so run plain `hass-cli`.
 - Never run `hass-vault credential`. It prints the token in full for the
   wrapper to read, so running it persists a long-lived credential in the
   transcript. Use `hass-vault check` for whether credentials resolve and

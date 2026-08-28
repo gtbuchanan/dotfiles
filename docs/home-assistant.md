@@ -102,6 +102,10 @@ Same idea, two files, because Windows resolves a bare command name two different
 
 [`hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd) is the wrapper proper, and it is `cmd` rather than a `.ps1` behind a shim because `hass-vault` is already a `.cmd` that starts pwsh — routing this through pwsh as well would put a second interpreter startup in front of every call. `setlocal` scopes both variables to the wrapper and its children, so they are gone when it exits. cmd has no `exec`, so unlike Termux the wrapper stays as a parent holding the same values; that is untidy rather than weaker, since reading them there needs the access that reading the child's environment already needs.
 
+`hass-vault` is invoked by path (`%~dp0..\hass-vault.cmd`) rather than by name, because **cmd.exe searches the caller's current directory before PATH**. A stray `hass-vault.cmd` in whatever directory hass-cli happened to be run from would otherwise be executed and its output taken as the credentials. Demonstrated with a decoy: by name the decoy wins, by path it does not. The Termux wrapper needs no equivalent, since a POSIX PATH does not include the current directory.
+
+Worth noting for anyone re-testing this: the harness process here sets `NoDefaultCurrentDirectoryInExePath=1`, which disables that search and masks the vector entirely. It has to be cleared to reproduce, and `where` lists the decoy first regardless of whether it would actually be executed.
+
 The second file exists because **MSYS bash does not honour `PATHEXT`**. A bare `hass-cli` in Git Bash never matches a `.cmd` no matter where `wrappers/` sits on PATH — bash walks straight past it to mise's shim and runs with no credentials, failing over to zeroconf exactly as before. Measured: 2128 entities through the wrapper, 7 lines of failure without it. Bash _can_ execute a `.cmd` given a path, so the extensionless [`hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl) is a one-line hand-off to its sibling rather than a second implementation. That is also why that source is a template: one file has to serve Termux's full wrapper and this hand-off.
 
 PATH ordering takes two mutations here as well, mirroring `.profile` and `.bashrc`:
@@ -129,7 +133,7 @@ This is why `[env]` was abandoned rather than tuned. Entries were marked `redact
 
 **Windows was then measured too, and behaved the same** — `mise env` printed the token in full there despite `redact`. Worth having checked rather than assumed: mise's handling of an `[env]` exec's stderr genuinely does differ between the two platforms, so the two were not safe to infer from each other.
 
-Neither platform puts the token in `[env]` any more, so the exposure is closed on both. Re-measured on Windows after the switch: no `HASS_*` in `mise env`, none in a process spawned by `mise exec`, none in a child of an activated shell.
+Neither platform puts the token in `[env]` anymore, so the exposure is closed on both. Re-measured on Windows after the switch: no `HASS_*` in `mise env`, none in a process spawned by `mise exec`, none in a child of an activated shell.
 
 ### Failure
 

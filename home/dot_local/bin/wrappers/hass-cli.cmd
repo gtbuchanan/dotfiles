@@ -43,9 +43,15 @@ if not exist "%SHIM%" (
 rem Read the pair over a pipe rather than through argv, which any process
 rem listing can read. `defined` is evaluated per iteration, so the first line
 rem lands in HASS_SERVER and the second in HASS_TOKEN without delayed expansion.
+rem
+rem Resolved by path, not by name: cmd.exe searches the caller's current
+rem directory before PATH, so a stray hass-vault.cmd in whatever directory
+rem hass-cli happened to be run from would be executed here and its output
+rem taken as the credentials. The Termux wrapper needs no equivalent -- a
+rem POSIX PATH does not include the current directory.
 set "HASS_SERVER="
 set "HASS_TOKEN="
-for /f "usebackq delims=" %%L in (`hass-vault credential`) do (
+for /f "usebackq delims=" %%L in (`"%~dp0..\hass-vault.cmd" credential`) do (
   if not defined HASS_SERVER (
     set "HASS_SERVER=%%L"
   ) else if not defined HASS_TOKEN (
