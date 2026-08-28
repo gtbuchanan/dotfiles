@@ -156,6 +156,20 @@ The item is found by search rather than by a fixed id, so it stays renameable an
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
 
+### Rotating the Token
+
+Update the `CLI Token` field in the vault item, then run `hass-vault reset`.
+
+The second step is not optional, and it does two things. It drops the sealed cache, which would otherwise keep serving the previous token for the rest of its idle window. And it runs `bw sync`, because **bw serves a local copy of the vault and refreshes it only on an explicit sync** — an item edited from another device stays stale here indefinitely.
+
+That second part is easy to miss, because the failure does not look like a stale credential. The lookup still finds the item, so the miss-triggered sync in the resolver never fires; the resolver returns a well-formed 183-character token and reports success, and only Home Assistant rejects it:
+
+```text
+error: HTTPError: 401 Client Error: Unauthorized
+```
+
+`hass-vault check` reports success in that state too, since it verifies that credentials resolve, not that they are accepted. A `401` after a rotation means the local vault copy is behind — which `reset` now handles.
+
 ### The Sealed Cache
 
 A vault lookup costs seconds and may prompt, so `hass-vault` caches the resolved pair, wrapped against the Android hardware keystore exactly as [`bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux) wraps the vault session key: a KEK derived from a deterministic signature by a non-extractable key, AES-256-GCM, the expiry bound as additional authenticated data so editing it breaks decryption rather than extending the window. The cache is therefore inert on any other device, which DPAPI's binding to the user identity does not give.

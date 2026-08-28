@@ -176,6 +176,32 @@ function Get-VaultCredential {
 switch ($Command) {
   'reset' {
     Remove-Item -Path $script:CachePath -Force -ErrorAction SilentlyContinue
+
+    # Also refresh bw's copy of the vault, because dropping the cache is the
+    # signal that something changed upstream -- and a rotated token is the
+    # main reason to run this. bw serves a local copy and refreshes it only on
+    # an explicit sync, so an item edited from another device stays stale here:
+    # the lookup still matches, no miss fires the sync in Get-VaultCredential,
+    # and the resolver would go on serving a revoked credential until something
+    # else happened to sync. Rotating is then two steps -- update the item, run
+    # `hass-vault reset` -- with no need to know `bw sync` exists.
+    #
+    # Best effort: syncing needs an unlocked vault, and clearing the cache is
+    # this command's real job. A locked vault warns rather than fails, and the
+    # next resolve unlocks anyway.
+    $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
+    if (-not $bw) {
+      Write-Diag 'bw not found; cache cleared without syncing the vault'
+      break
+    }
+    $sessionScript = Join-Path $PSScriptRoot 'bw-session-windows.ps1'
+    $session = (& $sessionScript get 2>$null | Out-String).Trim()
+    if (-not $session) {
+      Write-Diag 'vault locked; cache cleared without syncing'
+      break
+    }
+    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
+    if ($LASTEXITCODE -ne 0) { Write-Diag 'vault sync failed; cache cleared anyway' }
     break
   }
   'check' {
