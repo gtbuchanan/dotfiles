@@ -31,7 +31,7 @@
 # without emitting either value, and `status` answers whether anything is cached
 # without touching the vault.
 #
-# Commands: credential | check | status | reset
+# Commands: credential | check | status | refresh | reset
 
 set -euo pipefail
 
@@ -341,6 +341,18 @@ cmd_check() {
   printf 'credentials resolved (server set, token %d chars)\n' "${#token}"
 }
 
+# Discards the cached pair and resolves again. For when the vault changed under
+# a still-valid cache, which a rotated token is the ordinary case of: the read
+# consults the cache before it reaches bw, so syncing on the cold path cannot
+# help until the window lapses.
+#
+# `reset` would also achieve it, by deleting the hardware key -- a heavy way to
+# say "this one credential is stale", and one that orphans nothing else useful.
+cmd_refresh() {
+  discard_cache
+  cmd_check
+}
+
 # Drops the hardware key too, making any surviving cache permanently
 # undecryptable -- the Windows reset can only delete the file.
 cmd_reset() {
@@ -376,7 +388,8 @@ command -v termux-keystore >/dev/null ||
 case "${1:-credential}" in
 check) cmd_check ;;
 credential) cmd_credential ;;
+refresh) cmd_refresh ;;
 reset) cmd_reset ;;
 status) cmd_status ;;
-*) die "unknown command: $1 (expected credential|check|status|reset)" ;;
+*) die "unknown command: $1 (expected credential|check|status|refresh|reset)" ;;
 esac

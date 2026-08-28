@@ -424,6 +424,32 @@ test_a_locked_vault_fails_loudly_rather_than_silently() {
 
 # --- reset ------------------------------------------------------------------
 
+# A rotation changes the vault under a cache that is still valid. The cold-path
+# sync cannot help, because the read never reaches bw while the cache holds --
+# so there has to be a way to say "this one is stale" that does not involve
+# destroying the hardware key.
+
+test_refresh_picks_up_a_rotated_token() {
+  seed_cache
+  local rotated out
+  rotated=$(printf '[%s]' "$(vault_item "$ITEM_URI" 'CLI Token' 'token-ROTATED')")
+
+  assertContains 'a warm cache still serves the old one' \
+    "$(env STUB_ITEMS="$rotated" hass-vault credential 2>/dev/null)" "$ITEM_TOKEN"
+
+  out=$(env STUB_ITEMS="$rotated" hass-vault refresh 2>&1)
+  assertContains 'refresh reports the new shape' "$out" 'credentials resolved'
+  assertContains 'and the rotated token is now served' \
+    "$(hass-vault credential 2>/dev/null)" 'token-ROTATED'
+}
+
+test_refresh_keeps_the_hardware_key() {
+  seed_cache
+  env STUB_ITEMS="$(items_ok)" hass-vault refresh >/dev/null 2>&1
+  assertTrue 'refresh is not reset -- the key survives' \
+    "termux-keystore list 2>/dev/null | jq -e 'map(select(.alias == \"$TEST_ALIAS\")) | length > 0' >/dev/null"
+}
+
 test_reset_drops_the_cache_and_the_hardware_key() {
   seed_cache
   assertContains 'reports what it removed' \

@@ -152,7 +152,7 @@ The resolver expects one vault item carrying:
 - a **login URI** — the first one becomes `HASS_SERVER`; and
 - a **custom field named `CLI Token`** — a [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile), which becomes `HASS_TOKEN`.
 
-The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. A miss triggers one `bw sync` and a retry, because the CLI serves a local copy of the vault that never refreshes on unlock.
+The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. Every cold resolve runs `bw sync` first, because the CLI serves a local copy of the vault that refreshes on nothing else — not on unlock, not on `list`.
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
 
@@ -178,7 +178,9 @@ The idle window slides, but only once more than half spent — rewriting costs a
 
 **`termux-keystore` reports a missing alias by writing nothing and exiting 0.** A resolver that signs without checking therefore folds to the SHA-256 of the empty string and uses that public constant as its key — identically on write and read, so the cache round-trips perfectly while bound to nothing. The key is created up front on the write path, and that constant is refused. The test suite asserts the binding directly, because no assertion about behaviour can detect this.
 
-`hass-vault reset` drops the cache and the hardware key, making any surviving copy permanently unreadable.
+`hass-vault refresh` discards the cached pair and resolves again. That is the answer to a **rotated token**: the cold-path sync cannot help while a valid cache holds, because the read never reaches `bw`. `reset` would also work, by deleting the hardware key — a heavy way to say one credential is stale.
+
+`hass-vault reset` drops the cache _and_ the hardware key, making any surviving copy permanently unreadable.
 
 ## Other Platforms
 
