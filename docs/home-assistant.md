@@ -106,7 +106,7 @@ Same idea, two files, because Windows resolves a bare command name two different
 
 Worth noting for anyone re-testing this: the harness process here sets `NoDefaultCurrentDirectoryInExePath=1`, which disables that search and masks the vector entirely. It has to be cleared to reproduce, and `where` lists the decoy first regardless of whether it would actually be executed.
 
-The second file exists because **MSYS bash does not honour `PATHEXT`**. A bare `hass-cli` in Git Bash never matches a `.cmd` no matter where `wrappers/` sits on PATH — bash walks straight past it to mise's shim and runs with no credentials, failing over to zeroconf exactly as before. Measured: 2128 entities through the wrapper, 7 lines of failure without it. Bash _can_ execute a `.cmd` given a path, so the extensionless [`hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl) is a one-line hand-off to its sibling rather than a second implementation. That is also why that source is a template: one file has to serve Termux's full wrapper and this hand-off.
+The second file exists because **MSYS bash does not honour `PATHEXT`**. A bare `hass-cli` in Git Bash never matches a `.cmd` no matter where `wrappers/` sits on PATH — bash walks straight past it to mise's shim and runs with no credentials, failing over to zeroconf exactly as before. Measured: the full entity list through the wrapper, and the zeroconf failure without it. Bash _can_ execute a `.cmd` given a path, so the extensionless [`hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl) is a one-line hand-off to its sibling rather than a second implementation. That is also why that source is a template: one file has to serve Termux's full wrapper and this hand-off.
 
 PATH ordering takes two mutations here as well, mirroring `.profile` and `.bashrc`:
 the winget config's `wrappersPath` resource puts `wrappers/` on the **user** PATH ahead of the mise shims, for non-interactive callers and Git Bash, and
@@ -162,7 +162,7 @@ Update the `CLI Token` field in the vault item, then run `hass-vault reset`.
 
 The second step is not optional, and it does two things. It drops the sealed cache, which would otherwise keep serving the previous token for the rest of its idle window. And it runs `bw sync`, because **bw serves a local copy of the vault and refreshes it only on an explicit sync** — an item edited from another device stays stale here indefinitely.
 
-That second part is easy to miss, because the failure does not look like a stale credential. The lookup still finds the item, so the miss-triggered sync in the resolver never fires; the resolver returns a well-formed 183-character token and reports success, and only Home Assistant rejects it:
+That second part is easy to miss, because the failure does not look like a stale credential. The lookup still finds the item, so the miss-triggered sync in the resolver never fires; the resolver returns a well-formed token and reports success, and only Home Assistant rejects it:
 
 ```text
 error: HTTPError: 401 Client Error: Unauthorized

@@ -175,33 +175,43 @@ function Get-VaultCredential {
 
 switch ($Command) {
   'reset' {
-    Remove-Item -Path $script:CachePath -Force -ErrorAction SilentlyContinue
-
-    # Also refresh bw's copy of the vault, because dropping the cache is the
-    # signal that something changed upstream -- and a rotated token is the
-    # main reason to run this. bw serves a local copy and refreshes it only on
-    # an explicit sync, so an item edited from another device stays stale here:
-    # the lookup still matches, no miss fires the sync in Get-VaultCredential,
-    # and the resolver would go on serving a revoked credential until something
-    # else happened to sync. Rotating is then two steps -- update the item, run
-    # `hass-vault reset` -- with no need to know `bw sync` exists.
+    # Refresh bw's copy of the vault, then drop the sealed cache. bw serves a
+    # local copy and refreshes it only on an explicit sync, so an item edited
+    # from another device stays stale here: the lookup still matches, no miss
+    # fires the sync in Get-VaultCredential, and the resolver would go on
+    # serving a revoked credential until something else happened to sync.
+    # Rotating is therefore two steps -- update the item, run `hass-vault
+    # reset` -- with no need to know `bw sync` exists.
     #
-    # Best effort: syncing needs an unlocked vault, and clearing the cache is
-    # this command's real job. A locked vault warns rather than fails, and the
-    # next resolve unlocks anyway.
+    # Sync first, clear second, because the reverse order has a window in which
+    # a concurrent hass-cli resolves against the un-synced copy and seals the
+    # revoked token again with a fresh idle window -- reinstating exactly the
+    # failure this exists to prevent. Ordering closes that window rather than a
+    # lock file, which would add failure modes of its own for a single-user
+    # desktop; after the sync, a concurrent resolve can only seal a current
+    # value, and the clear that follows costs it nothing.
+    #
+    # A refresh that cannot happen is a failed reset, not a partial one, so
+    # these exit non-zero and leave the cache alone. Clearing regardless would
+    # report success and send the next resolve at the same stale copy, which is
+    # the state the caller ran this to escape.
     $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
     if (-not $bw) {
-      Write-Diag 'bw not found; cache cleared without syncing the vault'
-      break
+      Write-Diag 'bw not found; vault not synced and cache left in place'
+      exit 1
     }
     $sessionScript = Join-Path $PSScriptRoot 'bw-session-windows.ps1'
     $session = (& $sessionScript get 2>$null | Out-String).Trim()
     if (-not $session) {
-      Write-Diag 'vault locked; cache cleared without syncing'
-      break
+      Write-Diag 'vault locked; not synced and cache left in place'
+      exit 1
     }
     Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
-    if ($LASTEXITCODE -ne 0) { Write-Diag 'vault sync failed; cache cleared anyway' }
+    if ($LASTEXITCODE -ne 0) {
+      Write-Diag 'vault sync failed; cache left in place'
+      exit 1
+    }
+    Remove-Item -Path $script:CachePath -Force -ErrorAction SilentlyContinue
     break
   }
   'check' {
