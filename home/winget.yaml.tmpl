@@ -515,6 +515,38 @@ properties:
           $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
           $newPath = (($userPath -split ';') + $miseShims) -join ';'
           [Environment]::SetEnvironmentVariable('Path', $newPath, 'User')
+{{- if eq .hosttype "personal" }}
+    - resource: xPSDesiredStateConfiguration/xScript
+      dependsOn: [miseShimsPath]
+      directives:
+        allowPrerelease: true
+        description: Put ~/.local/bin/wrappers ahead of the mise shims on user PATH
+      id: wrappersPath
+      settings:
+        GetScript: |
+          @{ Result = [Environment]::GetEnvironmentVariable('Path', 'User') }
+        # Presence is not enough -- a wrapper shares its name with the tool it
+        # wraps, so it only works ahead of that tool's shim. Position is the
+        # thing being tested.
+        TestScript: |
+          $wrappers = Join-Path $env:USERPROFILE '.local\bin\wrappers'
+          $miseShims = Join-Path $env:LOCALAPPDATA 'mise\shims'
+          $entries = [Environment]::GetEnvironmentVariable('Path', 'User') -split ';'
+          $w = $entries.IndexOf($wrappers)
+          $s = $entries.IndexOf($miseShims)
+          $w -ge 0 -and ($s -lt 0 -or $w -lt $s)
+        # Re-inserted rather than moved in place, so a stale entry left further
+        # down the list can't keep shadowing the corrected one.
+        SetScript: |
+          $wrappers = Join-Path $env:USERPROFILE '.local\bin\wrappers'
+          $miseShims = Join-Path $env:LOCALAPPDATA 'mise\shims'
+          $entries = [Collections.Generic.List[string]](
+            [Environment]::GetEnvironmentVariable('Path', 'User') -split ';' |
+              Where-Object { $_ -and $_ -ne $wrappers })
+          $s = $entries.IndexOf($miseShims)
+          if ($s -lt 0) { $entries.Add($wrappers) } else { $entries.Insert($s, $wrappers) }
+          [Environment]::SetEnvironmentVariable('Path', ($entries -join ';'), 'User')
+{{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install mRemoteNG

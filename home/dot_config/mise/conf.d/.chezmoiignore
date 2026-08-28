@@ -11,11 +11,7 @@ termux.toml
 home-assistant.toml
 {{- end }}
 
-{{- /* Windows alone, and the resolver's existence is not the reason — Termux has
-       one too. It reaches hass-cli through a wrapper on PATH instead, which
-       keeps the token out of every other process mise spawns; `[env]` cannot,
-       so it is not deployed where a wrapper serves. Linux and macOS have
-       neither yet. See docs/home-assistant.md. */}}
-{{- if or (ne .chezmoi.os "windows") (ne .hosttype "personal") }}
-home-assistant-credentials.toml
-{{- end }}
+{{- /* No credentials fragment on any platform: both Windows and Termux now
+       reach hass-cli through a wrapper on PATH, which puts the token in that
+       one process rather than in everything mise spawns. `[env]` could not do
+       that, so nothing here sets it. See docs/home-assistant.md. */}}

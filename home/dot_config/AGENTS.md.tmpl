@@ -298,32 +298,24 @@
 - Use `hass-cli` to read and control Home Assistant. Auth is already configured
   — the credentials are supplied for you — so just run it. Don't probe for env
   vars or config files, and don't try to locate the instance on the network.
-- If it reports it can't find Home Assistant on the local network, the
-  credentials failed to resolve rather than being absent. Run `hass-vault check`
-  for the real error.
-- Never run a `hass-vault` subcommand that emits a credential — `credential` on
-  Termux, `token` or `server` on Windows — and never run `mise env`. Each prints
-  the token in full and persists it in the transcript; `mise env` does so
-  because `redact` keeps values out of `mise doctor` but not out of `mise env`.
-- **`mise env --redacted` is not a safe alternative.** It filters the listing
-  down to the redacted variables and prints their values in full, so it is a
-  shortcut to the secrets rather than a mask. Use `hass-vault check` for whether
-  credentials resolve, and `hass-vault status` for whether any are cached;
-  neither emits a value.
-- If you need to inspect a credential, print its length, never its value.
-{{- if eq .chezmoi.os "android" }}
+- Two different failures, easily confused. `could not resolve credentials`
+  means the vault lookup failed and hass-cli never ran — `hass-vault check`
+  gives the reason. If it instead reports it can't find Home Assistant on the
+  local network, the wrapper was bypassed and nothing supplied credentials at
+  all; that happens when the binary is invoked directly rather than found on
+  PATH, so run plain `hass-cli`.
+- Never run `hass-vault credential`. It prints the token in full for the
+  wrapper to read, so running it persists a long-lived credential in the
+  transcript. Use `hass-vault check` for whether credentials resolve and
+  `hass-vault status` for whether any are cached; neither emits a value.
 - The token is not in your environment: a wrapper puts it into hass-cli's
-  process alone, so the risk here is printing one rather than holding one.
+  process alone, so the risk is printing one rather than holding one. If you
+  need to inspect a credential, print its length, never its value.
+{{- if eq .chezmoi.os "android" }}
 - `hass-vault check` may raise a fingerprint prompt, and a master-password one
   behind it. Run it once and wait for me, rather than retrying — a second run
   just raises a second dialog. `hass-vault status` answers "are credentials
   cached?" without prompting at all.
-{{- else }}
-- The token **is** in your environment, and in every process mise spawns
-  through a shim — mise's `[env]` supplies it. Don't echo it, and don't pass it
-  onward.
-- A failed lookup is silent here: mise swallows the resolver's stderr, so
-  `hass-vault check` is the only way to see why.
 {{- end }}
 {{- end }}
 

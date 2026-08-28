@@ -1,20 +1,20 @@
-# Resolves one Home Assistant CLI credential from the Bitwarden vault and prints
-# it, for the `[env]` entries in mise's home-assistant.toml fragment to capture.
+# Resolves the Home Assistant CLI's server and token from the Bitwarden vault,
+# for the hass-cli wrapper in ~/.local/bin/wrappers to put in that one process's
+# environment.
 #
-# One value per call because mise `[env]` templating sets a single variable per
-# `exec()`, so HASS_SERVER and HASS_TOKEN are two separate invocations. A vault
-# lookup costs several seconds -- roughly four of which are Node starting up
-# before the vault is even touched -- and mise's computed-env cache does not
-# engage on the shims-only path that non-interactive callers take, so an
-# uncached resolver would pay that on every command. Hence the cache below: the
-# first call fetches both values and wraps them, the second reads them back.
+# Both values in one call, because that is one vault round trip rather than two.
+# The pair used to be fetched separately, a variable per `exec()`, back when
+# mise's `[env]` set them -- the cache below exists because that path re-ran the
+# resolver on every command. The wrapper runs it once per hass-cli invocation
+# instead, but the cache still earns its place: a lookup costs several seconds,
+# roughly four of them Node starting up before the vault is even touched.
 #
 # One resolver per platform rather than one ported around, and the wrapping
 # below is why: it is bound to DPAPI. The Termux counterpart is `hass-vault`,
 # which wraps against the Android hardware keystore instead and diverges on the
 # points that follow from it. Linux and macOS are simply not built yet -- on
-# those hosts hass-cli installs but has no credentials, and the mise fragment
-# that sets them is not deployed.
+# those hosts hass-cli installs but has no credentials, and no wrapper is
+# deployed to supply them.
 #
 # The at-rest wrapping is DPAPI, matching bw-session-windows.ps1 -- see that
 # file for why Windows Hello for Business isn't available here and what DPAPI
@@ -26,23 +26,27 @@
 # This caches the credential itself rather than a key that unlocks a vault, so
 # it is deliberately shorter-lived than the bw session cache beneath it.
 #
-# `token` and `server` exist to be captured by mise, not to be read by a human:
-# they print a credential to stdout, so running one to "see if it works" puts a
-# long-lived token into a terminal, a shell history, a log, or an agent
-# transcript. Use `check` to diagnose instead -- it resolves the same way and
-# reports the outcome without emitting either value.
+# `credential` exists to be read by the wrapper, not by a human: it prints the
+# token to stdout, so running it to "see if it works" puts a long-lived
+# credential into a terminal, a shell history, a log, or an agent transcript.
+# Use `check` to diagnose instead -- it resolves the same way and reports the
+# outcome without emitting either value. It is the only subcommand that emits
+# one, matching Termux, so the rule agents are given is the same on both.
 #
-# Commands: token (default) | server | check | reset | status
+# Commands: credential (default) | check | reset | status
 [CmdletBinding()]
 param(
-  [ValidateSet('token', 'server', 'check', 'reset', 'status')]
-  [string]$Command = 'token'
+  [ValidateSet('credential', 'check', 'reset', 'status')]
+  [string]$Command = 'credential'
 )
 
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
 
 $script:CachePath = Join-Path $env:LOCALAPPDATA 'hass-vault\cache'
+# Bumped by `reset`. A resolve reads it before touching the vault and again
+# before sealing, and declines to seal if it moved -- see Write-Cache.
+$script:EpochPath = Join-Path $env:LOCALAPPDATA 'hass-vault\epoch'
 $script:IdleWindow = [TimeSpan]::FromHours(4)
 
 # The vault is searched by name rather than opened by a fixed item id, so the
@@ -53,13 +57,35 @@ $script:IdleWindow = [TimeSpan]::FromHours(4)
 $script:ItemQuery = if ($env:HASS_VAULT_ITEM) { $env:HASS_VAULT_ITEM } else { 'Home Assistant' }
 $script:TokenField = 'CLI Token'
 
+function Read-Epoch {
+  if (-not (Test-Path -LiteralPath $script:EpochPath)) { return '' }
+  $raw = Get-Content -LiteralPath $script:EpochPath -Raw -ErrorAction SilentlyContinue
+  if ($null -eq $raw) { '' } else { $raw.Trim() }
+}
+
 function Write-Diag {
   param([string]$Message)
   [Console]::Error.WriteLine("hass-vault: $Message")
 }
 
 function Write-Cache {
-  param([string]$Server, [string]$Token)
+  param([string]$Server, [string]$Token, [string]$Epoch)
+
+  # Ordering in `reset` stops a resolve that starts after it from sealing a
+  # stale pair, but not one already in flight: that resolve can read the vault
+  # before the sync and land here after the delete, resurrecting the revoked
+  # pair with a fresh window while reset reports success. The epoch is captured
+  # before the read and re-checked here, so such a write is dropped instead.
+  #
+  # A generation check rather than a mutex because the resolve it guards spans
+  # a `bw` call: holding a lock across that would let a hung or slow vault
+  # block every hass-cli invocation, which is a worse failure than the race.
+  # This only discards a cache write -- the caller still gets the pair it
+  # resolved, and the next invocation resolves afresh.
+  if ((Read-Epoch) -ne $Epoch) {
+    Write-Diag 'a reset landed mid-resolve; not caching this result'
+    return
+  }
   $expiry = (Get-Date).ToUniversalTime().Add($script:IdleWindow).ToString('o')
   $entropy = [Text.Encoding]::UTF8.GetBytes($expiry)
   $payload = "$Server`n$Token"
@@ -122,10 +148,11 @@ function Find-VaultItem {
 }
 
 function Get-VaultCredential {
+  $epoch = Read-Epoch
   $cached = Read-Cache
   if ($cached) {
     # Slide the window on use, matching the bw session cache's idle semantics.
-    Write-Cache -Server $cached.Server -Token $cached.Token
+    Write-Cache -Server $cached.Server -Token $cached.Token -Epoch $epoch
     return $cached
   }
 
@@ -168,19 +195,73 @@ function Get-VaultCredential {
     throw "vault item '$($item.name)' has an empty '$($script:TokenField)' field"
   }
 
-  Write-Cache -Server $server -Token $field.value
+  Write-Cache -Server $server -Token $field.value -Epoch $epoch
   [pscustomobject]@{ Server = $server; Token = $field.value }
 }
 
 switch ($Command) {
   'reset' {
-    Remove-Item -Path $script:CachePath -Force -ErrorAction SilentlyContinue
+    # Refresh bw's copy of the vault, then drop the sealed cache. bw serves a
+    # local copy and refreshes it only on an explicit sync, so an item edited
+    # from another device stays stale here: the lookup still matches, no miss
+    # fires the sync in Get-VaultCredential, and the resolver would go on
+    # serving a revoked credential until something else happened to sync.
+    # Rotating is therefore two steps -- update the item, run `hass-vault
+    # reset` -- with no need to know `bw sync` exists.
+    #
+    # Sync first, clear second, because the reverse order has a window in which
+    # a concurrent hass-cli resolves against the un-synced copy and seals the
+    # revoked token again with a fresh idle window -- reinstating exactly the
+    # failure this exists to prevent. Ordering closes that window rather than a
+    # lock file, which would add failure modes of its own for a single-user
+    # desktop; after the sync, a concurrent resolve can only seal a current
+    # value, and the clear that follows costs it nothing.
+    #
+    # A refresh that cannot happen is a failed reset, not a partial one, so
+    # these exit non-zero and leave the cache alone. Clearing regardless would
+    # report success and send the next resolve at the same stale copy, which is
+    # the state the caller ran this to escape.
+    $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
+    if (-not $bw) {
+      Write-Diag 'bw not found; vault not synced and cache left in place'
+      exit 1
+    }
+    $sessionScript = Join-Path $PSScriptRoot 'bw-session-windows.ps1'
+    $session = (& $sessionScript get 2>$null | Out-String).Trim()
+    if (-not $session) {
+      Write-Diag 'vault locked; not synced and cache left in place'
+      exit 1
+    }
+    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+      Write-Diag 'vault sync failed; cache left in place'
+      exit 1
+    }
+    # A cache that survives is a failed reset too: the next resolve would reuse
+    # and slide the stale pair, so this must not fall through to the success
+    # exit the way a silenced error would.
+    try {
+      if (Test-Path -LiteralPath $script:CachePath) {
+        Remove-Item -LiteralPath $script:CachePath -Force -ErrorAction Stop
+      }
+    }
+    catch {
+      Write-Diag "could not clear the cache: $($_.Exception.Message)"
+      exit 1
+    }
+
+    # Last, so any resolve still in flight sees the new value and declines to
+    # seal what it read before the sync.
+    $dir = Split-Path $script:EpochPath -Parent
+    if (-not (Test-Path -LiteralPath $dir)) {
+      $null = New-Item -ItemType Directory -Path $dir -Force
+    }
+    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
     break
   }
   'check' {
     # Reports shape, never values: the whole point is that a failure can be
-    # diagnosed without printing a secret somewhere it will persist. The error
-    # goes to stderr, where mise would have swallowed it.
+    # diagnosed without printing a secret somewhere it will persist.
     try {
       $creds = Get-VaultCredential
     }
@@ -202,9 +283,10 @@ switch ($Command) {
     break
   }
   default {
-    # Diagnostics go to stderr and the exit code carries the failure: mise
-    # swallows an `[env]` exec's stderr, so a bad lookup must not put an error
-    # message on stdout where it would be captured as the credential.
+    # Server first, then token, one per line -- the order the wrapper reads
+    # them in. Diagnostics go to stderr and the exit code carries the failure,
+    # so a bad lookup can never put an error message on stdout where the
+    # wrapper would read it as a credential.
     try {
       $creds = Get-VaultCredential
     }
@@ -212,7 +294,8 @@ switch ($Command) {
       Write-Diag $_.Exception.Message
       exit 1
     }
-    if ($Command -eq 'server') { Write-Output $creds.Server } else { Write-Output $creds.Token }
+    Write-Output $creds.Server
+    Write-Output $creds.Token
   }
 }
 
