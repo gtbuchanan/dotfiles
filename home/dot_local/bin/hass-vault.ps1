@@ -44,6 +44,9 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
 
 $script:CachePath = Join-Path $env:LOCALAPPDATA 'hass-vault\cache'
+# Bumped by `reset`. A resolve reads it before touching the vault and again
+# before sealing, and declines to seal if it moved -- see Write-Cache.
+$script:EpochPath = Join-Path $env:LOCALAPPDATA 'hass-vault\epoch'
 $script:IdleWindow = [TimeSpan]::FromHours(4)
 
 # The vault is searched by name rather than opened by a fixed item id, so the
@@ -54,13 +57,35 @@ $script:IdleWindow = [TimeSpan]::FromHours(4)
 $script:ItemQuery = if ($env:HASS_VAULT_ITEM) { $env:HASS_VAULT_ITEM } else { 'Home Assistant' }
 $script:TokenField = 'CLI Token'
 
+function Read-Epoch {
+  if (-not (Test-Path -LiteralPath $script:EpochPath)) { return '' }
+  $raw = Get-Content -LiteralPath $script:EpochPath -Raw -ErrorAction SilentlyContinue
+  if ($null -eq $raw) { '' } else { $raw.Trim() }
+}
+
 function Write-Diag {
   param([string]$Message)
   [Console]::Error.WriteLine("hass-vault: $Message")
 }
 
 function Write-Cache {
-  param([string]$Server, [string]$Token)
+  param([string]$Server, [string]$Token, [string]$Epoch)
+
+  # Ordering in `reset` stops a resolve that starts after it from sealing a
+  # stale pair, but not one already in flight: that resolve can read the vault
+  # before the sync and land here after the delete, resurrecting the revoked
+  # pair with a fresh window while reset reports success. The epoch is captured
+  # before the read and re-checked here, so such a write is dropped instead.
+  #
+  # A generation check rather than a mutex because the resolve it guards spans
+  # a `bw` call: holding a lock across that would let a hung or slow vault
+  # block every hass-cli invocation, which is a worse failure than the race.
+  # This only discards a cache write -- the caller still gets the pair it
+  # resolved, and the next invocation resolves afresh.
+  if ((Read-Epoch) -ne $Epoch) {
+    Write-Diag 'a reset landed mid-resolve; not caching this result'
+    return
+  }
   $expiry = (Get-Date).ToUniversalTime().Add($script:IdleWindow).ToString('o')
   $entropy = [Text.Encoding]::UTF8.GetBytes($expiry)
   $payload = "$Server`n$Token"
@@ -123,10 +148,11 @@ function Find-VaultItem {
 }
 
 function Get-VaultCredential {
+  $epoch = Read-Epoch
   $cached = Read-Cache
   if ($cached) {
     # Slide the window on use, matching the bw session cache's idle semantics.
-    Write-Cache -Server $cached.Server -Token $cached.Token
+    Write-Cache -Server $cached.Server -Token $cached.Token -Epoch $epoch
     return $cached
   }
 
@@ -169,7 +195,7 @@ function Get-VaultCredential {
     throw "vault item '$($item.name)' has an empty '$($script:TokenField)' field"
   }
 
-  Write-Cache -Server $server -Token $field.value
+  Write-Cache -Server $server -Token $field.value -Epoch $epoch
   [pscustomobject]@{ Server = $server; Token = $field.value }
 }
 
@@ -211,7 +237,26 @@ switch ($Command) {
       Write-Diag 'vault sync failed; cache left in place'
       exit 1
     }
-    Remove-Item -Path $script:CachePath -Force -ErrorAction SilentlyContinue
+    # A cache that survives is a failed reset too: the next resolve would reuse
+    # and slide the stale pair, so this must not fall through to the success
+    # exit the way a silenced error would.
+    try {
+      if (Test-Path -LiteralPath $script:CachePath) {
+        Remove-Item -LiteralPath $script:CachePath -Force -ErrorAction Stop
+      }
+    }
+    catch {
+      Write-Diag "could not clear the cache: $($_.Exception.Message)"
+      exit 1
+    }
+
+    # Last, so any resolve still in flight sees the new value and declines to
+    # seal what it read before the sync.
+    $dir = Split-Path $script:EpochPath -Parent
+    if (-not (Test-Path -LiteralPath $dir)) {
+      $null = New-Item -ItemType Directory -Path $dir -Force
+    }
+    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
     break
   }
   'check' {
