@@ -138,22 +138,32 @@ ensure_key() {
 
 # The KEK travels to node via the environment rather than argv, which would be
 # visible in any process listing.
-# The AAD binds the expiry and the item query together: the expiry so editing it
-# breaks decryption rather than extending the window, and the query so a cache
-# filled for one vault item cannot be served for another. Without the latter,
+# The AAD binds the expiry, the item query, and the epoch together. The expiry
+# so editing it breaks decryption rather than extending the window. The query so
+# a cache filled for one vault item cannot be served for another -- without it,
 # HASS_VAULT_ITEM=Other returns the previous item's credentials until the window
-# lapses -- the read consults the cache before it ever reaches the vault.
+# lapses, since the read consults the cache before reaching the vault.
 #
-# NUL-separated so a query cannot be crafted to collide with an expiry.
+# The epoch is what makes a `refresh` safe against a resolve already in flight.
+# Checking the epoch before writing narrows that race but cannot close it: the
+# check and the write are separate steps, so a refresh landing between them
+# still gets its cleared cache repopulated with the stale pair. Sealing under
+# the epoch moves the check to read time, where it is inherently atomic -- a
+# cache written under a superseded epoch simply will not open, and is treated
+# as the miss it is. No lock, and nothing held across the vault call.
+#
+# NUL-separated so no field can be crafted to collide with another.
 encrypt_cache() {
-  local kek=$1 exp=$2
-  HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+  local kek=$1 exp=$2 epoch=$3
+  HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" \
+    HASS_EPOCH="$epoch" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const exp = process.env.HASS_EXP;
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv("aes-256-gcm", kek, iv);
-    cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY));
+    cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY
+      + "\0" + process.env.HASS_EPOCH));
     const ct = Buffer.concat([
       cipher.update(require("fs").readFileSync(0)),
       cipher.final(),
@@ -169,14 +179,15 @@ encrypt_cache() {
 }
 
 decrypt_cache() {
-  local kek=$1
-  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+  local kek=$1 epoch=$2
+  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" HASS_EPOCH="$epoch" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const o = JSON.parse(require("fs").readFileSync(0, "utf8"));
     const d = crypto.createDecipheriv("aes-256-gcm", kek,
       Buffer.from(o.iv, "base64"));
-    d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY));
+    d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY
+      + "\0" + process.env.HASS_EPOCH));
     d.setAuthTag(Buffer.from(o.tag, "base64"));
     process.stdout.write(Buffer.concat([
       d.update(Buffer.from(o.ct, "base64")),
@@ -196,14 +207,10 @@ cache_expiry() {
   fi
 }
 
-# The epoch is captured before the vault is read and re-checked here, so a
-# `refresh` landing mid-resolve drops this write instead of resurrecting the
-# pair it just cleared -- with a fresh window, after refresh reported success.
-#
-# A generation check rather than a lock, because the resolve it guards spans a
-# `bw` call: holding a lock across that would let a hung vault block every
-# hass-cli invocation, a worse failure than the race. Only the cache write is
-# discarded; the caller still gets the pair it resolved.
+# The epoch check here is a fast path, not the guarantee: it skips a doomed
+# keystore round trip and leaves a diagnosable line when a refresh has already
+# landed. What actually makes the write safe is sealing under that epoch, which
+# a later read will refuse -- see encrypt_cache.
 store_credential() {
   local plain=$1 epoch=$2 kek exp
 
@@ -216,7 +223,8 @@ store_credential() {
   ensure_key
   kek=$(derive_kek) || die 'could not sign with the hardware key'
   exp=$((EPOCHSECONDS + IDLE_TIMEOUT))
-  write_private "$CACHE" "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp")"
+  write_private "$CACHE" \
+    "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp" "$epoch")"
 }
 
 discard_cache() {
@@ -248,7 +256,8 @@ read_cache() {
     return 1
   }
 
-  if ! plain=$(decrypt_cache "$kek" <"$CACHE" 2>/dev/null) || [[ -z "$plain" ]]; then
+  if ! plain=$(decrypt_cache "$kek" "$epoch" <"$CACHE" 2>/dev/null) ||
+    [[ -z "$plain" ]]; then
     discard_cache
     return 1
   fi

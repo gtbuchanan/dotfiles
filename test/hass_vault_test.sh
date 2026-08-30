@@ -490,6 +490,28 @@ test_refresh_advances_the_epoch_before_clearing() {
     "$before" "$after"
 }
 
+# The check-then-write window the epoch guard alone cannot close: a resolver
+# passes the check, `refresh` advances the epoch and clears the cache, and the
+# resolver publishes afterwards. Sealing under the epoch is what makes that
+# publication harmless -- the cache it leaves behind cannot be opened.
+#
+# Driven by writing a cache under a superseded epoch, which is the exact state
+# such a resolver leaves, rather than by trying to interleave two processes.
+
+test_a_cache_sealed_under_a_superseded_epoch_is_refused() {
+  seed_cache
+  assertTrue 'precondition: the cache reads back' \
+    "[ -n \"$(hass-vault credential 2>/dev/null)\" ]"
+
+  # Stand in for the resolver that published after refresh moved on.
+  printf 'superseded-by-a-refresh' >"$XDG_STATE_HOME/hass-vault/epoch"
+
+  assertContains 'the stale publication is not served' \
+    "$(env STUB_VAULT_LOCKED=1 hass-vault check 2>&1)" 'credentials did not resolve'
+  assertFalse 'and it is dropped rather than left to be retried' \
+    "[ -s '$CACHE_FILE' ]"
+}
+
 test_reset_drops_the_cache_and_the_hardware_key() {
   seed_cache
   assertContains 'reports what it removed' \

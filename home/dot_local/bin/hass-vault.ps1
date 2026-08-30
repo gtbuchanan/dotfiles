@@ -82,12 +82,22 @@ function Write-Cache {
   # block every hass-cli invocation, which is a worse failure than the race.
   # This only discards a cache write -- the caller still gets the pair it
   # resolved, and the next invocation resolves afresh.
+  # A fast path, not the guarantee: it skips work and leaves a diagnosable line
+  # when a refresh has already landed. What makes the write safe is binding the
+  # epoch into the DPAPI entropy below, which a later read will refuse.
   if ((Read-Epoch) -ne $Epoch) {
     Write-Diag 'a refresh landed mid-resolve; not caching this result'
     return
   }
   $expiry = (Get-Date).ToUniversalTime().Add($script:IdleWindow).ToString('o')
-  $entropy = [Text.Encoding]::UTF8.GetBytes($expiry)
+
+  # Checking the epoch before writing narrows the race but cannot close it: the
+  # check and the write are separate steps, so a refresh landing between them
+  # would still repopulate the cache it just cleared. Binding the epoch into the
+  # entropy moves the check to read time, where it is inherently atomic -- a
+  # cache sealed under a superseded epoch fails to unprotect and is treated as
+  # the miss it is. No lock, and nothing held across the vault call.
+  $entropy = [Text.Encoding]::UTF8.GetBytes("$expiry`0$Epoch")
   $payload = "$Server`n$Token"
   $blob = [Security.Cryptography.ProtectedData]::Protect(
     [Text.Encoding]::UTF8.GetBytes($payload), $entropy, 'CurrentUser')
@@ -106,7 +116,7 @@ function Read-Cache {
   if ($expiry -le (Get-Date).ToUniversalTime()) { return $null }
 
   try {
-    $entropy = [Text.Encoding]::UTF8.GetBytes($lines[0])
+    $entropy = [Text.Encoding]::UTF8.GetBytes("$($lines[0])`0$(Read-Epoch)")
     $plain = [Security.Cryptography.ProtectedData]::Unprotect(
       [Convert]::FromBase64String($lines[1]), $entropy, 'CurrentUser')
     $parts = [Text.Encoding]::UTF8.GetString($plain) -split "`n", 2
