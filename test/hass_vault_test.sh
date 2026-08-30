@@ -82,17 +82,10 @@ seed_cache() { # $@ = extra env assignments
   env STUB_ITEMS="$(items_ok)" "$@" hass-vault check >/dev/null 2>&1
 }
 
-oneTimeSetUp() {
-  SANDBOX=$(mktemp -d)
-  BIN="$SANDBOX/bin"
-  mkdir -p "$BIN"
-
-  chezmoi cat --source "$ROOT" --no-tty "$TARGET" >"$BIN/hass-vault"
-
-  WRAPPER="$SANDBOX/hass-cli"
-  chezmoi cat --source "$ROOT" --no-tty "$WRAPPER_TARGET" >"$WRAPPER"
-  chmod +x "$WRAPPER"
-
+# Rewritten before every test: two of them replace `bw` in place to simulate an
+# offline sync and a mid-resolve refresh, and a stub that outlived its test
+# would silently change the meaning of the next one.
+install_stubs() {
   cat >"$BIN/bw-session-termux" <<'STUB'
 #!/usr/bin/env bash
 [ -n "${STUB_VAULT_LOCKED:-}" ] && { echo "stub: vault locked" >&2; exit 1; }
@@ -108,8 +101,20 @@ printf '%s\n' "$1" >>"${STUB_BW_LOG:-/dev/null}"
 [ -z "${BW_SESSION:-}" ] && { echo "stub: no session" >&2; exit 1; }
 printf '%s' "${STUB_ITEMS:-[]}"
 STUB
-
   chmod +x "$BIN"/*
+}
+
+oneTimeSetUp() {
+  SANDBOX=$(mktemp -d)
+  BIN="$SANDBOX/bin"
+  mkdir -p "$BIN"
+
+  chezmoi cat --source "$ROOT" --no-tty "$TARGET" >"$BIN/hass-vault"
+  install_stubs
+
+  WRAPPER="$SANDBOX/hass-cli"
+  chezmoi cat --source "$ROOT" --no-tty "$WRAPPER_TARGET" >"$WRAPPER"
+  chmod +x "$WRAPPER"
 
   export PATH="$BIN:$PATH"
   export XDG_STATE_HOME="$SANDBOX/state"
@@ -121,6 +126,7 @@ STUB
 # The cache and the hardware key, so no test inherits another's state. The key
 # is dropped too because several tests turn on whether it exists.
 setUp() {
+  install_stubs
   rm -rf "$XDG_STATE_HOME/hass-vault"
   termux-keystore delete "$TEST_ALIAS" 2>/dev/null
   return 0
@@ -448,6 +454,40 @@ test_refresh_keeps_the_hardware_key() {
   env STUB_ITEMS="$(items_ok)" hass-vault refresh >/dev/null 2>&1
   assertTrue 'refresh is not reset -- the key survives' \
     "termux-keystore list 2>/dev/null | jq -e 'map(select(.alias == \"$TEST_ALIAS\")) | length > 0' >/dev/null"
+}
+
+# A refresh that lands while a resolve is in flight must not be undone by it.
+# The resolve read the vault before the rotation was published, so sealing its
+# result would restore the stale pair -- with a fresh window, after refresh
+# reported success. Driven deterministically rather than by timing: the stub
+# bumps the epoch while serving the search, which is exactly the interleaving
+# that matters.
+
+test_a_refresh_landing_mid_resolve_is_not_undone() {
+  cat >"$BIN/bw" <<STUB
+#!/usr/bin/env bash
+[ "\$1" = sync ] && exit 0
+printf '%s' "\${STUB_BUMP_EPOCH:-}" >"$XDG_STATE_HOME/hass-vault/epoch"
+printf '%s' "\${STUB_ITEMS:-[]}"
+STUB
+  chmod +x "$BIN/bw"
+  mkdir -p "$XDG_STATE_HOME/hass-vault"
+
+  env STUB_BUMP_EPOCH=a-refresh-landed STUB_ITEMS="$(items_ok)" \
+    hass-vault credential >/dev/null 2>&1
+
+  assertFalse 'the in-flight resolve must not seal what refresh just cleared' \
+    "[ -s '$CACHE_FILE' ]"
+}
+
+test_refresh_advances_the_epoch_before_clearing() {
+  seed_cache
+  local before after
+  before=$(cat "$XDG_STATE_HOME/hass-vault/epoch" 2>/dev/null)
+  env STUB_ITEMS="$(items_ok)" hass-vault refresh >/dev/null 2>&1
+  after=$(cat "$XDG_STATE_HOME/hass-vault/epoch" 2>/dev/null)
+  assertNotEquals 'a resolve started before this must be able to notice' \
+    "$before" "$after"
 }
 
 test_reset_drops_the_cache_and_the_hardware_key() {

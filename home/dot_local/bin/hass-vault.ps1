@@ -175,8 +175,17 @@ function Get-VaultCredential {
   # or a reset -- which already costs a vault unlock and possibly a prompt.
   #
   # Failure is ignored rather than fatal, so an offline resolve still serves the
-  # local copy instead of refusing outright.
-  Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
+  # local copy instead of refusing outright. The try/catch is what makes that
+  # true rather than incidental: $ErrorActionPreference is Stop, so a non-zero
+  # native exit becomes terminating wherever
+  # $PSNativeCommandUseErrorActionPreference is $true. It defaults to $false on
+  # the pinned PowerShell, which is exactly the kind of thing not to depend on.
+  try {
+    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
+  }
+  catch {
+    Write-Diag "vault sync failed, using the local copy: $($_.Exception.Message)"
+  }
 
   $items = Find-VaultItem -Bw $bw -Session $session
 
@@ -217,6 +226,18 @@ switch ($Command) {
     # cold resolve syncs first, doing it again would be a second round trip for
     # a value the next resolve refreshes anyway.
     #
+    # The epoch moves FIRST, before the cache is removed. A resolve already in
+    # flight captured the old epoch and re-checks it before sealing, so
+    # advancing it here makes that write drop. Removing the cache first would
+    # leave a window between the delete and the bump in which such a write
+    # still passes the check -- restoring the stale pair, with a fresh window,
+    # after this command reported success.
+    $dir = Split-Path $script:EpochPath -Parent
+    if (-not (Test-Path -LiteralPath $dir)) {
+      $null = New-Item -ItemType Directory -Path $dir -Force
+    }
+    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
+
     # A cache that survives is a failed refresh, not a partial one, so this
     # exits non-zero and says so rather than reporting success and sending the
     # next resolve at the same stale copy.
@@ -230,14 +251,18 @@ switch ($Command) {
       exit 1
     }
 
-    # Last, so a resolve still in flight declines to seal a pair it read before
-    # this ran. Still needed without the sync above: such a resolve synced
-    # before the rotation was published, so its result is stale too.
-    $dir = Split-Path $script:EpochPath -Parent
-    if (-not (Test-Path -LiteralPath $dir)) {
-      $null = New-Item -ItemType Directory -Path $dir -Force
+    # Resolve on the spot rather than leaving it to the next hass-cli call, so
+    # this reports whether the new credential actually resolves and matches what
+    # `hass-vault refresh` does on Termux. Same non-secret shape as `check`.
+    try {
+      $creds = Get-VaultCredential
     }
-    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
+    catch {
+      Write-Diag $_.Exception.Message
+      Write-Output 'credentials did not resolve'
+      exit 1
+    }
+    "credentials resolved (server set, token $($creds.Token.Length) chars)"
     break
   }
 

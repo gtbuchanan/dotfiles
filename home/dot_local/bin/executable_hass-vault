@@ -50,6 +50,10 @@ readonly KEK_CONTEXT="$KEY_ALIAS/v1"
 readonly CACHE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hass-vault"
 readonly CACHE="$CACHE_DIR/cache.enc"
 
+# Bumped by `refresh`. A resolve reads it before touching the vault and again
+# before sealing, and declines to seal if it moved -- see store_credential.
+readonly EPOCH="$CACHE_DIR/epoch"
+
 # Sliding idle window, in seconds. A read past the halfway mark pushes the
 # expiry out again; earlier reads leave it alone, since rewriting costs another
 # keystore round trip and an idle timeout need not be exact. It stays under
@@ -192,8 +196,23 @@ cache_expiry() {
   fi
 }
 
+# The epoch is captured before the vault is read and re-checked here, so a
+# `refresh` landing mid-resolve drops this write instead of resurrecting the
+# pair it just cleared -- with a fresh window, after refresh reported success.
+#
+# A generation check rather than a lock, because the resolve it guards spans a
+# `bw` call: holding a lock across that would let a hung vault block every
+# hass-cli invocation, a worse failure than the race. Only the cache write is
+# discarded; the caller still gets the pair it resolved.
 store_credential() {
-  local plain=$1 kek exp
+  local plain=$1 epoch=$2 kek exp
+
+  if [[ "$(read_epoch)" != "$epoch" ]]; then
+    printf '%s: a refresh landed mid-resolve; not caching this result\n' \
+      "${0##*/}" >&2
+    return 0
+  fi
+
   ensure_key
   kek=$(derive_kek) || die 'could not sign with the hardware key'
   exp=$((EPOCHSECONDS + IDLE_TIMEOUT))
@@ -204,11 +223,19 @@ discard_cache() {
   rm -f "$CACHE"
 }
 
+read_epoch() {
+  [[ -s "$EPOCH" ]] && cat "$EPOCH" || printf ''
+}
+
+bump_epoch() {
+  write_private "$EPOCH" "$EPOCHSECONDS-$RANDOM$RANDOM-$$"
+}
+
 # Prints the cached "server\ntoken" pair, or fails. A wrong device, a rewritten
 # expiry, and a dropped hardware key are indistinguishable here and all equally
 # unusable, so each is treated as a miss.
 read_cache() {
-  local exp kek plain
+  local epoch=$1 exp kek plain
 
   exp=$(cache_expiry)
   if [[ "$EPOCHSECONDS" -ge "$exp" ]]; then
@@ -227,7 +254,7 @@ read_cache() {
   fi
 
   if [[ $((exp - EPOCHSECONDS)) -lt $((IDLE_TIMEOUT / 2)) ]]; then
-    store_credential "$plain"
+    store_credential "$plain" "$epoch"
   fi
 
   printf '%s' "$plain"
@@ -249,7 +276,7 @@ find_vault_item() {
 }
 
 resolve_from_vault() {
-  local session items count item name server token
+  local epoch=$1 session items count item name server token
 
   command -v bw >/dev/null || die 'bw not found'
 
@@ -304,19 +331,23 @@ resolve_from_vault() {
   [[ "$server" == https://* ]] ||
     die "vault item '$name' has a non-https URI; refusing to send the token in the clear"
 
-  store_credential "$server"$'\n'"$token"
+  store_credential "$server"$'\n'"$token" "$epoch"
   printf '%s\n%s' "$server" "$token"
 }
 
 get_credential() {
-  local plain
+  local epoch plain
 
-  if plain=$(read_cache); then
+  # Read once, before anything else, so both the cache slide and a fresh
+  # resolve are judged against the generation this invocation started in.
+  epoch=$(read_epoch)
+
+  if plain=$(read_cache "$epoch"); then
     printf '%s' "$plain"
     return
   fi
 
-  resolve_from_vault
+  resolve_from_vault "$epoch"
 }
 
 # --- commands ---------------------------------------------------------------
@@ -349,6 +380,11 @@ cmd_check() {
 # `reset` would also achieve it, by deleting the hardware key -- a heavy way to
 # say "this one credential is stale", and one that orphans nothing else useful.
 cmd_refresh() {
+  # The epoch moves first, before the cache is removed. A resolve already in
+  # flight captured the old one and re-checks it before sealing, so advancing it
+  # here makes that write drop. Removing the cache first would leave a window in
+  # which such a write still passes the check, restoring the stale pair.
+  bump_epoch
   discard_cache
   cmd_check
 }
