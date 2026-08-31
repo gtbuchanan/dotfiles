@@ -94,11 +94,18 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
 
     # --- driver -----------------------------------------------------------
 
+    # ProcessStartInfo rather than Start-Process, because Start-Process joins
+    # -ArgumentList into one space-separated string and leaves the quoting to
+    # the caller. The resolver's path runs through the system temp directory, so
+    # a profile with a space in it -- C:\Users\Firstname Lastname\... -- splits
+    # `-File <path>` in two and every test fails at once. ArgumentList here is a
+    # collection the runtime escapes per argument, so no path can come apart.
+    #
+    # Reading both streams before waiting, since a child that fills a redirected
+    # pipe blocks until it is drained; waiting first would deadlock on output
+    # larger than the buffer.
     function Invoke-Vault {
       param([string[]]$Arguments = @(), [hashtable]$Environment = @{})
-
-      $outFile = Join-Path $sandbox 'out.txt'
-      $errFile = Join-Path $sandbox 'err.txt'
 
       $vars = @{
         LOCALAPPDATA = $state
@@ -118,12 +125,23 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
         [Environment]::SetEnvironmentVariable($name, $vars[$name])
       }
       try {
-        $proc = Start-Process pwsh -PassThru -Wait -NoNewWindow `
-          -ArgumentList (@('-NoLogo', '-NoProfile', '-File', $resolver) + $Arguments) `
-          -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+        $psi = [Diagnostics.ProcessStartInfo]@{
+          FileName = 'pwsh'
+          RedirectStandardOutput = $true
+          RedirectStandardError = $true
+          UseShellExecute = $false
+        }
+        foreach ($argument in @('-NoLogo', '-NoProfile', '-File', $resolver) + $Arguments) {
+          $psi.ArgumentList.Add($argument)
+        }
+
+        $proc = [Diagnostics.Process]::Start($psi)
+        $stdout = $proc.StandardOutput.ReadToEndAsync()
+        $stderr = $proc.StandardError.ReadToEndAsync()
+        $proc.WaitForExit()
         [pscustomobject]@{
-          Out = (Get-Content -Raw -LiteralPath $outFile -ErrorAction SilentlyContinue) ?? ''
-          Err = (Get-Content -Raw -LiteralPath $errFile -ErrorAction SilentlyContinue) ?? ''
+          Out = $stdout.Result
+          Err = $stderr.Result
           ExitCode = $proc.ExitCode
         }
       }
