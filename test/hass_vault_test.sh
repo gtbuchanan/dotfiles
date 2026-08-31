@@ -134,6 +134,12 @@ STUB
 }
 
 oneTimeSetUp() {
+  # Every test that wants one of these passes it per invocation, so anything
+  # inherited here is the developer's own shell reaching in -- and for
+  # HASS_VAULT_INSTANCE that is a realistic thing to have exported, since
+  # setting it is what the variable is for.
+  unset HASS_VAULT_INSTANCE HASS_VAULT_ITEM
+
   SANDBOX=$(mktemp -d)
   BIN="$SANDBOX/bin"
   mkdir -p "$BIN"

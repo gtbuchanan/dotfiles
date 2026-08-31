@@ -134,8 +134,11 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
         PATH = "$bin$([IO.Path]::PathSeparator)$env:PATH"
       } + $Environment
 
-      # Cleared unless the caller set them, so no test inherits another's.
-      foreach ($name in 'HASS_VAULT_ITEM', 'STUB_VAULT_LOCKED', 'STUB_SYNC_FAILS') {
+      # Cleared unless the caller set them, so no test inherits another's -- nor
+      # the shell's, which for HASS_VAULT_INSTANCE is a realistic thing to have
+      # exported, since setting it is what the variable is for.
+      foreach ($name in 'HASS_VAULT_INSTANCE', 'HASS_VAULT_ITEM',
+        'STUB_VAULT_LOCKED', 'STUB_SYNC_FAILS') {
         if (-not $vars.ContainsKey($name)) { $vars[$name] = $null }
       }
 
