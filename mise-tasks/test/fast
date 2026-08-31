@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #MISE description="Run the host-native checks (no Docker)"
-#MISE depends=["test:templates"]
+#MISE depends=["test:templates", "test:shunit2"]
 #
 # Deliberately body-less: the leaves listed above are the whole of it, and mise
 # resolves them, including running independent ones in parallel.

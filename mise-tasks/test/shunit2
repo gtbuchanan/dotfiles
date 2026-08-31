@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+#MISE description="Run every shUnit2 suite under test/ (no Docker)"
+#
+# Named for the runner, not for what it tests: adding a suite is dropping a
+# *_test.sh into test/, which this picks up with no task and no CI job.
+#
+# Suites self-skip where they cannot apply -- the hass-vault one is Termux-only
+# -- so this is safe to run on any host, and reports what it skipped rather than
+# staying silent about it.
+#
+#   mise run test:shunit2 [-- shUnit2 args, e.g. a test_* name filter]
+set -euo pipefail
+
+cd "$MISE_PROJECT_ROOT"
+
+status=0
+found=0
+for suite in test/*_test.sh; do
+  [ -e "$suite" ] || continue
+  found=1
+  printf '==> %s\n' "$suite"
+  # Every suite runs even if an earlier one fails, so one red suite does not
+  # hide another; the exit code still reflects the worst outcome.
+  bash "$suite" "$@" || status=$?
+done
+
+# A repo with no suites of this kind is a legitimate state, so say so rather
+# than failing -- but say it, because silence would read as a passing run.
+[ "$found" -eq 1 ] || echo 'SKIP: no shUnit2 suites under test/'
+
+exit "$status"

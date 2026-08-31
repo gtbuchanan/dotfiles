@@ -5,17 +5,24 @@
 # what is under test is this working tree and not whatever was last applied.
 #
 # `bw` and `bw-session-termux` are stubbed, so no vault is contacted and no
-# prompt is raised. Everything else runs for real: the Android hardware
-# keystore, node's AES-256-GCM, jq, the sealed cache, and every refusal.
+# prompt is raised. node's AES-256-GCM, jq, the sealed cache and every refusal
+# run for real wherever this runs.
 #
-# DEVICE-ONLY, and deliberately not wired into hk or CI. The keystore reaches
-# Termux:API, which needs the Termux:API app on a real device -- the
-# termux-docker userland that `test:termux` borrows has no Android
-# API service to answer it. So this runs when someone runs it:
+# The keystore is the one thing that varies. On a device it is the Android
+# hardware keystore, reached through Termux:API. The termux-docker userland the
+# android CI leg borrows has no Android API service to answer that, so
+# scripts/test-termux.sh supplies test/stubs/termux-keystore -- a model,
+# documented there, reproducing the behaviours these tests turn on, most
+# importantly that signing a missing alias writes nothing and exits 0. So CI
+# proves this resolver is correct against that model, and a device run is what
+# re-checks the model against the real thing.
 #
-#   mise run test:hass-vault [-- shUnit2 args, e.g. a test_* name filter]
+# Run it either way with:
 #
-# It skips cleanly, rather than failing, anywhere it cannot apply.
+#   mise run test:shunit2 [-- shUnit2 args, e.g. a test_* name filter]
+#
+# It skips cleanly, rather than failing, anywhere it cannot apply -- every host
+# that is not Termux, which is why the same command is correct everywhere.
 #
 # Built on the vendored shUnit2 (vendor/shunit2): each behavior is a `test_*`
 # function, discovered and summarized by the framework. Deliberately no `set -e`
