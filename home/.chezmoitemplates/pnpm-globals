@@ -2,14 +2,15 @@
   Renders a `pnpm add -g` command for the packages named in the caller's
   `include` list. Versions come from the `globals` catalog in the repo-root
   pnpm-workspace.yaml (single source of truth, Renovate-managed). The root
-  .pnpmfile.cjs is always wired via --config.global-pnpmfile (its readPackage
-  patches are name-guarded no-ops for packages that don't need them), so the
-  caller only passes its `workingTree` and `include` list.
+  global-pnpmfile.cjs is always wired via --config.global-pnpmfile (its
+  readPackage patches are name-guarded no-ops for packages that don't need
+  them), so the caller only passes its `workingTree` and `include` list. The
+  file is deliberately not named .pnpmfile.cjs — see its header comment.
 */ -}}
 {{- $catalog := (include "../pnpm-workspace.yaml" | fromYaml).catalogs.globals -}}
 {{- $include := index . "include" -}}
 {{- $wt := index . "workingTree" | replace "\\" "/" -}}
-{{- $args := printf " --config.global-pnpmfile=%s/.pnpmfile.cjs" $wt -}}
+{{- $args := printf " --config.global-pnpmfile=%s/global-pnpmfile.cjs" $wt -}}
 {{- range $i, $name := $include -}}
 {{-   $version := index $catalog $name -}}
 {{-   if hasPrefix "github:" $version -}}

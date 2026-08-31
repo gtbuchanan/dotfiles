@@ -226,7 +226,8 @@ To add a new package:
    themselves to stay self-contained.
 
 See [`docs/pnpm-globals.md`](docs/pnpm-globals.md) for the template internals,
-GitHub-spec handling, the `.pnpmfile.cjs` hook, and the per-script package mapping.
+GitHub-spec handling, the `global-pnpmfile.cjs` hook, and the per-script
+package mapping.
 
 ## User-Level Agent Preferences
 

@@ -6,7 +6,7 @@
     "@gtbuchanan/tsconfig/node.json"
   ],
   "include": [
-    ".pnpmfile.cjs",
-    "eslint.config.mjs"
+    "eslint.config.mjs",
+    "global-pnpmfile.cjs"
   ]
 }
