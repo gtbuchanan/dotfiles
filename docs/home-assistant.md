@@ -158,6 +158,8 @@ The item is found by search rather than by a fixed id, so it stays renameable an
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
 
+**The URI must be `https://`.** A long-lived token over cleartext is worth failing over, so a plain-`http` URI is refused rather than used — on both platforms. Home Assistant is commonly reached at `http://` on a LAN, which makes this a policy rather than a universal truth, but it is the right one where the URI comes from a vault item expected to be https, and a loud failure beats silently shipping the token in the clear if that item is ever edited. Reach the instance through TLS — Nabu Casa, a reverse proxy, or a tunnel — rather than pointing the item at a bare LAN address.
+
 ### Rotating the Token
 
 Update the `CLI Token` field in the vault item, then run `hass-vault refresh`.

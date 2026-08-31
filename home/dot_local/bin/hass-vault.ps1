@@ -239,6 +239,17 @@ function Get-VaultCredential {
     throw "vault item '$($item.name)' has an empty '$($script:TokenField)' field"
   }
 
+  # A long-lived token over cleartext is worth failing over. Home Assistant is
+  # commonly reached at http:// on a LAN, so this is a policy rather than a
+  # universal truth -- but it is the right one where the URI comes from a vault
+  # item that is expected to be https, and a loud failure beats silently
+  # shipping the token in the clear if that item is ever edited. The Termux
+  # resolver has refused this from the start; this closes the gap.
+  if ($server -notlike 'https://*') {
+    throw ("vault item '$($item.name)' has a non-https URI; " +
+      'refusing to send the token in the clear')
+  }
+
   Write-Cache -Server $server -Token $field.value -Epoch $epoch
   [pscustomobject]@{ Server = $server; Token = $field.value }
 }
