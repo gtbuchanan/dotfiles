@@ -23,6 +23,7 @@ hosts only**, on every platform this repo supports. Credentials are wired up on 
 | [`home/dot_local/bin/wrappers/hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd)                                           | Scopes credentials to hass-cli's process, Windows                    |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                 | Puts `wrappers/` ahead of the mise shims                             |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                 | Puts `wrappers/` ahead of the mise shims on the user PATH            |
+| [`test/HassVault.Tests.ps1`](../test/HassVault.Tests.ps1)                                                                           | Pester suite, Windows (`mise run test:pester`), in CI                |
 | [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                             | shUnit2 suite, Termux (`mise run test:shunit2`), in CI               |
 | [`test/stubs/termux-keystore`](../test/stubs/termux-keystore)                                                                       | Model of the keystore, so that suite can run off a device            |
 
@@ -174,6 +175,8 @@ error: HTTPError: 401 Client Error: Unauthorized
 ### The Sealed Cache
 
 A vault lookup costs seconds and may prompt, so `hass-vault` caches the resolved pair, wrapped against the Android hardware keystore exactly as [`bw-session-termux`](../home/dot_local/bin/executable_bw-session-termux) wraps the vault session key: a KEK derived from a deterministic signature by a non-extractable key, AES-256-GCM, the expiry bound as additional authenticated data so editing it breaks decryption rather than extending the window. The cache is therefore inert on any other device, which DPAPI's binding to the user identity does not give.
+
+**Both platforms bind the search term as well**, alongside the expiry and the epoch — the AAD on Termux, the DPAPI entropy on Windows. A read consults the cache before it ever reaches the vault, so without it `HASS_VAULT_ITEM` pointed at a second item returns the _first_ item's credentials for the rest of the idle window. That failure is silent: the resolver reports success and hands over a perfectly valid credential for the wrong instance.
 
 The idle window slides, but only once more than half spent — rewriting costs another keystore round trip, and an idle timeout need not be exact. It stays under `bw-session-termux`'s, so the credential cache cannot outlive the session cache beneath it. `HASS_VAULT_IDLE_TIMEOUT` overrides it; a lapse costs a vault lookup, not a silent failure.
 
