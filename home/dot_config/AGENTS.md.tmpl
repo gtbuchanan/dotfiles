@@ -308,6 +308,9 @@
   wrapper to read, so running it persists a long-lived credential in the
   transcript. Use `hass-vault check` for whether credentials resolve and
   `hass-vault status` for whether any are cached; neither emits a value.
+- If it authenticates but the server returns 401, the cached credential is
+  stale — the token was rotated and the cache is still serving the old one.
+  `hass-vault refresh` re-resolves it; tell me rather than reaching further.
 - The token is not in your environment: a wrapper puts it into hass-cli's
   process alone, so the risk is printing one rather than holding one. If you
   need to inspect a credential, print its length, never its value.

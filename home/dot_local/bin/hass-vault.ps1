@@ -33,10 +33,10 @@
 # outcome without emitting either value. It is the only subcommand that emits
 # one, matching Termux, so the rule agents are given is the same on both.
 #
-# Commands: credential (default) | check | reset | status
+# Commands: credential (default) | check | refresh | status
 [CmdletBinding()]
 param(
-  [ValidateSet('credential', 'check', 'reset', 'status')]
+  [ValidateSet('credential', 'check', 'refresh', 'status')]
   [string]$Command = 'credential'
 )
 
@@ -44,7 +44,7 @@ $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
 
 $script:CachePath = Join-Path $env:LOCALAPPDATA 'hass-vault\cache'
-# Bumped by `reset`. A resolve reads it before touching the vault and again
+# Bumped by `refresh`. A resolve reads it before touching the vault and again
 # before sealing, and declines to seal if it moved -- see Write-Cache.
 $script:EpochPath = Join-Path $env:LOCALAPPDATA 'hass-vault\epoch'
 $script:IdleWindow = [TimeSpan]::FromHours(4)
@@ -71,7 +71,7 @@ function Write-Diag {
 function Write-Cache {
   param([string]$Server, [string]$Token, [string]$Epoch)
 
-  # Ordering in `reset` stops a resolve that starts after it from sealing a
+  # Ordering in `refresh` stops a resolve that starts after it from sealing a
   # stale pair, but not one already in flight: that resolve can read the vault
   # before the sync and land here after the delete, resurrecting the revoked
   # pair with a fresh window while reset reports success. The epoch is captured
@@ -82,12 +82,22 @@ function Write-Cache {
   # block every hass-cli invocation, which is a worse failure than the race.
   # This only discards a cache write -- the caller still gets the pair it
   # resolved, and the next invocation resolves afresh.
+  # A fast path, not the guarantee: it skips work and leaves a diagnosable line
+  # when a refresh has already landed. What makes the write safe is binding the
+  # epoch into the DPAPI entropy below, which a later read will refuse.
   if ((Read-Epoch) -ne $Epoch) {
-    Write-Diag 'a reset landed mid-resolve; not caching this result'
+    Write-Diag 'a refresh landed mid-resolve; not caching this result'
     return
   }
   $expiry = (Get-Date).ToUniversalTime().Add($script:IdleWindow).ToString('o')
-  $entropy = [Text.Encoding]::UTF8.GetBytes($expiry)
+
+  # Checking the epoch before writing narrows the race but cannot close it: the
+  # check and the write are separate steps, so a refresh landing between them
+  # would still repopulate the cache it just cleared. Binding the epoch into the
+  # entropy moves the check to read time, where it is inherently atomic -- a
+  # cache sealed under a superseded epoch fails to unprotect and is treated as
+  # the miss it is. No lock, and nothing held across the vault call.
+  $entropy = [Text.Encoding]::UTF8.GetBytes("$expiry`0$Epoch")
   $payload = "$Server`n$Token"
   $blob = [Security.Cryptography.ProtectedData]::Protect(
     [Text.Encoding]::UTF8.GetBytes($payload), $entropy, 'CurrentUser')
@@ -106,7 +116,7 @@ function Read-Cache {
   if ($expiry -le (Get-Date).ToUniversalTime()) { return $null }
 
   try {
-    $entropy = [Text.Encoding]::UTF8.GetBytes($lines[0])
+    $entropy = [Text.Encoding]::UTF8.GetBytes("$($lines[0])`0$(Read-Epoch)")
     $plain = [Security.Cryptography.ProtectedData]::Unprotect(
       [Convert]::FromBase64String($lines[1]), $entropy, 'CurrentUser')
     $parts = [Text.Encoding]::UTF8.GetString($plain) -split "`n", 2
@@ -163,16 +173,31 @@ function Get-VaultCredential {
   $session = (& $sessionScript get 2>$null | Out-String).Trim()
   if (-not $session) { throw 'could not unlock the vault' }
 
-  $items = Find-VaultItem -Bw $bw -Session $session
-
-  # The CLI serves a local copy of the vault and refreshes it only on an
-  # explicit sync -- not on unlock, and not on list -- so an item added from
-  # another device stays invisible here indefinitely. Syncing only on a miss
-  # keeps the cost off the common path.
-  if ($items.Count -eq 0) {
+  # Sync before searching, not only when the item is missing. The CLI serves a
+  # local copy of the vault and refreshes it only on an explicit sync -- not on
+  # unlock, and not on list -- so a *rotated* token is invisible here until
+  # something else happens to sync. That failure is silent and misleading:
+  # hass-cli gets 401 while `check` reports a perfectly good credential, because
+  # the stale token is still a valid, unexpired JWT.
+  #
+  # Syncing only on a miss caught an item that was newly added and nothing else.
+  # This costs a network round trip, but only on the cold path -- a cache lapse
+  # or a reset -- which already costs a vault unlock and possibly a prompt.
+  #
+  # Failure is ignored rather than fatal, so an offline resolve still serves the
+  # local copy instead of refusing outright. The try/catch is what makes that
+  # true rather than incidental: $ErrorActionPreference is Stop, so a non-zero
+  # native exit becomes terminating wherever
+  # $PSNativeCommandUseErrorActionPreference is $true. It defaults to $false on
+  # the pinned PowerShell, which is exactly the kind of thing not to depend on.
+  try {
     Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
-    $items = Find-VaultItem -Bw $bw -Session $session
   }
+  catch {
+    Write-Diag "vault sync failed, using the local copy: $($_.Exception.Message)"
+  }
+
+  $items = Find-VaultItem -Bw $bw -Session $session
 
   # Ambiguity is refused rather than guessed: picking one of several would hand
   # over a credential the user never chose.
@@ -200,46 +225,32 @@ function Get-VaultCredential {
 }
 
 switch ($Command) {
-  'reset' {
-    # Refresh bw's copy of the vault, then drop the sealed cache. bw serves a
-    # local copy and refreshes it only on an explicit sync, so an item edited
-    # from another device stays stale here: the lookup still matches, no miss
-    # fires the sync in Get-VaultCredential, and the resolver would go on
-    # serving a revoked credential until something else happened to sync.
-    # Rotating is therefore two steps -- update the item, run `hass-vault
-    # reset` -- with no need to know `bw sync` exists.
+  'refresh' {
+    # Drops the sealed cache so the next resolve fetches afresh. That is the
+    # answer to a rotated token: the resolve path syncs bw's local copy before
+    # searching, but never reaches it while a valid cache holds, so the stale
+    # pair is served until something clears it.
     #
-    # Sync first, clear second, because the reverse order has a window in which
-    # a concurrent hass-cli resolves against the un-synced copy and seals the
-    # revoked token again with a fresh idle window -- reinstating exactly the
-    # failure this exists to prevent. Ordering closes that window rather than a
-    # lock file, which would add failure modes of its own for a single-user
-    # desktop; after the sync, a concurrent resolve can only seal a current
-    # value, and the clear that follows costs it nothing.
+    # No sync here. This used to do one, back when the resolve path synced only
+    # on a miss and a rotated item therefore stayed invisible; now that every
+    # cold resolve syncs first, doing it again would be a second round trip for
+    # a value the next resolve refreshes anyway.
     #
-    # A refresh that cannot happen is a failed reset, not a partial one, so
-    # these exit non-zero and leave the cache alone. Clearing regardless would
-    # report success and send the next resolve at the same stale copy, which is
-    # the state the caller ran this to escape.
-    $bw = (Get-Command bw.cmd -ErrorAction SilentlyContinue).Source
-    if (-not $bw) {
-      Write-Diag 'bw not found; vault not synced and cache left in place'
-      exit 1
+    # The epoch moves FIRST, before the cache is removed. A resolve already in
+    # flight captured the old epoch and re-checks it before sealing, so
+    # advancing it here makes that write drop. Removing the cache first would
+    # leave a window between the delete and the bump in which such a write
+    # still passes the check -- restoring the stale pair, with a fresh window,
+    # after this command reported success.
+    $dir = Split-Path $script:EpochPath -Parent
+    if (-not (Test-Path -LiteralPath $dir)) {
+      $null = New-Item -ItemType Directory -Path $dir -Force
     }
-    $sessionScript = Join-Path $PSScriptRoot 'bw-session-windows.ps1'
-    $session = (& $sessionScript get 2>$null | Out-String).Trim()
-    if (-not $session) {
-      Write-Diag 'vault locked; not synced and cache left in place'
-      exit 1
-    }
-    Invoke-Bw -Bw $bw -Session $session -Arguments @('sync') | Out-Null
-    if ($LASTEXITCODE -ne 0) {
-      Write-Diag 'vault sync failed; cache left in place'
-      exit 1
-    }
-    # A cache that survives is a failed reset too: the next resolve would reuse
-    # and slide the stale pair, so this must not fall through to the success
-    # exit the way a silenced error would.
+    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
+
+    # A cache that survives is a failed refresh, not a partial one, so this
+    # exits non-zero and says so rather than reporting success and sending the
+    # next resolve at the same stale copy.
     try {
       if (Test-Path -LiteralPath $script:CachePath) {
         Remove-Item -LiteralPath $script:CachePath -Force -ErrorAction Stop
@@ -250,15 +261,21 @@ switch ($Command) {
       exit 1
     }
 
-    # Last, so any resolve still in flight sees the new value and declines to
-    # seal what it read before the sync.
-    $dir = Split-Path $script:EpochPath -Parent
-    if (-not (Test-Path -LiteralPath $dir)) {
-      $null = New-Item -ItemType Directory -Path $dir -Force
+    # Resolve on the spot rather than leaving it to the next hass-cli call, so
+    # this reports whether the new credential actually resolves and matches what
+    # `hass-vault refresh` does on Termux. Same non-secret shape as `check`.
+    try {
+      $creds = Get-VaultCredential
     }
-    Set-Content -LiteralPath $script:EpochPath -Value ([guid]::NewGuid().ToString()) -Encoding ascii
+    catch {
+      Write-Diag $_.Exception.Message
+      Write-Output 'credentials did not resolve'
+      exit 1
+    }
+    "credentials resolved (server set, token $($creds.Token.Length) chars)"
     break
   }
+
   'check' {
     # Reports shape, never values: the whole point is that a failure can be
     # diagnosed without printing a secret somewhere it will persist.

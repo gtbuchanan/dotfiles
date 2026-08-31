@@ -31,7 +31,7 @@
 # without emitting either value, and `status` answers whether anything is cached
 # without touching the vault.
 #
-# Commands: credential | check | status | reset
+# Commands: credential | check | status | refresh | reset
 
 set -euo pipefail
 
@@ -49,6 +49,10 @@ readonly KEK_CONTEXT="$KEY_ALIAS/v1"
 
 readonly CACHE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hass-vault"
 readonly CACHE="$CACHE_DIR/cache.enc"
+
+# Bumped by `refresh`. A resolve reads it before touching the vault and again
+# before sealing, and declines to seal if it moved -- see store_credential.
+readonly EPOCH="$CACHE_DIR/epoch"
 
 # Sliding idle window, in seconds. A read past the halfway mark pushes the
 # expiry out again; earlier reads leave it alone, since rewriting costs another
@@ -134,22 +138,32 @@ ensure_key() {
 
 # The KEK travels to node via the environment rather than argv, which would be
 # visible in any process listing.
-# The AAD binds the expiry and the item query together: the expiry so editing it
-# breaks decryption rather than extending the window, and the query so a cache
-# filled for one vault item cannot be served for another. Without the latter,
+# The AAD binds the expiry, the item query, and the epoch together. The expiry
+# so editing it breaks decryption rather than extending the window. The query so
+# a cache filled for one vault item cannot be served for another -- without it,
 # HASS_VAULT_ITEM=Other returns the previous item's credentials until the window
-# lapses -- the read consults the cache before it ever reaches the vault.
+# lapses, since the read consults the cache before reaching the vault.
 #
-# NUL-separated so a query cannot be crafted to collide with an expiry.
+# The epoch is what makes a `refresh` safe against a resolve already in flight.
+# Checking the epoch before writing narrows that race but cannot close it: the
+# check and the write are separate steps, so a refresh landing between them
+# still gets its cleared cache repopulated with the stale pair. Sealing under
+# the epoch moves the check to read time, where it is inherently atomic -- a
+# cache written under a superseded epoch simply will not open, and is treated
+# as the miss it is. No lock, and nothing held across the vault call.
+#
+# NUL-separated so no field can be crafted to collide with another.
 encrypt_cache() {
-  local kek=$1 exp=$2
-  HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+  local kek=$1 exp=$2 epoch=$3
+  HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" \
+    HASS_EPOCH="$epoch" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const exp = process.env.HASS_EXP;
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv("aes-256-gcm", kek, iv);
-    cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY));
+    cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY
+      + "\0" + process.env.HASS_EPOCH));
     const ct = Buffer.concat([
       cipher.update(require("fs").readFileSync(0)),
       cipher.final(),
@@ -165,14 +179,15 @@ encrypt_cache() {
 }
 
 decrypt_cache() {
-  local kek=$1
-  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" node -e '
+  local kek=$1 epoch=$2
+  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" HASS_EPOCH="$epoch" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const o = JSON.parse(require("fs").readFileSync(0, "utf8"));
     const d = crypto.createDecipheriv("aes-256-gcm", kek,
       Buffer.from(o.iv, "base64"));
-    d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY));
+    d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY
+      + "\0" + process.env.HASS_EPOCH));
     d.setAuthTag(Buffer.from(o.tag, "base64"));
     process.stdout.write(Buffer.concat([
       d.update(Buffer.from(o.ct, "base64")),
@@ -192,23 +207,43 @@ cache_expiry() {
   fi
 }
 
+# The epoch check here is a fast path, not the guarantee: it skips a doomed
+# keystore round trip and leaves a diagnosable line when a refresh has already
+# landed. What actually makes the write safe is sealing under that epoch, which
+# a later read will refuse -- see encrypt_cache.
 store_credential() {
-  local plain=$1 kek exp
+  local plain=$1 epoch=$2 kek exp
+
+  if [[ "$(read_epoch)" != "$epoch" ]]; then
+    printf '%s: a refresh landed mid-resolve; not caching this result\n' \
+      "${0##*/}" >&2
+    return 0
+  fi
+
   ensure_key
   kek=$(derive_kek) || die 'could not sign with the hardware key'
   exp=$((EPOCHSECONDS + IDLE_TIMEOUT))
-  write_private "$CACHE" "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp")"
+  write_private "$CACHE" \
+    "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp" "$epoch")"
 }
 
 discard_cache() {
   rm -f "$CACHE"
 }
 
+read_epoch() {
+  [[ -s "$EPOCH" ]] && cat "$EPOCH" || printf ''
+}
+
+bump_epoch() {
+  write_private "$EPOCH" "$EPOCHSECONDS-$RANDOM$RANDOM-$$"
+}
+
 # Prints the cached "server\ntoken" pair, or fails. A wrong device, a rewritten
 # expiry, and a dropped hardware key are indistinguishable here and all equally
 # unusable, so each is treated as a miss.
 read_cache() {
-  local exp kek plain
+  local epoch=$1 exp kek plain
 
   exp=$(cache_expiry)
   if [[ "$EPOCHSECONDS" -ge "$exp" ]]; then
@@ -221,13 +256,14 @@ read_cache() {
     return 1
   }
 
-  if ! plain=$(decrypt_cache "$kek" <"$CACHE" 2>/dev/null) || [[ -z "$plain" ]]; then
+  if ! plain=$(decrypt_cache "$kek" "$epoch" <"$CACHE" 2>/dev/null) ||
+    [[ -z "$plain" ]]; then
     discard_cache
     return 1
   fi
 
   if [[ $((exp - EPOCHSECONDS)) -lt $((IDLE_TIMEOUT / 2)) ]]; then
-    store_credential "$plain"
+    store_credential "$plain" "$epoch"
   fi
 
   printf '%s' "$plain"
@@ -249,7 +285,7 @@ find_vault_item() {
 }
 
 resolve_from_vault() {
-  local session items count item name server token
+  local epoch=$1 session items count item name server token
 
   command -v bw >/dev/null || die 'bw not found'
 
@@ -260,18 +296,23 @@ resolve_from_vault() {
   session=$("$SCRIPT_DIR/bw-session-termux" get) || session=''
   [[ -n "$session" ]] || die 'could not unlock the vault'
 
+  # Sync before searching, not only when the item is missing. The CLI serves a
+  # local copy of the vault and refreshes it only on an explicit sync -- not on
+  # unlock, and not on list -- so a *rotated* token is invisible here until
+  # something else happens to sync. That failure is silent and misleading:
+  # hass-cli gets 401 while `hass-vault check` reports a perfectly good
+  # credential, because the stale token is still a valid, unexpired JWT.
+  #
+  # Syncing only on a miss caught an item that was newly added and nothing else.
+  # This costs a network round trip, but only on the cold path -- a cache lapse
+  # or a reset -- which already costs a vault unlock and possibly a prompt.
+  #
+  # Failure is ignored rather than fatal, so an offline resolve still serves the
+  # local copy instead of refusing outright.
+  BW_SESSION="$session" bw sync --nointeraction --raw >/dev/null 2>&1 || true
+
   items=$(find_vault_item "$session")
   count=$(jq 'length' <<<"$items")
-
-  # The CLI serves a local copy of the vault and refreshes it only on an
-  # explicit sync -- not on unlock, and not on list -- so an item added from
-  # another device stays invisible here indefinitely. Syncing only on a miss
-  # keeps the cost off the common path.
-  if [[ "$count" -eq 0 ]]; then
-    BW_SESSION="$session" bw sync --nointeraction --raw >/dev/null 2>&1 || true
-    items=$(find_vault_item "$session")
-    count=$(jq 'length' <<<"$items")
-  fi
 
   # Ambiguity is refused rather than guessed: picking one of several would hand
   # over a credential the user never chose.
@@ -299,19 +340,23 @@ resolve_from_vault() {
   [[ "$server" == https://* ]] ||
     die "vault item '$name' has a non-https URI; refusing to send the token in the clear"
 
-  store_credential "$server"$'\n'"$token"
+  store_credential "$server"$'\n'"$token" "$epoch"
   printf '%s\n%s' "$server" "$token"
 }
 
 get_credential() {
-  local plain
+  local epoch plain
 
-  if plain=$(read_cache); then
+  # Read once, before anything else, so both the cache slide and a fresh
+  # resolve are judged against the generation this invocation started in.
+  epoch=$(read_epoch)
+
+  if plain=$(read_cache "$epoch"); then
     printf '%s' "$plain"
     return
   fi
 
-  resolve_from_vault
+  resolve_from_vault "$epoch"
 }
 
 # --- commands ---------------------------------------------------------------
@@ -334,6 +379,23 @@ cmd_check() {
     IFS= read -r token
   } <<<"$creds"
   printf 'credentials resolved (server set, token %d chars)\n' "${#token}"
+}
+
+# Discards the cached pair and resolves again. For when the vault changed under
+# a still-valid cache, which a rotated token is the ordinary case of: the read
+# consults the cache before it reaches bw, so syncing on the cold path cannot
+# help until the window lapses.
+#
+# `reset` would also achieve it, by deleting the hardware key -- a heavy way to
+# say "this one credential is stale", and one that orphans nothing else useful.
+cmd_refresh() {
+  # The epoch moves first, before the cache is removed. A resolve already in
+  # flight captured the old one and re-checks it before sealing, so advancing it
+  # here makes that write drop. Removing the cache first would leave a window in
+  # which such a write still passes the check, restoring the stale pair.
+  bump_epoch
+  discard_cache
+  cmd_check
 }
 
 # Drops the hardware key too, making any surviving cache permanently
@@ -371,7 +433,8 @@ command -v termux-keystore >/dev/null ||
 case "${1:-credential}" in
 check) cmd_check ;;
 credential) cmd_credential ;;
+refresh) cmd_refresh ;;
 reset) cmd_reset ;;
 status) cmd_status ;;
-*) die "unknown command: $1 (expected credential|check|status|reset)" ;;
+*) die "unknown command: $1 (expected credential|check|status|refresh|reset)" ;;
 esac

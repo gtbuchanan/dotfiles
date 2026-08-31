@@ -152,23 +152,23 @@ The resolver expects one vault item carrying:
 - a **login URI** — the first one becomes `HASS_SERVER`; and
 - a **custom field named `CLI Token`** — a [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile), which becomes `HASS_TOKEN`.
 
-The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. A miss triggers one `bw sync` and a retry, because the CLI serves a local copy of the vault that never refreshes on unlock.
+The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. Every cold resolve runs `bw sync` first, because the CLI serves a local copy of the vault that refreshes on nothing else — not on unlock, not on `list`.
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
 
 ### Rotating the Token
 
-Update the `CLI Token` field in the vault item, then run `hass-vault reset`.
+Update the `CLI Token` field in the vault item, then run `hass-vault refresh`.
 
-The second step is not optional, and it does two things. It drops the sealed cache, which would otherwise keep serving the previous token for the rest of its idle window. And it runs `bw sync`, because **bw serves a local copy of the vault and refreshes it only on an explicit sync** — an item edited from another device stays stale here indefinitely.
+The second step is not optional. Every cold resolve now syncs `bw`'s local copy before searching, so the _vault_ side is handled automatically — but a resolve never reaches `bw` while a valid cache holds, and the cache keeps serving the previous token for the rest of its idle window. `refresh` drops it so the next resolve fetches afresh.
 
-That second part is easy to miss, because the failure does not look like a stale credential. The lookup still finds the item, so the miss-triggered sync in the resolver never fires; the resolver returns a well-formed token and reports success, and only Home Assistant rejects it:
+The failure this prevents does not look like a stale credential. The lookup still finds the item, so the resolver returns a well-formed token and reports success, and only Home Assistant rejects it:
 
 ```text
 error: HTTPError: 401 Client Error: Unauthorized
 ```
 
-`hass-vault check` reports success in that state too, since it verifies that credentials resolve, not that they are accepted. A `401` after a rotation means the local vault copy is behind — which `reset` now handles.
+`hass-vault check` reports success in that state too, since it verifies that credentials resolve, not that they are accepted. **A 401 shortly after a rotation means the cache is behind, not that anything is broken.**
 
 ### The Sealed Cache
 
@@ -178,7 +178,9 @@ The idle window slides, but only once more than half spent — rewriting costs a
 
 **`termux-keystore` reports a missing alias by writing nothing and exiting 0.** A resolver that signs without checking therefore folds to the SHA-256 of the empty string and uses that public constant as its key — identically on write and read, so the cache round-trips perfectly while bound to nothing. The key is created up front on the write path, and that constant is refused. The test suite asserts the binding directly, because no assertion about behaviour can detect this.
 
-`hass-vault reset` drops the cache and the hardware key, making any surviving copy permanently unreadable.
+`hass-vault refresh` discards the cached pair and resolves again — the same command on both platforms, and the answer to a rotated token.
+
+`hass-vault reset` is Termux-only and goes further: it drops the cache _and_ the hardware key, making any surviving copy permanently unreadable. Windows has no key to destroy, so it has no `reset`; there, `refresh` is the whole story.
 
 ## Other Platforms
 

@@ -82,31 +82,39 @@ seed_cache() { # $@ = extra env assignments
   env STUB_ITEMS="$(items_ok)" "$@" hass-vault check >/dev/null 2>&1
 }
 
-oneTimeSetUp() {
-  SANDBOX=$(mktemp -d)
-  BIN="$SANDBOX/bin"
-  mkdir -p "$BIN"
-
-  chezmoi cat --source "$ROOT" --no-tty "$TARGET" >"$BIN/hass-vault"
-
-  WRAPPER="$SANDBOX/hass-cli"
-  chezmoi cat --source "$ROOT" --no-tty "$WRAPPER_TARGET" >"$WRAPPER"
-  chmod +x "$WRAPPER"
-
+# Rewritten before every test: two of them replace `bw` in place to simulate an
+# offline sync and a mid-resolve refresh, and a stub that outlived its test
+# would silently change the meaning of the next one.
+install_stubs() {
   cat >"$BIN/bw-session-termux" <<'STUB'
 #!/usr/bin/env bash
 [ -n "${STUB_VAULT_LOCKED:-}" ] && { echo "stub: vault locked" >&2; exit 1; }
 printf 'c3R1Yi1zZXNzaW9uLWtleQ=='
 STUB
 
+  # Records each subcommand so a test can assert the vault was refreshed before
+  # it was searched, which is invisible from the returned credential alone.
   cat >"$BIN/bw" <<'STUB'
 #!/usr/bin/env bash
+printf '%s\n' "$1" >>"${STUB_BW_LOG:-/dev/null}"
 [ "$1" = sync ] && exit 0
 [ -z "${BW_SESSION:-}" ] && { echo "stub: no session" >&2; exit 1; }
 printf '%s' "${STUB_ITEMS:-[]}"
 STUB
-
   chmod +x "$BIN"/*
+}
+
+oneTimeSetUp() {
+  SANDBOX=$(mktemp -d)
+  BIN="$SANDBOX/bin"
+  mkdir -p "$BIN"
+
+  chezmoi cat --source "$ROOT" --no-tty "$TARGET" >"$BIN/hass-vault"
+  install_stubs
+
+  WRAPPER="$SANDBOX/hass-cli"
+  chezmoi cat --source "$ROOT" --no-tty "$WRAPPER_TARGET" >"$WRAPPER"
+  chmod +x "$WRAPPER"
 
   export PATH="$BIN:$PATH"
   export XDG_STATE_HOME="$SANDBOX/state"
@@ -118,6 +126,7 @@ STUB
 # The cache and the hardware key, so no test inherits another's state. The key
 # is dropped too because several tests turn on whether it exists.
 setUp() {
+  install_stubs
   rm -rf "$XDG_STATE_HOME/hass-vault"
   termux-keystore delete "$TEST_ALIAS" 2>/dev/null
   return 0
@@ -332,6 +341,44 @@ test_a_non_https_server_uri_is_refused() {
   assertNotContains 'and the token never reaches stdout' "$out" "$ITEM_TOKEN"
 }
 
+# A rotated token is the case this protects. bw serves a local copy of the vault
+# and refreshes it only on an explicit sync, so without one the resolver returns
+# the previous token -- still a valid, unexpired JWT, so `check` reports success
+# while hass-cli gets 401. Nothing about the returned credential reveals that,
+# which is why this asserts on the calls rather than the result.
+
+test_resolving_syncs_the_vault_before_searching() {
+  local log
+  log="$SANDBOX/bw-calls"
+  : >"$log"
+  env STUB_BW_LOG="$log" STUB_ITEMS="$(items_ok)" hass-vault check >/dev/null 2>&1
+  assertEquals 'the local copy is refreshed before it is read' \
+    'sync' "$(head -1 "$log")"
+  assertContains 'and then searched' "$(cat "$log")" 'list'
+}
+
+test_a_warm_cache_does_not_sync() {
+  local log
+  seed_cache
+  log="$SANDBOX/bw-calls-warm"
+  : >"$log"
+  env STUB_BW_LOG="$log" hass-vault credential >/dev/null 2>&1
+  assertEquals 'the cold path cost stays off cached reads' '' "$(cat "$log")"
+}
+
+test_an_offline_sync_does_not_block_resolution() {
+  # `bw sync` failing must not stop a resolve that the local copy can satisfy.
+  cat >"$BIN/bw" <<'STUB'
+#!/usr/bin/env bash
+[ "$1" = sync ] && { echo "stub: offline" >&2; exit 1; }
+printf '%s' "${STUB_ITEMS:-[]}"
+STUB
+  chmod +x "$BIN/bw"
+  local out
+  out=$(env STUB_ITEMS="$(items_ok)" hass-vault check 2>&1)
+  assertContains 'the local copy still resolves' "$out" 'credentials resolved'
+}
+
 test_an_ambiguous_vault_match_is_refused_not_guessed() {
   assertContains 'picking one would hand over a credential nobody chose' \
     "$(env STUB_ITEMS="$(items_ambiguous)" hass-vault check 2>&1)" 'refusing to guess'
@@ -382,6 +429,88 @@ test_a_locked_vault_fails_loudly_rather_than_silently() {
 }
 
 # --- reset ------------------------------------------------------------------
+
+# A rotation changes the vault under a cache that is still valid. The cold-path
+# sync cannot help, because the read never reaches bw while the cache holds --
+# so there has to be a way to say "this one is stale" that does not involve
+# destroying the hardware key.
+
+test_refresh_picks_up_a_rotated_token() {
+  seed_cache
+  local rotated out
+  rotated=$(printf '[%s]' "$(vault_item "$ITEM_URI" 'CLI Token' 'token-ROTATED')")
+
+  assertContains 'a warm cache still serves the old one' \
+    "$(env STUB_ITEMS="$rotated" hass-vault credential 2>/dev/null)" "$ITEM_TOKEN"
+
+  out=$(env STUB_ITEMS="$rotated" hass-vault refresh 2>&1)
+  assertContains 'refresh reports the new shape' "$out" 'credentials resolved'
+  assertContains 'and the rotated token is now served' \
+    "$(hass-vault credential 2>/dev/null)" 'token-ROTATED'
+}
+
+test_refresh_keeps_the_hardware_key() {
+  seed_cache
+  env STUB_ITEMS="$(items_ok)" hass-vault refresh >/dev/null 2>&1
+  assertTrue 'refresh is not reset -- the key survives' \
+    "termux-keystore list 2>/dev/null | jq -e 'map(select(.alias == \"$TEST_ALIAS\")) | length > 0' >/dev/null"
+}
+
+# A refresh that lands while a resolve is in flight must not be undone by it.
+# The resolve read the vault before the rotation was published, so sealing its
+# result would restore the stale pair -- with a fresh window, after refresh
+# reported success. Driven deterministically rather than by timing: the stub
+# bumps the epoch while serving the search, which is exactly the interleaving
+# that matters.
+
+test_a_refresh_landing_mid_resolve_is_not_undone() {
+  cat >"$BIN/bw" <<STUB
+#!/usr/bin/env bash
+[ "\$1" = sync ] && exit 0
+printf '%s' "\${STUB_BUMP_EPOCH:-}" >"$XDG_STATE_HOME/hass-vault/epoch"
+printf '%s' "\${STUB_ITEMS:-[]}"
+STUB
+  chmod +x "$BIN/bw"
+  mkdir -p "$XDG_STATE_HOME/hass-vault"
+
+  env STUB_BUMP_EPOCH=a-refresh-landed STUB_ITEMS="$(items_ok)" \
+    hass-vault credential >/dev/null 2>&1
+
+  assertFalse 'the in-flight resolve must not seal what refresh just cleared' \
+    "[ -s '$CACHE_FILE' ]"
+}
+
+test_refresh_advances_the_epoch_before_clearing() {
+  seed_cache
+  local before after
+  before=$(cat "$XDG_STATE_HOME/hass-vault/epoch" 2>/dev/null)
+  env STUB_ITEMS="$(items_ok)" hass-vault refresh >/dev/null 2>&1
+  after=$(cat "$XDG_STATE_HOME/hass-vault/epoch" 2>/dev/null)
+  assertNotEquals 'a resolve started before this must be able to notice' \
+    "$before" "$after"
+}
+
+# The check-then-write window the epoch guard alone cannot close: a resolver
+# passes the check, `refresh` advances the epoch and clears the cache, and the
+# resolver publishes afterwards. Sealing under the epoch is what makes that
+# publication harmless -- the cache it leaves behind cannot be opened.
+#
+# Driven by writing a cache under a superseded epoch, which is the exact state
+# such a resolver leaves, rather than by trying to interleave two processes.
+
+test_a_cache_sealed_under_a_superseded_epoch_is_refused() {
+  seed_cache
+  assertTrue 'precondition: the cache reads back' \
+    "[ -n \"$(hass-vault credential 2>/dev/null)\" ]"
+
+  # Stand in for the resolver that published after refresh moved on.
+  printf 'superseded-by-a-refresh' >"$XDG_STATE_HOME/hass-vault/epoch"
+
+  assertContains 'the stale publication is not served' \
+    "$(env STUB_VAULT_LOCKED=1 hass-vault check 2>&1)" 'credentials did not resolve'
+  assertFalse 'and it is dropped rather than left to be retried' \
+    "[ -s '$CACHE_FILE' ]"
+}
 
 test_reset_drops_the_cache_and_the_hardware_key() {
   seed_cache
