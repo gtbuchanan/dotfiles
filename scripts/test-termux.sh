@@ -37,13 +37,72 @@ set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 
-if ! command -v mise >/dev/null || ! command -v chezmoi >/dev/null; then
+# chezmoi renders the sources under test; jq and node back the shell suites'
+# resolver. All are disable_tools entries on a device, resolved from PATH.
+missing=
+for tool in chezmoi jq mise node; do
+  command -v "$tool" >/dev/null || missing="$missing $tool"
+done
+if [ -n "$missing" ]; then
   pkg update -y >/dev/null # seed the apt mirror on a fresh image
-  pkg install -y chezmoi mise >/dev/null
+  # `node` is the binary; `nodejs` is the package that provides it.
+  pkg install -y chezmoi jq mise nodejs >/dev/null
 fi
 
 export LD_PRELOAD="${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}"
 export MISE_TRUSTED_CONFIG_PATHS=$root
+
+# A device has the real termux-keystore and it must win: the stub is a model
+# (see test/stubs/termux-keystore), and a device run is what re-checks the
+# claims it makes. Only prepended where there is nothing to shadow.
+if ! command -v termux-keystore >/dev/null; then
+  echo '==> no termux-keystore; using the stub (see test/stubs/termux-keystore)'
+  stub_bin=$(mktemp -d)
+  install -m 755 "$root/test/stubs/termux-keystore" "$stub_bin/termux-keystore"
+  PATH="$stub_bin:$PATH"
+  export PATH
+fi
+
+# hass_vault_test.sh resolves its subjects with a bare `chezmoi cat`, which needs
+# a config to answer the hosttype prompt -- without one it fails under --no-tty
+# and the suite skips as "not managed for this host". Written to the default path
+# rather than passed with --config, so the suite needs no flag of its own.
+#
+# The prompt string is read out of the template, matching scripts/lint-templates.sh:
+# hardcoding it here would drift silently the day it is reworded.
+#
+# lintSkipExternals is spliced into the data map because `chezmoi cat` realizes
+# every .chezmoiexternal entry just to enumerate targets -- it downloads archives
+# and SSH-clones repos, which offline fails on certificate verification long
+# before it reaches the file being asked for. The guard already exists in
+# .chezmoiexternal.yaml.tmpl for the template lint, which trips it with
+# --override-data on its one call; setting it in the config covers every chezmoi
+# invocation here instead.
+config_tmpl=$root/home/.chezmoi.yaml.tmpl
+if [ ! -s "$HOME/.config/chezmoi/chezmoi.yaml" ]; then
+  hosttype_prompt=$(sed -n 's/.*promptChoiceOnce \. "hosttype" "\([^"]*\)".*/\1/p' "$config_tmpl")
+  if [ -z "$hosttype_prompt" ]; then
+    printf 'could not find the hosttype prompt in %s\n' "$config_tmpl" >&2
+    exit 1
+  fi
+  mkdir -p "$HOME/.config/chezmoi"
+  # Through a temporary file, so a render that dies partway leaves nothing
+  # behind. Redirecting straight at the destination would create it before
+  # writing to it, and a partial file is non-empty -- so the guard above would
+  # trust it next time and chezmoi would read an invalid config. `set -o
+  # pipefail` catches that within a single run, but this script is also meant to
+  # be runnable by hand on a device, where $HOME survives to have a next time.
+  #
+  # personal, because hass-cli and its resolver are deployed on personal hosts
+  # only -- an ewn config would make the suite skip as unmanaged.
+  config_tmp=$(mktemp "$HOME/.config/chezmoi/chezmoi.yaml.XXXXXX")
+  chezmoi execute-template --init --no-tty \
+    --promptChoice "$hosttype_prompt=personal" --source "$root" \
+    <"$config_tmpl" |
+    sed '0,/^data:/s//data:\n  lintSkipExternals: true/' \
+      >"$config_tmp"
+  mv "$config_tmp" "$HOME/.config/chezmoi/chezmoi.yaml"
+fi
 
 cd "$root"
 exec mise run --skip-tools test:fast

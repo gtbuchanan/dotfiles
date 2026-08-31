@@ -23,7 +23,8 @@ hosts only**, on every platform this repo supports. Credentials are wired up on 
 | [`home/dot_local/bin/wrappers/hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd)                                           | Scopes credentials to hass-cli's process, Windows                    |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                 | Puts `wrappers/` ahead of the mise shims                             |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                 | Puts `wrappers/` ahead of the mise shims on the user PATH            |
-| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                             | shUnit2 suite, device-only (`mise run test:hass-vault`)              |
+| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                             | shUnit2 suite, Termux (`mise run test:shunit2`), in CI               |
+| [`test/stubs/termux-keystore`](../test/stubs/termux-keystore)                                                                       | Model of the keystore, so that suite can run off a device            |
 
 ## Installation
 
