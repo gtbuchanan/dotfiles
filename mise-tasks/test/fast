@@ -3,7 +3,7 @@
 #MISE depends=["test:templates"]
 #
 # Deliberately body-less: the leaves listed above are the whole of it, and mise
-# resolves them.
+# resolves them, including running independent ones in parallel.
 #
 # It exists so CI names a tier rather than a tool. A leaf is named for what runs
 # it -- test:templates for the render, and a unit-test runner would be
@@ -11,5 +11,5 @@
 # calls this never has to change, so adding coverage costs no CI edit and no new
 # required status check.
 #
-# The Termux tier is separate (test:termux), because it needs a container on any
-# host that is not a phone.
+# The Termux tier (test:termux) runs this same task rather than repeating its
+# membership, so a leaf added here is picked up on that leg too.
