@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#MISE description="Run every Pester suite under test/ (no Docker)"
+#
+# Named for the runner, not for what it tests: adding a suite is dropping a
+# *.Tests.ps1 into test/, which this picks up with no task and no CI job.
+#
+# Suites self-skip where they cannot apply -- the hass-vault one is Windows-only
+# because DPAPI has no implementation elsewhere -- so this is safe to run on any
+# host. See scripts/test-powershell.ps1.
+#
+# A bash task invoking pwsh rather than a pwsh task, because mise runs a file
+# task through `pwsh -File`, which refuses any name without a .ps1 extension --
+# and a mise task name cannot carry one. Same split as the psscriptanalyzer hk
+# step: a thin wrapper here, the logic in scripts/.
+#
+#   mise run test:pester [-- -FilterName '*cache*' | -FilterTag ...]
+set -euo pipefail
+
+# Termux has no pwsh, and the aggregate runs there too. Skipping keeps a host
+# that cannot run these from failing over suites that would skip anyway.
+if ! command -v pwsh >/dev/null; then
+  echo 'SKIP: pwsh not available'
+  exit 0
+fi
+
+exec pwsh -NoLogo -NoProfile -File \
+  "$MISE_PROJECT_ROOT/scripts/test-powershell.ps1" "$@"
