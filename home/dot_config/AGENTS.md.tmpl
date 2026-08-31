@@ -93,24 +93,11 @@
   `gtb-git-commit-conventions` skill before your first edit. It governs how
   the work gets split into commits, and that's decided while you work —
   consulting it once the change is written is too late.
-- Do NOT hard-wrap content that stays in GitHub's UI — PR descriptions,
-  issue bodies, and PR/issue/review comments. GitHub soft-wraps prose, and
-  hard wraps break list continuation, blockquotes, and readability.
-- When squash-merging a PR, always provide your own summarized commit message
-  that includes the PR reference suffix (e.g., ` (#1234)`).
-  Do not accept the default squash message (concatenated individual commits).
-- When creating a PR, always ask whether to open it as a draft or ready for review.
 - Never push to a remote unless explicitly told to.
-- When creating issues or PRs, always use the repository's issue/PR templates if available.
-- Always delete the local and remote PR branch atomically when merging
-  (e.g., `gh pr merge --delete-branch`).
-  Do not merge first and then delete the branch as a separate step.
-- If `gh pr merge --delete-branch` succeeds but prints a git error like
-  `fatal: 'main' is already used by worktree at ...`, the PR merged and
-  the remote branch was deleted — only the local branch deletion failed
-  because the base branch is checked out in another worktree. This is
-  expected in linked worktrees. Do NOT re-run the merge command. The
-  local branch will be cleaned up when the worktree is removed.
+- Do NOT hard-wrap content that stays in GitHub's UI — issue bodies and
+  comments. GitHub soft-wraps prose, and hard wraps break list continuation,
+  blockquotes, and readability.
+- When creating an issue, always use the repository's issue template if available.
 {{- if eq .hosttype "ewn" }}
 - When a GitHub org is ambiguous or unspecified, infer `energyworldnet`
 {{- end }}
@@ -269,18 +256,6 @@
 - `gh api` for read-only endpoints is available via the readonly MCP server
   (path-allowlisted, GET-only). Use it for data the structured CLI doesn't
   expose (e.g., review comments, deployment statuses, check annotations).
-- `gh pr view --json comments` only returns issue/conversation comments, NOT
-  inline review comments. To read review comments, use:
-  `gh api repos/{owner}/{repo}/pulls/{n}/comments`
-  (available via the readonly MCP server)
-- There is no `gh` subcommand for replying to review comment threads. Use `gh api`:
-  1. List review comments:
-     `gh api repos/{owner}/{repo}/pulls/{n}/comments --jq '.[] | "\(.id) \(.path):\(.line) \(.in_reply_to_id)"'`
-  1. Find the thread root — the comment where `in_reply_to_id` is null
-  1. Reply to the root:
-     `gh api repos/{owner}/{repo}/pulls/{n}/comments/{root_id}/replies -f body='...'`
-- Never use comment IDs from `--json comments` or `--json reviews` when calling
-  the review comments API — they are different ID spaces and will 404.
 
 {{- if eq .hosttype "ewn" }}
 
