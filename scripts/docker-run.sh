@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Run a Termux-side script inside termux/termux-docker on a non-Termux host —
-# the dev-host / CI entrypoint the `test:templates-android` mise task dispatches
-# to (on a Termux device that task runs natively). The image arch is matched to
+# the dev-host / CI entrypoint the `test:termux` mise task dispatches to (on a
+# Termux device that task runs natively). The image arch is matched to
 # the host so it runs natively — no QEMU — on both x86_64 CI runners and Apple
 # Silicon. chezmoi reports `.chezmoi.os == android` from any Termux arch, so
 # unlike claude-code-termux (which forces aarch64 for its .deb) we never need a
