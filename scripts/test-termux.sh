@@ -86,13 +86,22 @@ if [ ! -s "$HOME/.config/chezmoi/chezmoi.yaml" ]; then
     exit 1
   fi
   mkdir -p "$HOME/.config/chezmoi"
+  # Through a temporary file, so a render that dies partway leaves nothing
+  # behind. Redirecting straight at the destination would create it before
+  # writing to it, and a partial file is non-empty -- so the guard above would
+  # trust it next time and chezmoi would read an invalid config. `set -o
+  # pipefail` catches that within a single run, but this script is also meant to
+  # be runnable by hand on a device, where $HOME survives to have a next time.
+  #
   # personal, because hass-cli and its resolver are deployed on personal hosts
   # only -- an ewn config would make the suite skip as unmanaged.
+  config_tmp=$(mktemp "$HOME/.config/chezmoi/chezmoi.yaml.XXXXXX")
   chezmoi execute-template --init --no-tty \
     --promptChoice "$hosttype_prompt=personal" --source "$root" \
     <"$config_tmpl" |
     sed '0,/^data:/s//data:\n  lintSkipExternals: true/' \
-      >"$HOME/.config/chezmoi/chezmoi.yaml"
+      >"$config_tmp"
+  mv "$config_tmp" "$HOME/.config/chezmoi/chezmoi.yaml"
 fi
 
 cd "$root"
