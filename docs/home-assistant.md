@@ -145,24 +145,73 @@ That silence was the reason `[env]` needed `|| exit 0`: without it a locked vaul
 
 Whether mise shows an `[env]` exec's stderr **differed by platform**, which is worth recording since it is what made the two platforms unsafe to reason about interchangeably. On Windows it was swallowed, so a failed lookup really was silent and `hass-vault check` was the only way to see the reason. On Termux it was printed, once per variable — better, but it meant anything routine written there would repeat on every mise command, which is why the Termux resolver reserves stderr for genuine faults.
 
-`hass-vault check` reports whether credentials resolve without emitting either value; `hass-vault status` answers whether any are cached without touching the keystore or the vault. `hass-vault credential` exists for the wrapper and prints the pair, so it is not a command to run by hand.
+`hass-vault check` reports whether credentials resolve, and for which instance, without emitting either value; `hass-vault status` answers which instances are cached without touching the keystore or the vault. `hass-vault credential` exists for the wrapper and prints the pair, so it is not a command to run by hand.
 
 ### Vault Item
 
-The resolver expects one vault item carrying:
+The resolver expects one vault item per instance, each carrying:
 
 - a **login URI** — the first one becomes `HASS_SERVER`; and
-- a **custom field named `CLI Token`** — a [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile), which becomes `HASS_TOKEN`.
+- a **custom field named `CLI Token`** — a [long-lived access token](https://www.home-assistant.io/docs/authentication/#your-account-profile), which becomes `HASS_TOKEN`; and
+- a **custom field named `CLI ID`** — the instance label, see [Multiple Home Assistant Instances](#multiple-home-assistant-instances).
 
-The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, and **an ambiguous match is refused rather than guessed**. Every cold resolve runs `bw sync` first, because the CLI serves a local copy of the vault that refreshes on nothing else — not on unlock, not on `list`.
+The item is found by search rather than by a fixed id, so it stays renameable and no vault identifier is committed here. `bw`'s search matches names and URIs loosely, so it is only a prefilter: the result is narrowed to items that actually carry the `CLI Token` field, then to the one whose `CLI ID` matches the requested instance. **An ambiguous match is refused rather than guessed** — two items claiming one id is a vault mistake, and they are equally valid answers. Every cold resolve runs `bw sync` first, because the CLI serves a local copy of the vault that refreshes on nothing else — not on unlock, not on `list`.
 
 The default search term is `Home Assistant`; `HASS_VAULT_ITEM` overrides it.
 
 **The URI must be `https://`.** A long-lived token over cleartext is worth failing over, so a plain-`http` URI is refused rather than used — on both platforms. Home Assistant is commonly reached at `http://` on a LAN, which makes this a policy rather than a universal truth, but it is the right one where the URI comes from a vault item expected to be https, and a loud failure beats silently shipping the token in the clear if that item is ever edited. Reach the instance through TLS — Nabu Casa, a reverse proxy, or a tunnel — rather than pointing the item at a bare LAN address.
 
+### Multiple Home Assistant Instances
+
+More than one Home Assistant instance can be reachable from one host — a second household's, say. `HASS_VAULT_INSTANCE` chooses between them, defaulting to `home`:
+
+```sh
+hass-cli entity list                             # home
+HASS_VAULT_INSTANCE=parents hass-cli entity list
+```
+
+PowerShell has no per-command env syntax, and a stray `$env:HASS_VAULT_INSTANCE` points every later call at the wrong house. **`& { … }` does not help**, however much it looks like it should: it opens a new _scope_, but `$env:` writes to the **process** environment, which no scope contains. The value outlives the block.
+
+Either clear it under `finally`, so an error mid-command cannot leave it set:
+
+```powershell
+$env:HASS_VAULT_INSTANCE = 'parents'
+try { hass-cli entity list } finally { $env:HASS_VAULT_INSTANCE = $null }
+```
+
+or push it into a child process, where the scoping is real:
+
+```powershell
+pwsh -NoProfile -c '$env:HASS_VAULT_INSTANCE = "parents"; hass-cli entity list'
+```
+
+Git Bash and Termux have the per-command form and need neither.
+
+**Selection is by field, not by name.** Every instance matches the same loose search term, so narrowing by name would refuse as ambiguous the moment a second item existed, and would break again on any rename — a vault item's name is prose that gets edited. `CLI ID` is the half of the item chosen to be depended on. Values are compared trimmed and case-folded, because they are typed into a vault UI by hand where a stray space is a typo rather than a different instance.
+
+Naming an id that no item carries fails loudly and **lists the ids that do exist**, so the fix does not require opening the vault. An id is a label rather than a secret, so listing them costs nothing:
+
+```text
+hass-vault: no vault item matching 'Home Assistant' has 'CLI ID' = 'nope'
+(available: home, parents); set HASS_VAULT_INSTANCE, or add the field to the item
+```
+
+An id is constrained to a plain lowercase label because it also **names the cache file** — otherwise one could traverse out of the cache directory or land on a dotfile. Lowercasing happens first, so `Home` and `home` cannot become two caches on Termux and one file on NTFS.
+
+**Each instance caches separately.** The read consults the cache before it ever reaches the vault, so a single shared slot would hand one instance's credentials to another for the rest of the idle window — silently talking to the wrong house rather than failing. Separate files also mean alternating between instances costs no vault round trip, which matters because a lookup is seconds. The instance is bound into the seal as well, so a cache file renamed between instances fails closed rather than opening.
+
+`hass-vault check` names the instance it resolved. `hass-vault status` reports the current instance first and then every other one it has cached — which instances _exist_ is vault knowledge it cannot reach without a lookup, so only ones that have resolved at least once appear:
+
+```text
+home (current): cached credentials valid for 03:59:56
+parents: cached credentials valid for 03:59:58
+```
+
 ### Rotating the Token
 
-Update the `CLI Token` field in the vault item, then run `hass-vault refresh`.
+Update the `CLI Token` field in the vault item, then run `hass-vault refresh` — with `HASS_VAULT_INSTANCE` set if the rotated token was not the default instance's.
+
+`refresh` removes only that instance's cache file, but the epoch it advances is shared and sealed into every one of them, so the others are invalidated too. They fail to open on next use and are discarded then, costing one vault round trip each. That is deliberate: refreshing the instance you asked for must not leave another serving a pair sealed under a superseded generation.
 
 The second step is not optional. Every cold resolve now syncs `bw`'s local copy before searching, so the _vault_ side is handled automatically — but a resolve never reaches `bw` while a valid cache holds, and the cache keeps serving the previous token for the rest of its idle window. `refresh` drops it so the next resolve fetches afresh.
 

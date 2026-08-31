@@ -63,16 +63,38 @@ fi
 
 # A vault item as `bw list items` returns it. Callers vary one field at a time,
 # so a test names the thing it is actually about.
-vault_item() { # $1 = uri, $2 = token field name, $3 = token value, $4 = item name
+vault_item() { # $1 = uri, $2 = token field name, $3 = token value, $4 = item name, $5 = CLI ID
   cat <<EOF
 {"name":"${4:-Home Assistant}",
  "login":{"uris":[$([ -n "$1" ] && printf '{"uri":"%s"}' "$1")]},
- "fields":[{"name":"$2","value":"$3"}]}
+ "fields":[{"name":"CLI ID","value":"${5-home}"},{"name":"$2","value":"$3"}]}
 EOF
 }
 
 ITEM_URI='https://ha.example.test:8123'
 ITEM_TOKEN='stub-token-0123456789'
+
+# A second instance, as the parents' one would look: same search term, its own
+# URI and token, told apart only by the id field.
+OTHER_URI='https://other.example.test:8123'
+OTHER_TOKEN='stub-token-other-98765'
+
+items_two_instances() {
+  printf '[%s,%s]' \
+    "$(vault_item "$ITEM_URI" 'CLI Token' "$ITEM_TOKEN")" \
+    "$(vault_item "$OTHER_URI" 'CLI Token' "$OTHER_TOKEN" 'Home Assistant (Other)' other)"
+}
+
+# An item that predates the id field entirely, which is what every vault holds
+# before this is rolled out.
+items_no_id() {
+  printf '[{"name":"Home Assistant","login":{"uris":[{"uri":"%s"}]},
+    "fields":[{"name":"CLI Token","value":"%s"}]}]' "$ITEM_URI" "$ITEM_TOKEN"
+}
+
+cache_file_for() { # $1 = instance id
+  printf '%s/hass-vault/cache-%s.enc' "$XDG_STATE_HOME" "$1"
+}
 
 items_ok() { printf '[%s]' "$(vault_item "$ITEM_URI" 'CLI Token' "$ITEM_TOKEN")"; }
 items_no_field() { printf '[%s]' "$(vault_item "$ITEM_URI" 'Other' x)"; }
@@ -112,6 +134,12 @@ STUB
 }
 
 oneTimeSetUp() {
+  # Every test that wants one of these passes it per invocation, so anything
+  # inherited here is the developer's own shell reaching in -- and for
+  # HASS_VAULT_INSTANCE that is a realistic thing to have exported, since
+  # setting it is what the variable is for.
+  unset HASS_VAULT_INSTANCE HASS_VAULT_ITEM
+
   SANDBOX=$(mktemp -d)
   BIN="$SANDBOX/bin"
   mkdir -p "$BIN"
@@ -127,7 +155,9 @@ oneTimeSetUp() {
   export XDG_STATE_HOME="$SANDBOX/state"
   export HASS_VAULT_KEY_ALIAS="$TEST_ALIAS"
 
-  CACHE_FILE="$XDG_STATE_HOME/hass-vault/cache.enc"
+  # The default instance's file. Each instance caches separately, so the name
+  # carries the id -- tests that reach for a specific one use cache_file_for.
+  CACHE_FILE="$XDG_STATE_HOME/hass-vault/cache-home.enc"
 }
 
 # The cache and the hardware key, so no test inherits another's state. The key
@@ -201,6 +231,119 @@ test_a_warm_read_serves_the_pair_without_the_vault() {
   assertEquals 'token' "$ITEM_TOKEN" "$token"
 }
 
+# --- instances --------------------------------------------------------------
+
+# The point of the id field: both items match the same search term, so the name
+# cannot be what tells them apart.
+test_the_instance_is_selected_by_the_id_field() {
+  local out
+  out=$(env STUB_ITEMS="$(items_two_instances)" hass-vault credential 2>&1)
+  assertContains 'the default instance is home' "$out" "$ITEM_URI"
+  assertNotContains 'and not the other one sharing the search term' \
+    "$out" "$OTHER_URI"
+
+  out=$(env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=other \
+    hass-vault credential 2>&1)
+  assertContains 'naming the id selects the other item' "$out" "$OTHER_URI"
+  assertContains 'with its own token' "$out" "$OTHER_TOKEN"
+}
+
+# Typed into a vault UI by hand, where a capital is a typo rather than a
+# different instance.
+test_an_instance_id_is_matched_case_insensitively() {
+  assertContains 'HOME selects the item whose field reads home' \
+    "$(env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=HOME \
+      hass-vault credential 2>&1)" "$ITEM_URI"
+}
+
+# The regression the per-instance cache exists for. The read consults the cache
+# before it reaches the vault, so a single cache hands the first instance's
+# credentials to the second -- silently talking to the wrong house. The home
+# item stays in the vault, so this is the real shape of the bug.
+test_one_instances_cache_is_never_served_for_another() {
+  seed_cache
+  local out
+  out=$(env HASS_VAULT_INSTANCE=other STUB_ITEMS="$(items_ok)" \
+    hass-vault credential 2>&1)
+  assertNotContains 'a warm home cache must not answer for other' \
+    "$out" "$ITEM_TOKEN"
+  assertContains 'it looks the requested instance up and reports the miss' \
+    "$out" "'CLI ID' = 'other'"
+}
+
+# Separate files rather than one the instances take turns evicting: a vault
+# lookup costs seconds, so alternating between two instances would pay it every
+# time if they shared a slot.
+test_each_instance_keeps_its_own_cache() {
+  env STUB_ITEMS="$(items_two_instances)" hass-vault check >/dev/null 2>&1
+  env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=other \
+    hass-vault check >/dev/null 2>&1
+
+  local out
+  out=$(env STUB_ITEMS='[]' hass-vault credential 2>&1)
+  assertContains 'home stays warm after other resolved' "$out" "$ITEM_TOKEN"
+  out=$(env STUB_ITEMS='[]' HASS_VAULT_INSTANCE=other hass-vault credential 2>&1)
+  assertContains 'and other alongside it' "$out" "$OTHER_TOKEN"
+}
+
+test_status_reports_every_cached_instance() {
+  env STUB_ITEMS="$(items_two_instances)" hass-vault check >/dev/null 2>&1
+  env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=other \
+    hass-vault check >/dev/null 2>&1
+
+  local out
+  out=$(hass-vault status 2>&1)
+  assertContains 'the current instance is named as such' "$out" 'home (current)'
+  assertContains 'and the others are listed too' "$out" 'other: cached'
+}
+
+# The epoch is shared and sealed into every cache, so refreshing one instance
+# invalidates the rest even though their files survive.
+test_refreshing_one_instance_invalidates_the_others() {
+  env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=other \
+    hass-vault check >/dev/null 2>&1
+  env STUB_ITEMS="$(items_two_instances)" hass-vault check >/dev/null 2>&1
+  env STUB_ITEMS="$(items_two_instances)" hass-vault refresh >/dev/null 2>&1
+
+  assertContains 'the instance not named must not serve its superseded pair' \
+    "$(env HASS_VAULT_INSTANCE=other STUB_VAULT_LOCKED=1 hass-vault check 2>&1)" \
+    'credentials did not resolve'
+}
+
+test_reset_clears_every_instance() {
+  env STUB_ITEMS="$(items_two_instances)" hass-vault check >/dev/null 2>&1
+  env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=other \
+    hass-vault check >/dev/null 2>&1
+
+  hass-vault reset >/dev/null 2>&1
+  assertFalse 'the hardware key is shared, so a half-cleared reset is a lie' \
+    "[ -e '$(cache_file_for other)' ]"
+  assertFalse 'including the current instance' "[ -e '$CACHE_FILE' ]"
+}
+
+test_an_unknown_instance_names_the_available_ids() {
+  local out
+  out=$(env STUB_ITEMS="$(items_two_instances)" HASS_VAULT_INSTANCE=nope \
+    hass-vault check 2>&1)
+  assertContains 'says which id it looked for' "$out" "'CLI ID' = 'nope'"
+  assertContains 'and lists what the vault actually offers' "$out" 'home, other'
+}
+
+test_an_item_without_the_id_field_is_reported() {
+  local out
+  out=$(env STUB_ITEMS="$(items_no_id)" hass-vault check 2>&1)
+  assertContains 'names the field it looked for' "$out" "'CLI ID' = 'home'"
+  assertContains 'and says the vault offers nothing' "$out" 'available: none'
+}
+
+# An id names the cache file, so one that is not a plain label could traverse
+# out of the cache directory or land on a dotfile.
+test_an_instance_id_that_is_not_a_label_is_refused() {
+  assertContains 'refused before anything touches the filesystem' \
+    "$(env HASS_VAULT_INSTANCE=../escape hass-vault status 2>&1)" \
+    'invalid HASS_VAULT_INSTANCE'
+}
+
 # --- the binding ------------------------------------------------------------
 
 # The assertions below are the ones behavior cannot stand in for. A resolver
@@ -223,15 +366,21 @@ test_resolving_creates_the_hardware_key() {
 
 test_the_cache_does_not_open_under_the_empty_signature_key() {
   seed_cache
-  local empty
+  local empty epoch
   empty=$(printf '' | sha256sum | cut -d' ' -f1)
+  epoch=$(cat "$XDG_STATE_HOME/hass-vault/epoch" 2>/dev/null)
+  # The real AAD, reproduced exactly. A different one fails the open on the AAD
+  # rather than on the key, so the assertion would hold even if the KEK really
+  # were sha256("") -- the one thing this test exists to catch.
   assertFalse 'sha256("") must not decrypt the cache' \
-    "HASS_KEK='$empty' node -e '
+    "HASS_KEK='$empty' HASS_ITEM_QUERY='Home Assistant' HASS_EPOCH='$epoch' \
+     HASS_INSTANCE='home' node -e '
        const c = require(\"crypto\");
        const o = JSON.parse(require(\"fs\").readFileSync(0, \"utf8\"));
        const d = c.createDecipheriv(\"aes-256-gcm\",
          Buffer.from(process.env.HASS_KEK, \"hex\"), Buffer.from(o.iv, \"base64\"));
-       d.setAAD(Buffer.from(String(o.exp)));
+       d.setAAD(Buffer.from(o.exp + \"\\0\" + process.env.HASS_ITEM_QUERY +
+         \"\\0\" + process.env.HASS_EPOCH + \"\\0\" + process.env.HASS_INSTANCE));
        d.setAuthTag(Buffer.from(o.tag, \"base64\"));
        d.update(Buffer.from(o.ct, \"base64\")); d.final();
      ' <'$CACHE_FILE' >/dev/null 2>&1"
@@ -522,7 +671,7 @@ test_a_cache_sealed_under_a_superseded_epoch_is_refused() {
 test_reset_drops_the_cache_and_the_hardware_key() {
   seed_cache
   assertContains 'reports what it removed' \
-    "$(hass-vault reset 2>&1)" 'cache and hardware key removed'
+    "$(hass-vault reset 2>&1)" 'caches and hardware key removed'
   assertContains 'the cache is gone' \
     "$(hass-vault status 2>&1)" 'no cached credentials'
   assertFalse 'and the key, so any surviving cache is permanently unreadable' \

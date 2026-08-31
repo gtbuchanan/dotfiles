@@ -25,6 +25,13 @@
 # one keystore round trip per invocation is affordable against hass-cli's own
 # startup, which is the larger cost either way.
 #
+# More than one Home Assistant instance can be reached from one host, so the
+# vault item is chosen by a `CLI ID` field rather than by its name --
+# HASS_VAULT_INSTANCE names the id, defaulting to `home`. A field is the stable
+# half of a vault item: names are prose and get edited, and the search term is a
+# loose prefilter that every instance matches anyway. Each instance caches
+# separately, so switching between them costs no vault round trip.
+#
 # `credential` exists for the wrapper, not for a human: it prints the pair to
 # stdout, so running it to "see if it works" persists a long-lived token in a
 # terminal, a log, or an agent transcript. `check` reports the same outcome
@@ -48,7 +55,20 @@ readonly KEY_ALIAS="${HASS_VAULT_KEY_ALIAS:-hass-vault-kek}"
 readonly KEK_CONTEXT="$KEY_ALIAS/v1"
 
 readonly CACHE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/hass-vault"
-readonly CACHE="$CACHE_DIR/cache.enc"
+
+# Which Home Assistant instance to resolve, matched against the ID_FIELD below
+# rather than against the item's name: a name is prose that gets edited, while
+# this is a value chosen to be depended on. Several instances therefore share one
+# search term, and picking between them never turns on how they were named.
+#
+# Constrained to a plain lowercase label because it also names the cache file.
+# Lowercased first so `Home` and `home` cannot become two caches here and one
+# file on a case-insensitive filesystem, and anchored to alphanumeric so no id
+# can traverse out of CACHE_DIR or land on a dotfile.
+INSTANCE=${HASS_VAULT_INSTANCE:-home}
+INSTANCE=${INSTANCE,,}
+readonly INSTANCE
+readonly CACHE="$CACHE_DIR/cache-$INSTANCE.enc"
 
 # Bumped by `refresh`. A resolve reads it before touching the vault and again
 # before sealing, and declines to seal if it moved -- see store_credential.
@@ -67,6 +87,12 @@ readonly IDLE_TIMEOUT="${HASS_VAULT_IDLE_TIMEOUT:-604800}"
 # an ambiguous match is refused rather than guessed.
 readonly ITEM_QUERY="${HASS_VAULT_ITEM:-Home Assistant}"
 readonly TOKEN_FIELD='CLI Token'
+readonly ID_FIELD='CLI ID'
+
+# Field values are compared trimmed and case-folded: they are typed into a vault
+# UI by hand, where a stray space or capital is a typo rather than a different
+# instance.
+readonly JQ_NORM='def norm: (. // "") | ascii_downcase | gsub("^\\s+|\\s+$"; "");'
 
 SCRIPT_DIR=${BASH_SOURCE[0]%/*}
 [[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]] && SCRIPT_DIR=.
@@ -152,18 +178,22 @@ ensure_key() {
 # cache written under a superseded epoch simply will not open, and is treated
 # as the miss it is. No lock, and nothing held across the vault call.
 #
+# The instance already segregates the cache by filename, so binding it here as
+# well is belt and braces: it makes a file renamed between instances fail closed
+# rather than hand over a credential the caller did not ask for.
+#
 # NUL-separated so no field can be crafted to collide with another.
 encrypt_cache() {
   local kek=$1 exp=$2 epoch=$3
   HASS_KEK="$kek" HASS_EXP="$exp" HASS_ITEM_QUERY="$ITEM_QUERY" \
-    HASS_EPOCH="$epoch" node -e '
+    HASS_EPOCH="$epoch" HASS_INSTANCE="$INSTANCE" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const exp = process.env.HASS_EXP;
     const iv = crypto.randomBytes(12);
     const cipher = crypto.createCipheriv("aes-256-gcm", kek, iv);
     cipher.setAAD(Buffer.from(exp + "\0" + process.env.HASS_ITEM_QUERY
-      + "\0" + process.env.HASS_EPOCH));
+      + "\0" + process.env.HASS_EPOCH + "\0" + process.env.HASS_INSTANCE));
     const ct = Buffer.concat([
       cipher.update(require("fs").readFileSync(0)),
       cipher.final(),
@@ -180,14 +210,15 @@ encrypt_cache() {
 
 decrypt_cache() {
   local kek=$1 epoch=$2
-  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" HASS_EPOCH="$epoch" node -e '
+  HASS_KEK="$kek" HASS_ITEM_QUERY="$ITEM_QUERY" HASS_EPOCH="$epoch" \
+    HASS_INSTANCE="$INSTANCE" node -e '
     const crypto = require("crypto");
     const kek = Buffer.from(process.env.HASS_KEK, "hex");
     const o = JSON.parse(require("fs").readFileSync(0, "utf8"));
     const d = crypto.createDecipheriv("aes-256-gcm", kek,
       Buffer.from(o.iv, "base64"));
     d.setAAD(Buffer.from(o.exp + "\0" + process.env.HASS_ITEM_QUERY
-      + "\0" + process.env.HASS_EPOCH));
+      + "\0" + process.env.HASS_EPOCH + "\0" + process.env.HASS_INSTANCE));
     d.setAuthTag(Buffer.from(o.tag, "base64"));
     process.stdout.write(Buffer.concat([
       d.update(Buffer.from(o.ct, "base64")),
@@ -199,12 +230,17 @@ decrypt_cache() {
 # The unauthenticated expiry, read without touching the keystore, so a lapsed or
 # absent cache is rejected before paying for a round trip. Decryption
 # authenticates it properly, so trusting it here only risks work that then fails.
-cache_expiry() {
-  if [[ -s "$CACHE" ]]; then
-    jq -r '.exp // 0' "$CACHE" 2>/dev/null || printf '0'
+cache_expiry_of() {
+  local path=$1
+  if [[ -s "$path" ]]; then
+    jq -r '.exp // 0' "$path" 2>/dev/null || printf '0'
   else
     printf '0'
   fi
+}
+
+cache_expiry() {
+  cache_expiry_of "$CACHE"
 }
 
 # The epoch check here is a fast path, not the guarantee: it skips a doomed
@@ -227,8 +263,17 @@ store_credential() {
     "$(printf '%s' "$plain" | encrypt_cache "$kek" "$exp" "$epoch")"
 }
 
+# This instance only: a failed read says nothing about the other instances'
+# caches, and dropping them would cost each an unrelated vault round trip.
 discard_cache() {
   rm -f "$CACHE"
+}
+
+# Every instance, for `reset`. The hardware key is shared, so deleting it
+# strands them all regardless -- leaving the files behind would only make that
+# state look recoverable.
+discard_all_caches() {
+  rm -f "$CACHE_DIR"/cache-*.enc
 }
 
 read_epoch() {
@@ -284,8 +329,26 @@ find_vault_item() {
     printf '[]'
 }
 
+# Narrows the token-carrying candidates to the requested instance. The search
+# term is a prefilter that several instances share, so this is what actually
+# chooses between them.
+select_instance() { # stdin: candidates JSON
+  jq -c --arg f "$ID_FIELD" --arg id "$INSTANCE" \
+    "$JQ_NORM"'[.[] | select([.fields[]? | select(.name == $f) | .value | norm]
+      | index($id))]' 2>/dev/null || printf '[]'
+}
+
+# The ids actually present, so a miss can name the alternatives instead of
+# leaving the caller to open the vault and look. Values only -- an id is a label
+# the user chose, not a secret.
+available_ids() { # stdin: candidates JSON
+  jq -r --arg f "$ID_FIELD" \
+    "$JQ_NORM"'[.[] | .fields[]? | select(.name == $f) | .value | norm
+      | select(. != "")] | unique | join(", ")' 2>/dev/null || printf ''
+}
+
 resolve_from_vault() {
-  local epoch=$1 session items count item name server token
+  local epoch=$1 session candidates items count item name server token ids
 
   command -v bw >/dev/null || die 'bw not found'
 
@@ -311,16 +374,26 @@ resolve_from_vault() {
   # local copy instead of refusing outright.
   BW_SESSION="$session" bw sync --nointeraction --raw >/dev/null 2>&1 || true
 
-  items=$(find_vault_item "$session")
+  candidates=$(find_vault_item "$session")
+  items=$(select_instance <<<"$candidates")
   count=$(jq 'length' <<<"$items")
 
   # Ambiguity is refused rather than guessed: picking one of several would hand
-  # over a credential the user never chose.
+  # over a credential the user never chose. Two items sharing an id is a vault
+  # mistake, and one this cannot paper over -- they are equally valid answers.
   if [[ "$count" -gt 1 ]]; then
-    die "$count vault items match '$ITEM_QUERY'; refusing to guess"
+    die "$count vault items matching '$ITEM_QUERY' carry '$ID_FIELD' = '$INSTANCE'; refusing to guess"
+  fi
+
+  # Separated from the miss below because they call for different fixes: nothing
+  # to select from at all means the search term is wrong, where candidates
+  # without this id mean the id is.
+  if [[ "$(jq 'length' <<<"$candidates")" -eq 0 ]]; then
+    die "no vault item matching '$ITEM_QUERY' has a '$TOKEN_FIELD' field; set HASS_VAULT_ITEM to search another name"
   fi
   if [[ "$count" -eq 0 ]]; then
-    die "no vault item matching '$ITEM_QUERY' has a '$TOKEN_FIELD' field; set HASS_VAULT_ITEM to search another name"
+    ids=$(available_ids <<<"$candidates")
+    die "no vault item matching '$ITEM_QUERY' has '$ID_FIELD' = '$INSTANCE' (available: ${ids:-none}); set HASS_VAULT_INSTANCE, or add the field to the item"
   fi
 
   item=$(jq -c '.[0]' <<<"$items")
@@ -378,7 +451,8 @@ cmd_check() {
     IFS= read -r server
     IFS= read -r token
   } <<<"$creds"
-  printf 'credentials resolved (server set, token %d chars)\n' "${#token}"
+  printf "credentials resolved for '%s' (server set, token %d chars)\n" \
+    "$INSTANCE" "${#token}"
 }
 
 # Discards the cached pair and resolves again. For when the vault changed under
@@ -393,6 +467,12 @@ cmd_refresh() {
   # flight captured the old one and re-checks it before sealing, so advancing it
   # here makes that write drop. Removing the cache first would leave a window in
   # which such a write still passes the check, restoring the stale pair.
+  #
+  # The epoch is shared across instances and sealed into every cache, so this
+  # invalidates the others too. Only this instance's file is removed; theirs
+  # fail to open on next use and are discarded then, costing one vault round
+  # trip each. Refreshing the instance you asked for cannot leave another
+  # serving a pair sealed under a superseded generation.
   bump_epoch
   discard_cache
   cmd_check
@@ -400,31 +480,58 @@ cmd_refresh() {
 
 # Drops the hardware key too, making any surviving cache permanently
 # undecryptable -- the Windows reset can only delete the file.
+# Every instance, since the key they share is about to go: leaving their files
+# behind would only make an unrecoverable state look recoverable.
 cmd_reset() {
-  discard_cache
+  discard_all_caches
   termux-keystore delete "$KEY_ALIAS" 2>/dev/null || true
-  printf 'cache and hardware key removed\n'
+  printf 'caches and hardware key removed\n'
+}
+
+# Reports one instance's cache from the unauthenticated expiry alone, so status
+# stays free of the keystore and the vault.
+describe_cache() { # $1 = instance id, $2 = cache path, $3 = suffix
+  local exp remaining
+  exp=$(cache_expiry_of "$2")
+  remaining=$((exp - EPOCHSECONDS))
+  if [[ "$remaining" -gt 0 ]]; then
+    printf '%s%s: cached credentials valid for %ds\n' "$1" "$3" "$remaining"
+  elif [[ "$exp" -gt 0 ]]; then
+    printf '%s%s: cached credentials expired; hass-cli will resolve them again\n' "$1" "$3"
+  else
+    printf '%s%s: no cached credentials; hass-cli will resolve them on next use\n' "$1" "$3"
+  fi
 }
 
 # Deliberately touches neither the keystore nor the vault, so it answers
 # "is anything cached?" without a round trip or a prompt.
+#
+# The current instance leads and is always reported, warm or not, since that is
+# the question the caller asked. The rest follow from the cache directory --
+# which instances exist is vault knowledge this cannot reach, so only ones that
+# have resolved at least once can appear.
 cmd_status() {
-  local exp remaining
+  local path id
 
-  exp=$(cache_expiry)
-  remaining=$((exp - EPOCHSECONDS))
-  if [[ "$remaining" -gt 0 ]]; then
-    printf 'cached credentials valid for %ds\n' "$remaining"
-  elif [[ "$exp" -gt 0 ]]; then
-    printf 'cached credentials expired; hass-cli will resolve them again\n'
-  else
-    printf 'no cached credentials; hass-cli will resolve them on next use\n'
-  fi
+  describe_cache "$INSTANCE" "$CACHE" ' (current)'
+  for path in "$CACHE_DIR"/cache-*.enc; do
+    [[ -e "$path" ]] || continue
+    id=${path##*/cache-}
+    id=${id%.enc}
+    if [[ "$id" != "$INSTANCE" ]]; then
+      describe_cache "$id" "$path" ''
+    fi
+  done
 }
 
 # bw is checked lazily in resolve_from_vault instead: a cached read never
 # touches it, and failing over a tool that path does not use would turn a
 # working cache into an error.
+# Before any command, because the instance names the cache file: an id that is
+# not a plain label could traverse out of CACHE_DIR or land on a dotfile.
+[[ "$INSTANCE" =~ ^[a-z0-9][a-z0-9._-]*$ ]] ||
+  die "invalid HASS_VAULT_INSTANCE '$INSTANCE'; expected a label of letters, digits, dot, underscore or dash"
+
 command -v jq >/dev/null || die 'jq not found'
 command -v node >/dev/null || die 'node not found'
 command -v termux-keystore >/dev/null ||

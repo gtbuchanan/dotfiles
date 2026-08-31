@@ -39,7 +39,9 @@ Describe 'hass-vault' -Skip:(-not $script:IsWindowsHost) {
     $itemsFile = Join-Path $sandbox 'items.json'
     $bwLog = Join-Path $sandbox 'bw.log'
     $cacheDir = Join-Path $state 'hass-vault'
-    $script:CachePath = Join-Path $cacheDir 'cache'
+    # The default instance's file. Each instance caches separately, so the name
+    # carries the id -- tests that reach for a specific one build their own.
+    $script:CachePath = Join-Path $cacheDir 'cache-home'
     $script:EpochPath = Join-Path $cacheDir 'epoch'
 
     # `throw`, because that is how the real bw-session-windows.ps1 reports a
@@ -75,15 +77,33 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
         [string]$Uri = $script:Uri,
         [string]$TokenField = 'CLI Token',
         [string]$Token = $script:Token,
-        [string]$Name = 'Home Assistant'
+        [string]$Name = 'Home Assistant',
+        [string]$Id = 'home',
+        [switch]$OmitId
       )
       $uris = if ($Uri) { @(@{ uri = $Uri }) } else { @() }
+      $fields = @()
+      if (-not $OmitId) { $fields += @{ name = 'CLI ID'; value = $Id } }
+      $fields += @{ name = $TokenField; value = $Token }
       @{
         name = $Name
         login = @{ uris = $uris }
         # -Depth on the writer, or ConvertTo-Json flattens these to type names.
-        fields = @(@{ name = $TokenField; value = $Token })
+        fields = $fields
       }
+    }
+
+    # A second instance, as a relative's would look: same search term, its own
+    # URI and token, told apart only by the id field.
+    $script:OtherUri = 'https://other.example.test:8123'
+    $script:OtherToken = 'stub-token-other-9876'
+
+    function Write-TwoInstanceFixture {
+      Write-VaultFixture @(
+        (Get-VaultItem),
+        (Get-VaultItem -Uri $script:OtherUri -Token $script:OtherToken `
+          -Name 'Home Assistant (Other)' -Id 'other')
+      )
     }
 
     function Write-VaultFixture {
@@ -114,8 +134,11 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
         PATH = "$bin$([IO.Path]::PathSeparator)$env:PATH"
       } + $Environment
 
-      # Cleared unless the caller set them, so no test inherits another's.
-      foreach ($name in 'HASS_VAULT_ITEM', 'STUB_VAULT_LOCKED', 'STUB_SYNC_FAILS') {
+      # Cleared unless the caller set them, so no test inherits another's -- nor
+      # the shell's, which for HASS_VAULT_INSTANCE is a realistic thing to have
+      # exported, since setting it is what the variable is for.
+      foreach ($name in 'HASS_VAULT_INSTANCE', 'HASS_VAULT_ITEM',
+        'STUB_VAULT_LOCKED', 'STUB_SYNC_FAILS') {
         if (-not $vars.ContainsKey($name)) { $vars[$name] = $null }
       }
 
@@ -263,6 +286,116 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
     }
   }
 
+  Context 'instances' {
+
+    # The point of the id field: both items match the same search term, so the
+    # name cannot be what tells them apart.
+    It 'selects the instance by the id field' {
+      Write-TwoInstanceFixture
+      (Invoke-Vault -Arguments 'credential').Out |
+        Should -Match ([regex]::Escape($script:Uri))
+
+      $other = Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'other' }
+      $other.Out | Should -Match ([regex]::Escape($script:OtherUri))
+      $other.Out | Should -Match ([regex]::Escape($script:OtherToken))
+    }
+
+    # Typed into a vault UI by hand, where a stray space or capital is a typo
+    # rather than a different instance.
+    It 'matches the id trimmed and case-insensitively' {
+      Write-VaultFixture @((Get-VaultItem -Id '  Other  ' -Uri $script:OtherUri))
+      (Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'OTHER' }).Out |
+        Should -Match ([regex]::Escape($script:OtherUri))
+    }
+
+    # The regression the per-instance cache exists for: one shared slot hands
+    # the first instance's credentials to the second, silently. The home item
+    # stays in the vault, so this is the real shape -- a warm home cache and a
+    # request for an instance the vault does not carry.
+    It 'never serves one instance cache for another' {
+      Initialize-Cache
+      $result = Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'other' }
+      $result.Out | Should -Not -Match ([regex]::Escape($script:Token))
+      $result.Err | Should -Match "'CLI ID' = 'other'"
+    }
+
+    # Separate files rather than one slot the instances evict each other from: a
+    # vault lookup is seconds of bw starting Node, so a shared slot would pay it
+    # on every switch.
+    It 'keeps a separate cache per instance' {
+      Write-TwoInstanceFixture
+      Initialize-Cache
+      Invoke-Vault -Arguments 'check' -Environment @{ HASS_VAULT_INSTANCE = 'other' } | Out-Null
+
+      Write-VaultFixture @()
+      (Invoke-Vault -Arguments 'credential').Out |
+        Should -Match ([regex]::Escape($script:Token))
+      (Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'other' }).Out |
+        Should -Match ([regex]::Escape($script:OtherToken))
+    }
+
+    It 'names the instance it resolved' {
+      Write-TwoInstanceFixture
+      (Invoke-Vault -Arguments 'check' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'other' }).Out |
+        Should -Match "resolved for 'other'"
+    }
+
+    It 'reports the current instance and every other cached one' {
+      Write-TwoInstanceFixture
+      Initialize-Cache
+      Invoke-Vault -Arguments 'check' -Environment @{ HASS_VAULT_INSTANCE = 'other' } | Out-Null
+
+      $status = (Invoke-Vault -Arguments 'status').Out
+      $status | Should -Match 'home \(current\): cached credentials valid for'
+      $status | Should -Match 'other: cached credentials valid for'
+    }
+
+    # The epoch is shared and sealed into every cache, so refreshing one
+    # instance invalidates the rest even though their files survive. Without
+    # that, the instance you did not name would go on serving a pair sealed
+    # under a superseded generation.
+    It 'invalidates the other instances when one is refreshed' {
+      Write-TwoInstanceFixture
+      Invoke-Vault -Arguments 'check' -Environment @{ HASS_VAULT_INSTANCE = 'other' } | Out-Null
+      Initialize-Cache
+      (Invoke-Vault -Arguments 'refresh').ExitCode | Should -Be 0
+
+      $result = Invoke-Vault -Arguments 'check' -Environment @{
+        HASS_VAULT_INSTANCE = 'other'; STUB_VAULT_LOCKED = '1'
+      }
+      $result.ExitCode | Should -Be 1
+      $result.Out | Should -Match 'credentials did not resolve'
+    }
+
+    It 'names the available ids when the requested one is absent' {
+      Write-TwoInstanceFixture
+      $result = Invoke-Vault -Arguments 'check' -Environment @{ HASS_VAULT_INSTANCE = 'nope' }
+      $result.ExitCode | Should -Be 1
+      $result.Err | Should -Match "'CLI ID' = 'nope'"
+      $result.Err | Should -Match 'available: home, other'
+    }
+
+    It 'reports an item that carries no id field at all' {
+      Write-VaultFixture @((Get-VaultItem -OmitId))
+      (Invoke-Vault -Arguments 'check').Err | Should -Match 'available: none'
+    }
+
+    # An id names the cache file, so one that is not a plain label could
+    # traverse out of the cache directory or land on a dotfile.
+    It 'refuses an instance id that is not a plain label' -ForEach @(
+      @{ Id = '../escape' }, @{ Id = '.hidden' }, @{ Id = 'has space' }
+    ) {
+      $result = Invoke-Vault -Arguments 'status' -Environment @{ HASS_VAULT_INSTANCE = $Id }
+      $result.ExitCode | Should -Be 1
+      $result.Err | Should -Match 'invalid HASS_VAULT_INSTANCE'
+    }
+  }
+
   Context 'the vault sync' {
 
     # A rotated token is invisible until an explicit sync: bw serves a local
@@ -291,7 +424,10 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
 
   Context 'refusals' {
 
-    It 'refuses an ambiguous match rather than guessing' {
+    # Two items claiming the same instance is a vault mistake, not a second
+    # instance, and the one case selection cannot resolve: they are equally
+    # valid answers, so picking either hands over a credential nobody chose.
+    It 'refuses two items claiming the same instance rather than guessing' {
       Write-VaultFixture @((Get-VaultItem), (Get-VaultItem -Name 'Home Assistant (old)'))
       $result = Invoke-Vault -Arguments 'check'
       $result.ExitCode | Should -Be 1
