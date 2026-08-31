@@ -20,8 +20,10 @@
 # file for why Windows Hello for Business isn't available here and what DPAPI
 # does and does not protect. The same caveat applies: DPAPI binds to the user
 # identity, not to presence, so what bounds exposure is the idle window, which
-# is kept short and slides on use. The expiry is bound as the DPAPI entropy, so
-# editing it in the file makes decryption fail rather than extending the window.
+# is kept short and slides on use. The expiry, the item query and the epoch are
+# bound as the DPAPI entropy, so editing the expiry in the file makes decryption
+# fail rather than extending the window, and a cache filled for one vault item
+# is never served for another.
 #
 # This caches the credential itself rather than a key that unlocks a vault, so
 # it is deliberately shorter-lived than the bw session cache beneath it.
@@ -68,6 +70,22 @@ function Write-Diag {
   [Console]::Error.WriteLine("hass-vault: $Message")
 }
 
+# The DPAPI entropy, binding the expiry, the item query and the epoch together.
+#
+# The expiry so editing it in the file breaks decryption rather than extending
+# the window. The query so a cache filled for one vault item is never served for
+# another: the read consults the cache before it ever reaches the vault, so
+# without it HASS_VAULT_ITEM=Other hands back the previous item's credentials
+# for the rest of the idle window, and nothing downstream can catch that. The
+# epoch for the refresh race described in Write-Cache.
+#
+# NUL-separated so no part can be crafted to collide with another, and in the
+# same order as the Termux AAD so the two platforms can be read side by side.
+function Get-CacheEntropy {
+  param([string]$Expiry, [string]$Epoch)
+  [Text.Encoding]::UTF8.GetBytes("$Expiry`0$($script:ItemQuery)`0$Epoch")
+}
+
 function Write-Cache {
   param([string]$Server, [string]$Token, [string]$Epoch)
 
@@ -97,7 +115,7 @@ function Write-Cache {
   # entropy moves the check to read time, where it is inherently atomic -- a
   # cache sealed under a superseded epoch fails to unprotect and is treated as
   # the miss it is. No lock, and nothing held across the vault call.
-  $entropy = [Text.Encoding]::UTF8.GetBytes("$expiry`0$Epoch")
+  $entropy = Get-CacheEntropy -Expiry $expiry -Epoch $Epoch
   $payload = "$Server`n$Token"
   $blob = [Security.Cryptography.ProtectedData]::Protect(
     [Text.Encoding]::UTF8.GetBytes($payload), $entropy, 'CurrentUser')
@@ -116,7 +134,7 @@ function Read-Cache {
   if ($expiry -le (Get-Date).ToUniversalTime()) { return $null }
 
   try {
-    $entropy = [Text.Encoding]::UTF8.GetBytes("$($lines[0])`0$(Read-Epoch)")
+    $entropy = Get-CacheEntropy -Expiry $lines[0] -Epoch (Read-Epoch)
     $plain = [Security.Cryptography.ProtectedData]::Unprotect(
       [Convert]::FromBase64String($lines[1]), $entropy, 'CurrentUser')
     $parts = [Text.Encoding]::UTF8.GetString($plain) -split "`n", 2
@@ -124,8 +142,9 @@ function Read-Cache {
     [pscustomobject]@{ Server = $parts[0]; Token = $parts[1] }
   }
   catch {
-    # Wrong user, another machine, or an edited expiry. Indistinguishable and
-    # all equally unusable, so treat as a miss.
+    # Wrong user, another machine, an edited expiry, a cache sealed for a
+    # different item query, or one superseded by a refresh. Indistinguishable
+    # and all equally unusable, so treat as a miss.
     $null
   }
 }

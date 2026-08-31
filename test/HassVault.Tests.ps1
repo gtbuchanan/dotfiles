@@ -236,6 +236,19 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
         Should -Match 'credentials did not resolve'
     }
 
+    # The read consults the cache before it ever reaches the vault, so without
+    # the search term bound into the entropy a cache filled for one item is
+    # handed over for another -- silently talking to the wrong instance for the
+    # rest of the idle window rather than failing.
+    It 'does not serve a cache filled under one item query for another' {
+      Initialize-Cache
+      Write-VaultFixture @()
+      $result = Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_ITEM = 'Something Else' }
+      $result.Out | Should -Not -Match ([regex]::Escape($script:Token))
+      $result.Err | Should -Match "matching 'Something Else'"
+    }
+
     # The check-then-write window the epoch guard alone cannot close: a resolver
     # passes the check, `refresh` advances the epoch, and the resolver publishes
     # afterwards. Sealing under the epoch is what makes that publication
