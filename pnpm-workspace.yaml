@@ -6,7 +6,7 @@ catalog:
   '@gtbuchanan/eslint-config': 0.5.1
   '@gtbuchanan/tsconfig': 0.2.0
   '@pnpm/types': 1102.0.0
-  '@types/node': 26.2.0
+  '@types/node': 26.4.0
   eslint: 10.9.1
   typescript: 6.0.3
 
