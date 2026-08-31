@@ -31,15 +31,26 @@ $settings = Join-Path $root 'PSScriptAnalyzerSettings.psd1'
 
 # Invoke-ScriptAnalyzer -Path is single-valued, so analyze each file in turn.
 #
-# PSScriptAnalyzer intermittently throws a NullReferenceException ("Object
-# reference not set to an instance of an object") on the first analysis in a
-# fresh process when the formatting rules run against a file containing backtick
-# line continuations -- its correction engine dereferences a null token during
-# cold initialization. hk spawns a new pwsh per run, so it always takes this
-# cold path and hits the crash roughly half the time. A later call in the same
-# process reliably succeeds (the failed attempt still warms the type init), so
-# retry the transient fault before surfacing it. Genuine analysis problems
-# reproduce on every attempt and still throw once the retries are exhausted.
+# PSScriptAnalyzer intermittently fails on the first analysis in a fresh
+# process, while its own initialization is still cold. hk spawns a new pwsh per
+# run, so it always takes that path and hits the fault a good fraction of the
+# time. A later call in the same process reliably succeeds -- the failed attempt
+# still warms the type init -- so retry before surfacing it.
+#
+# Two shapes have been seen, and they share nothing textually:
+#
+#   - a NullReferenceException ("Object reference not set to an instance of an
+#     object"), from the correction engine dereferencing a null token when the
+#     formatting rules run against backtick line continuations
+#   - "The term 'Get-Command' is not recognized...", from its runspace failing
+#     to resolve built-in cmdlets during initialization
+#
+# This used to match the first message and rethrow anything else, which meant
+# the second shape went straight through and failed the Pre-Commit check the
+# branch ruleset requires. Matching on message text is whack-a-mole for a fault
+# whose surface keeps changing, so retry everything instead: a genuine analysis
+# problem reproduces on every attempt and still throws once the retries are
+# exhausted, which is what the narrow match was really relying on anyway.
 $maxAttempts = 3
 $findings = foreach ($file in $Path) {
   for ($attempt = 1; ; $attempt++) {
@@ -51,11 +62,11 @@ $findings = foreach ($file in $Path) {
       break
     }
     catch {
-      # The cold-start fault surfaces with the NullReferenceException message
-      # ("Object reference not set..."); match it so a wrapped rethrow is caught
-      # too. Any other failure is real -- rethrow it without retrying.
-      $transient = $_.Exception.Message -match 'Object reference not set'
-      if (-not $transient -or $attempt -ge $maxAttempts) { throw }
+      # Report what was retried, so a fault that becomes permanent is visible in
+      # the log rather than hidden behind a later success.
+      if ($attempt -ge $maxAttempts) { throw }
+      [Console]::Error.WriteLine(
+        "lint-powershell: retrying $file after: $($_.Exception.Message)")
     }
   }
 }
