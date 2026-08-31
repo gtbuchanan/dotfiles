@@ -1,4 +1,14 @@
-/* Dependency fixups for globals whose published manifests don't survive
+/* Deliberately NOT named .pnpmfile.cjs. pnpm auto-discovers that name in the
+ * workspace root and stamps a `pnpmfileChecksum` into pnpm-lock.yaml, but
+ * Renovate regenerates lockfiles with --ignore-pnpmfile and drops the key —
+ * so every lockfile-touching Renovate PR failed CI's `pnpm install
+ * --frozen-lockfile` with ERR_PNPM_LOCKFILE_CONFIG_MISMATCH. Nothing here
+ * applies to the workspace's own dependencies: every patch below targets a
+ * package installed by `pnpm add -g`, which reaches this file through the
+ * explicit --config.global-pnpmfile in home/.chezmoitemplates/pnpm-globals.
+ * Renaming it back would reintroduce the CI failure.
+ *
+ * Dependency fixups for globals whose published manifests don't survive
  * pnpm's isolated node_modules. Each entry pins one dependency onto one
  * package; `when` says whether the fixup applies to a dep the manifest
  * already declares ('declared', to repoint it) or omits ('missing', to add

@@ -8,15 +8,15 @@ when an unrelated package bumps.
 
 ## File Map
 
-| File                                                                                                                                                                | Role                                                                                            |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| [`.pnpmfile.cjs`](../.pnpmfile.cjs)                                                                                                                                 | Global pnpm hooks ([patches](#the-pnpmfilecjs-hook) undeclared or unresolvable deps in globals) |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                                                |
-| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                                                        |
-| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages                                                                    |
-| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                                             |
-| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`                                     |
-| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml)                                                                                                                     | Pinned versions (`globals` catalog); Renovate-managed                                           |
+| File                                                                                                                                                                | Role                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| [`global-pnpmfile.cjs`](../global-pnpmfile.cjs)                                                                                                                     | Global pnpm hooks ([patches](#the-pnpmfile-hook) undeclared or unresolvable deps in globals) |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                                             |
+| [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                                                     |
+| [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages                                                                 |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                                          |
+| [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`                                  |
+| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml)                                                                                                                     | Pinned versions (`globals` catalog); Renovate-managed                                        |
 
 ## How the Template Renders
 
@@ -27,7 +27,7 @@ The template takes a `dict` with:
 
 It resolves each `include` name against the `globals` catalog in
 [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) and emits `pnpm add -g`, always
-passing the root [`.pnpmfile.cjs`](../.pnpmfile.cjs) via
+passing the root [`global-pnpmfile.cjs`](../global-pnpmfile.cjs) via
 `--config.global-pnpmfile`. Two version-spec branches:
 
 - `github:<owner>/<repo>#<sha>` → passed verbatim (pnpm understands the
@@ -39,7 +39,7 @@ passing the root [`.pnpmfile.cjs`](../.pnpmfile.cjs) via
 So a script declaring `include "@openai/codex"` renders to roughly:
 
 ```sh
-pnpm add -g --config.global-pnpmfile=<root>/.pnpmfile.cjs @openai/codex@0.120.0
+pnpm add -g --config.global-pnpmfile=<root>/global-pnpmfile.cjs @openai/codex@0.120.0
 ```
 
 with the version baked into the rendered file content.
@@ -58,10 +58,10 @@ script needs `@readonly-mcp/core` before registering it with Claude)
 install that package themselves via the same template — making them
 self-contained, no ordering dependencies.
 
-## The `.pnpmfile.cjs` Hook
+## The pnpmfile Hook
 
-[`.pnpmfile.cjs`](../.pnpmfile.cjs) at the repo root contains a `readPackage`
-hook with these patches:
+[`global-pnpmfile.cjs`](../global-pnpmfile.cjs) at the repo root contains a
+`readPackage` hook with these patches:
 
 - `volar-service-emmet@0.0.64`'s GitHub-resolved `@emmetio/css-parser`
   dep is repointed to the npm-published version (pnpm 11 rejects the
@@ -82,11 +82,17 @@ hook with these patches:
 
 The template wires this file via `--config.global-pnpmfile=` on every
 `pnpm add -g`, so a global that needs a patch is covered without opting in
-per script; the hook is a no-op for packages that match neither name. It
-doubles as the workspace's local hook for `pnpm install` (pnpm's canonical
-`.pnpmfile.cjs`). See the inline comments in
-[`.pnpmfile.cjs`](../.pnpmfile.cjs) for each patch's full mechanism and
-upstream-issue trail.
+per script; the hook is a no-op for packages that match neither name.
+
+It applies to global installs only, which is why it is _not_ named
+`.pnpmfile.cjs`: pnpm auto-discovers that name in the workspace root and
+records a `pnpmfileChecksum` in `pnpm-lock.yaml`, while Renovate regenerates
+lockfiles with `--ignore-pnpmfile` and omits the key. CI's `pnpm install
+--frozen-lockfile` then rejects every lockfile-touching Renovate PR with
+`ERR_PNPM_LOCKFILE_CONFIG_MISMATCH`. Under the current name the workspace
+lockfile carries no checksum, so Renovate's output matches. See the inline
+comments in [`global-pnpmfile.cjs`](../global-pnpmfile.cjs) for each patch's
+full mechanism and upstream-issue trail.
 
 ## Adding a New Global Package
 
