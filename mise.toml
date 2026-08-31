@@ -59,4 +59,4 @@ pnpm = "11.24.0"
 # needs a `mise install --force powershell` (or a manual run) to re-provision.
 powershell = { version = "7.6.5", postinstall = "pwsh -NoProfile -File scripts/provision-psmodules.ps1" }
 shellcheck = "0.11.0"
-shfmt = "3.13.1"
+shfmt = "3.14.0"
