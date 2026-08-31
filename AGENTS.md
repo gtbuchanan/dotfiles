@@ -183,7 +183,7 @@ conditionals within a script (e.g., WSL vs. native Linux, personal vs. ewn).
 `scripts/lint-templates.sh` (the hk `render-templates` step) proves every
 `*.tmpl` renders, skipping ones chezmoi ignores on the current OS/hosttype (via
 `chezmoi ignored`). CI runs it natively per-OS plus, since android has no hosted
-runner, in a Termux container (`mise run test:templates-android`); see
+runner, in a Termux container (`mise run test:termux`); see
 `.github/workflows/ci.yml`.
 
 `chezmoi ignored` realizes every `.chezmoiexternal` entry (downloading archives,

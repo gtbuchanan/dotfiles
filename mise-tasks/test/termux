@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Run the host-native checks in a Termux (android) environment"
+#
+# android has no hosted CI runner and chezmoi's `.chezmoi.os` comes from GOOS
+# (unfakeable), so anything android-conditional can only be exercised by a real
+# Termux userland. On a Termux device that's native; elsewhere we borrow one
+# from termux/termux-docker. Either way it runs the same leaves as test:fast, so
+# this leg checks what every other platform's leg checks, with the android
+# branches active.
+set -euo pipefail
+
+if [ "$(uname -o 2>/dev/null)" = "Android" ]; then
+  exec mise run test:fast
+else
+  exec bash scripts/docker-run.sh scripts/test-termux.sh
+fi

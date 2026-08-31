@@ -10,7 +10,7 @@
 #
 # DEVICE-ONLY, and deliberately not wired into hk or CI. The keystore reaches
 # Termux:API, which needs the Termux:API app on a real device -- the
-# termux-docker userland that `test:templates-android` borrows has no Android
+# termux-docker userland that `test:termux` borrows has no Android
 # API service to answer it. So this runs when someone runs it:
 #
 #   mise run test:hass-vault [-- shUnit2 args, e.g. a test_* name filter]
