@@ -308,6 +308,19 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
       (Invoke-Vault -Arguments 'check').Err | Should -Match 'no URI to use as the server'
     }
 
+    # A long-lived token over cleartext is worth failing over. Home Assistant is
+    # commonly reached at http:// on a LAN, so this is a policy rather than a
+    # universal truth -- but it is the right one where the URI comes from a
+    # vault item expected to be https, and it is what the Termux resolver has
+    # always done.
+    It 'refuses a non-https server URI rather than sending the token in clear' {
+      Write-VaultFixture @((Get-VaultItem -Uri 'http://plain.test:8123'))
+      $result = Invoke-Vault -Arguments 'credential'
+      $result.ExitCode | Should -Be 1
+      $result.Err | Should -Match 'non-https URI'
+      $result.Out | Should -Not -Match ([regex]::Escape($script:Token))
+    }
+
     It 'reports an item whose token field is empty' {
       Write-VaultFixture @((Get-VaultItem -Token ''))
       (Invoke-Vault -Arguments 'check').Err | Should -Match "empty 'CLI Token' field"
