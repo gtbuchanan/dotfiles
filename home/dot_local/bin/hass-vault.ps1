@@ -20,10 +20,17 @@
 # file for why Windows Hello for Business isn't available here and what DPAPI
 # does and does not protect. The same caveat applies: DPAPI binds to the user
 # identity, not to presence, so what bounds exposure is the idle window, which
-# is kept short and slides on use. The expiry, the item query and the epoch are
-# bound as the DPAPI entropy, so editing the expiry in the file makes decryption
-# fail rather than extending the window, and a cache filled for one vault item
-# is never served for another.
+# is kept short and slides on use. The expiry, the item query, the epoch and the
+# instance are bound as the DPAPI entropy, so editing the expiry in the file
+# makes decryption fail rather than extending the window, and a cache filled for
+# one vault item is never served for another.
+#
+# More than one Home Assistant instance can be reached from one host, so the
+# vault item is chosen by a `CLI ID` field rather than by its name --
+# HASS_VAULT_INSTANCE names the id, defaulting to `home`. A field is the stable
+# half of a vault item: names are prose and get edited, and the search term is a
+# loose prefilter that every instance matches anyway. Each instance caches
+# separately, so switching between them costs no vault round trip.
 #
 # This caches the credential itself rather than a key that unlocks a vault, so
 # it is deliberately shorter-lived than the bw session cache beneath it.
@@ -45,7 +52,21 @@ param(
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Security -ErrorAction SilentlyContinue
 
-$script:CachePath = Join-Path $env:LOCALAPPDATA 'hass-vault\cache'
+# Which Home Assistant instance to resolve, matched against the id field below
+# rather than against the item's name: a name is prose that gets edited, while
+# this is a value chosen to be depended on. Several instances therefore share one
+# search term, and picking between them never turns on how they were named.
+#
+# Constrained to a plain lowercase label (validated before the switch, once
+# Write-Diag exists) because it also names the cache file. Lowercased first so
+# `Home` and `home` cannot become two caches here and one file on NTFS.
+$script:Instance = if ($env:HASS_VAULT_INSTANCE) {
+  $env:HASS_VAULT_INSTANCE.ToLowerInvariant()
+}
+else { 'home' }
+
+$script:CacheDir = Join-Path $env:LOCALAPPDATA 'hass-vault'
+$script:CachePath = Join-Path $script:CacheDir "cache-$($script:Instance)"
 # Bumped by `refresh`. A resolve reads it before touching the vault and again
 # before sealing, and declines to seal if it moved -- see Write-Cache.
 $script:EpochPath = Join-Path $env:LOCALAPPDATA 'hass-vault\epoch'
@@ -58,6 +79,7 @@ $script:IdleWindow = [TimeSpan]::FromHours(4)
 # ambiguous result is refused rather than guessed.
 $script:ItemQuery = if ($env:HASS_VAULT_ITEM) { $env:HASS_VAULT_ITEM } else { 'Home Assistant' }
 $script:TokenField = 'CLI Token'
+$script:IdField = 'CLI ID'
 
 function Read-Epoch {
   if (-not (Test-Path -LiteralPath $script:EpochPath)) { return '' }
@@ -70,7 +92,8 @@ function Write-Diag {
   [Console]::Error.WriteLine("hass-vault: $Message")
 }
 
-# The DPAPI entropy, binding the expiry, the item query and the epoch together.
+# The DPAPI entropy, binding the expiry, the item query, the epoch and the
+# instance together.
 #
 # The expiry so editing it in the file breaks decryption rather than extending
 # the window. The query so a cache filled for one vault item is never served for
@@ -79,11 +102,29 @@ function Write-Diag {
 # for the rest of the idle window, and nothing downstream can catch that. The
 # epoch for the refresh race described in Write-Cache.
 #
+# The instance already segregates the cache by filename, so binding it here as
+# well is belt and braces: it makes a file renamed between instances fail closed
+# rather than hand over a credential the caller did not ask for.
+#
 # NUL-separated so no part can be crafted to collide with another, and in the
 # same order as the Termux AAD so the two platforms can be read side by side.
 function Get-CacheEntropy {
   param([string]$Expiry, [string]$Epoch)
-  [Text.Encoding]::UTF8.GetBytes("$Expiry`0$($script:ItemQuery)`0$Epoch")
+  [Text.Encoding]::UTF8.GetBytes(
+    "$Expiry`0$($script:ItemQuery)`0$Epoch`0$($script:Instance)")
+}
+
+# Field values are compared trimmed and case-folded: they are typed into a vault
+# UI by hand, where a stray space or capital is a typo rather than a different
+# instance.
+function Get-FieldValue {
+  param([object]$Item, [string]$Name)
+  foreach ($field in @($Item.fields)) {
+    if ($field -and $field.name -eq $Name) {
+      $value = "$($field.value)".Trim().ToLowerInvariant()
+      if ($value) { $value }
+    }
+  }
 }
 
 function Write-Cache {
@@ -176,6 +217,27 @@ function Find-VaultItem {
     })
 }
 
+# Narrows the token-carrying candidates to the requested instance. The search
+# term is a prefilter that several instances share, so this is what actually
+# chooses between them.
+function Select-Instance {
+  param([object[]]$Candidates)
+  @($Candidates | Where-Object {
+      (Get-FieldValue -Item $_ -Name $script:IdField) -contains $script:Instance
+    })
+}
+
+# The ids actually present, so a miss can name the alternatives instead of
+# leaving the caller to open the vault and look. Values only -- an id is a label
+# the user chose, not a secret.
+function Get-AvailableId {
+  param([object[]]$Candidates)
+  $ids = foreach ($item in $Candidates) {
+    Get-FieldValue -Item $item -Name $script:IdField
+  }
+  (@($ids) | Sort-Object -Unique) -join ', '
+}
+
 function Get-VaultCredential {
   $epoch = Read-Epoch
   $cached = Read-Cache
@@ -216,16 +278,30 @@ function Get-VaultCredential {
     Write-Diag "vault sync failed, using the local copy: $($_.Exception.Message)"
   }
 
-  $items = Find-VaultItem -Bw $bw -Session $session
+  $candidates = Find-VaultItem -Bw $bw -Session $session
+  $items = Select-Instance -Candidates $candidates
 
   # Ambiguity is refused rather than guessed: picking one of several would hand
-  # over a credential the user never chose.
+  # over a credential the user never chose. Two items sharing an id is a vault
+  # mistake, and one this cannot paper over -- they are equally valid answers.
   if ($items.Count -gt 1) {
-    throw "$($items.Count) vault items match '$($script:ItemQuery)'; refusing to guess"
+    throw ("$($items.Count) vault items matching '$($script:ItemQuery)' carry " +
+      "'$($script:IdField)' = '$($script:Instance)'; refusing to guess")
   }
-  if ($items.Count -eq 0) {
+
+  # Separated from the miss below because they call for different fixes: nothing
+  # to select from at all means the search term is wrong, where candidates
+  # without this id mean the id is.
+  if ($candidates.Count -eq 0) {
     throw ("no vault item matching '$($script:ItemQuery)' has a " +
       "'$($script:TokenField)' field; set HASS_VAULT_ITEM to search another name")
+  }
+  if ($items.Count -eq 0) {
+    $available = Get-AvailableId -Candidates $candidates
+    if (-not $available) { $available = 'none' }
+    throw ("no vault item matching '$($script:ItemQuery)' has " +
+      "'$($script:IdField)' = '$($script:Instance)' (available: $available); " +
+      'set HASS_VAULT_INSTANCE, or add the field to the item')
   }
 
   $item = $items[0]
@@ -252,6 +328,51 @@ function Get-VaultCredential {
 
   Write-Cache -Server $server -Token $field.value -Epoch $epoch
   [pscustomobject]@{ Server = $server; Token = $field.value }
+}
+
+# Every instance that has resolved at least once. Which instances exist is vault
+# knowledge this cannot reach, so the cache directory is the only enumeration
+# available -- and the only one `status` needs.
+function Get-CachePath {
+  Get-ChildItem -LiteralPath $script:CacheDir -File -Filter 'cache-*' `
+    -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+}
+
+# The unauthenticated expiry line. Decryption authenticates it properly, so
+# trusting it here only risks reporting a cache that would not open.
+function Get-CacheExpiry {
+  param([string]$Path)
+  $lines = @(Get-Content -LiteralPath $Path -ErrorAction SilentlyContinue)
+  if ($lines.Count -lt 2) { return $null }
+  try { [datetime]::Parse($lines[0]).ToUniversalTime() } catch { $null }
+}
+
+# The current instance is reported from an actual decrypt, so "valid" means
+# usable rather than merely present. The others cannot be: their entropy binds
+# an instance this process is not, leaving only the expiry line -- enough for
+# the question status asks.
+function Get-CacheStatus {
+  param([string]$Path, [string]$Instance, [switch]$Current)
+
+  $label = if ($Current) { "$Instance (current)" } else { $Instance }
+  $expiry = if ($Current -and -not (Read-Cache)) { $null } else {
+    Get-CacheExpiry -Path $Path
+  }
+
+  if ($expiry -and $expiry -gt (Get-Date).ToUniversalTime()) {
+    '{0}: cached credentials valid for {1:hh\:mm\:ss}' -f `
+      $label, ($expiry - (Get-Date).ToUniversalTime())
+  }
+  else { "${label}: no cached credentials" }
+}
+
+# Before any command, because the instance names the cache file: an id that is
+# not a plain label could traverse out of the cache directory or land on a
+# dotfile.
+if ($script:Instance -notmatch '^[a-z0-9][a-z0-9._-]*$') {
+  Write-Diag ("invalid HASS_VAULT_INSTANCE '$($script:Instance)'; expected a " +
+    'label of letters, digits, dot, underscore or dash')
+  exit 1
 }
 
 switch ($Command) {
@@ -281,6 +402,12 @@ switch ($Command) {
     # A cache that survives is a failed refresh, not a partial one, so this
     # exits non-zero and says so rather than reporting success and sending the
     # next resolve at the same stale copy.
+    #
+    # This instance's file only. The epoch bumped above is shared and sealed
+    # into every cache, so the others are already invalidated -- they fail to
+    # open on next use and are discarded then, costing one vault round trip
+    # each. Refreshing the instance you asked for cannot leave another serving a
+    # pair sealed under a superseded generation.
     try {
       if (Test-Path -LiteralPath $script:CachePath) {
         Remove-Item -LiteralPath $script:CachePath -Force -ErrorAction Stop
@@ -302,7 +429,8 @@ switch ($Command) {
       Write-Output 'credentials did not resolve'
       exit 1
     }
-    "credentials resolved (server set, token $($creds.Token.Length) chars)"
+    "credentials resolved for '$($script:Instance)' " +
+    "(server set, token $($creds.Token.Length) chars)"
     break
   }
 
@@ -317,16 +445,21 @@ switch ($Command) {
       Write-Output 'credentials did not resolve'
       exit 1
     }
-    "credentials resolved (server set, token $($creds.Token.Length) chars)"
+    "credentials resolved for '$($script:Instance)' " +
+    "(server set, token $($creds.Token.Length) chars)"
     break
   }
   'status' {
-    $cached = Read-Cache
-    if ($cached) {
-      $expiry = [datetime]::Parse((Get-Content $script:CachePath)[0]).ToUniversalTime()
-      "cached credentials valid for {0:hh\:mm\:ss}" -f ($expiry - (Get-Date).ToUniversalTime())
+    # The current instance leads and is always reported, warm or not, since that
+    # is the question the caller asked. The rest follow from the cache
+    # directory, so only instances that have resolved at least once appear.
+    Get-CacheStatus -Path $script:CachePath -Instance $script:Instance -Current
+    foreach ($path in Get-CachePath) {
+      $id = [IO.Path]::GetFileName($path) -replace '^cache-', ''
+      if ($id -ne $script:Instance) {
+        Get-CacheStatus -Path $path -Instance $id
+      }
     }
-    else { 'no cached credentials' }
     break
   }
   default {
