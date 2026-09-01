@@ -67,26 +67,22 @@
         "matcher": "Bash|PowerShell",
         "hooks": [
 {{- /*
-  Windows-only: the kills it refuses are session-blind ones aimed at pwsh, so
-  there is nothing for it to guard where pwsh is not the shell.
-*/}}
-{{- if eq .chezmoi.os "windows" }}
-          {
-            "command": "& $HOME/.claude/deny-pwsh-kill.ps1",
-            "shell": "powershell",
-            "type": "command"
-          },
-{{- end }}
-{{- /*
-  Every platform, unlike the guard above: hass-vault and bw-session-* ship on
-  both Windows and Termux, and wiring this unconditionally means a resolver
-  built for linux or darwin later is already covered rather than quietly
-  unguarded. Invoked through `bash` explicitly rather than relying on the hook
-  shell default, matching the android statusline below -- Git Bash supplies it
-  on Windows, where the sibling hook needs pwsh instead.
+  One hook for every refused command, on every platform, rather than one per
+  concern. Matching hooks run in parallel, so a second entry here would not add
+  to the wall clock -- but it would cost another interpreter startup, and pwsh
+  spends well over a second on that before running a line. Folding the
+  PowerShell guard's rules into this script removed that from the front of every
+  Bash and PowerShell call.
+
+  Unconditional because the commands it guards are: hass-vault and bw-session-*
+  ship on Windows and Termux both, and a resolver built for linux or darwin
+  later is then already covered rather than quietly unguarded. The termination
+  rules are inert where pwsh is not installed. Invoked through `bash` explicitly
+  rather than relying on the hook shell default, matching the android statusline
+  below -- Git Bash supplies it on Windows.
 */}}
           {
-            "command": "bash ~/.claude/deny-vault-secrets",
+            "command": "bash ~/.claude/deny-unsafe-commands",
             "type": "command"
           }
         ]

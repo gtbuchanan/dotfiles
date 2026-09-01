@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 #
-# Tests for deny-vault-secrets, the PreToolUse hook that refuses agent commands
-# which would print a vault secret into the transcript.
+# Tests for deny-unsafe-commands, the PreToolUse hook that refuses agent
+# commands which would print a vault secret into the transcript, or which would
+# terminate PowerShell processes by name.
 #
 # The hook is read straight from home/, not rendered through `chezmoi cat` as
 # the hass-vault suite does: it is a plain file rather than a template, so the
@@ -24,10 +25,15 @@
 # credential is refused, AND the diagnostic subcommands the agent is told to
 # reach for instead stay allowed. A guard that blocked `hass-vault check` would
 # push the agent toward the one command that prints the token.
+#
+# The termination rules ported here from the PowerShell guard that used to run
+# beside this one have the same shape: a name-targeted kill is refused and a
+# PID-targeted one is not, because reaping a job you started is legitimate and
+# that escape hatch has to keep working.
 
 cd "$(dirname "$0")/.." || exit 1
 
-readonly HOOK="$PWD/home/dot_claude/deny-vault-secrets"
+readonly HOOK="$PWD/home/dot_claude/deny-unsafe-commands"
 
 if [ ! -f "$HOOK" ]; then
   echo "SKIP: $HOOK not found"
@@ -136,13 +142,13 @@ test_reading_or_searching_these_files_is_not_denied() {
   # sibling deny-pwsh-kill hook blocks `cat` of its own source, because it
   # matches its trigger words anywhere in the string. Matching in command
   # position instead keeps the repo readable.
-  assert_allowed 'cat the hook' 'cat home/dot_claude/deny-vault-secrets'
+  assert_allowed 'cat the hook' 'cat home/dot_claude/deny-unsafe-commands'
   assert_allowed 'cat the resolver' 'cat home/dot_local/bin/hass-vault.ps1'
   assert_allowed 'grep for the subcommand' \
     'grep -n credential home/dot_local/bin/hass-vault.ps1'
   assert_allowed 'a path in an argument, not in command position' \
     'chezmoi apply --no-tty ~/.local/bin/hass-vault'
-  assert_allowed 'the test suite itself' 'bash test/deny_vault_secrets_test.sh'
+  assert_allowed 'the test suite itself' 'bash test/deny_unsafe_commands_test.sh'
 }
 
 test_a_description_mentioning_a_vault_command_does_not_deny() {
@@ -248,6 +254,60 @@ test_the_decision_is_well_formed_json() {
   assertContains 'the event name' "$out" '"hookEventName": "PreToolUse"'
   assertContains 'the decision' "$out" '"permissionDecision": "deny"'
   assertContains 'the reason' "$out" '"permissionDecisionReason"'
+}
+
+# --- process termination ----------------------------------------------------
+
+test_a_name_targeted_powershell_kill_is_refused() {
+  # A name or image kill hits every matching process on the machine: other
+  # agent sessions, the user's own terminals, and the harness's shell host.
+  assert_denied 'by name' 'Stop-Process -Name pwsh'
+  assert_denied 'by image' 'taskkill /IM pwsh.exe /F'
+  assert_denied 'piped from Get-Process' 'Get-Process pwsh | Stop-Process'
+  assert_denied 'the alias' 'spps -Name powershell'
+  assert_denied 'the unix spelling' 'pkill -f pwsh'
+  assert_denied 'and its neighbour' 'killall pwsh'
+}
+
+test_termination_expressions_that_are_not_commands_are_refused() {
+  # Neither of these puts the terminating verb in command position, so the
+  # command-position rule that catches everything above would miss them.
+  assert_denied 'the method call' '(Get-Process pwsh).Kill()'
+  assert_denied 'the CIM method' \
+    'Get-CimInstance Win32_Process | Invoke-CimMethod -MethodName Terminate # pwsh'
+}
+
+test_a_pid_targeted_kill_is_allowed() {
+  # The escape hatch, and the reason the rule is about names rather than about
+  # killing: reaping a process you started is legitimate, and a PID names no
+  # PowerShell process.
+  assert_allowed 'by id' 'Stop-Process -Id 4321'
+  assert_allowed 'taskkill by pid' 'taskkill /PID 4321'
+  assert_allowed 'unix kill by pid' 'kill 4321'
+  assert_allowed 'and with a signal' 'kill -9 4321'
+}
+
+test_killing_something_other_than_powershell_is_allowed() {
+  assert_allowed 'an unrelated name' 'pkill -f node'
+  assert_allowed 'an unrelated image' 'taskkill /IM chrome.exe'
+}
+
+test_naming_the_guarded_verbs_without_running_them_is_allowed() {
+  # The bug that motivated the port: the PowerShell guard matched its trigger
+  # words anywhere in the string, so it refused reading its own source and
+  # refused a commit message that merely named the file it lived in.
+  assert_allowed 'grep for the verb' 'grep -rn Stop-Process home/'
+  assert_allowed 'a path naming both triggers' \
+    'cat home/dot_claude/deny-pwsh-kill.ps1'
+  assert_allowed 'prose naming both triggers' \
+    'git log --oneline --grep pwsh-kill'
+}
+
+test_case_does_not_change_the_termination_verdict() {
+  # PowerShell resolves command names case-insensitively, so a case-sensitive
+  # guard is a guard with a one-keystroke bypass.
+  assert_denied 'lowercased' 'stop-process -name pwsh'
+  assert_denied 'shouted' 'STOP-PROCESS -NAME PWSH'
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints

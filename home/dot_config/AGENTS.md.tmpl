@@ -215,6 +215,10 @@
   (`kill <pid>`, `Stop-Process -Id <pid>`, `taskkill /PID <pid>`). Only kill
   by name/image when I explicitly ask you to (e.g. "kill all node
   processes") — then it's the intended blast radius.
+- The same `PreToolUse` hook that guards vault secrets enforces the rule above
+  for PowerShell targets, so naming one in a kill is refused while a
+  PID-targeted kill is not. It decides on the command you are about to run, so
+  reading, grepping or writing about these commands is unaffected.
 {{- if eq .chezmoi.os "windows" }}
 - `sudo` is available natively on Windows 11 (24H2+) and configured in inline
   mode — use it when a command needs administrator privileges and won't
@@ -328,7 +332,7 @@
   for whether a credential resolves, `status` for whether one is cached. If you
   need to characterize a secret, print its length, never its value.
 - A `PreToolUse` hook refuses all of the above rather than leaving it to this
-  instruction (`~/.claude/deny-vault-secrets`). Treat a refusal as the answer
+  instruction (`~/.claude/deny-unsafe-commands`). Treat a refusal as the answer
   rather than as an obstacle to route around — if a secret genuinely has to be
   read, ask me to read it out of band.
 

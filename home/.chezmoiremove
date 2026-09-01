@@ -20,6 +20,13 @@ AppData/Roaming/wt
 .local/bin/wt-bootstrap.ps1
 .agents/skills/wt
 
+# The PowerShell PreToolUse guard was folded into ~/.claude/deny-unsafe-commands,
+# which covers the same terminations. Dropping it from the source only stops
+# chezmoi managing it — the deployed copy would keep running as a second hook,
+# so a host that already has it would still pay a pwsh startup before every
+# command and still hit the false positives the rewrite fixed.
+.claude/deny-pwsh-kill.ps1
+
 # The hass-cli wrapper replaced the mise [env] fragment that used to supply
 # HASS_SERVER/HASS_TOKEN. Dropping it from the source only stops chezmoi
 # managing it, so a host that already has it would keep exporting the token to

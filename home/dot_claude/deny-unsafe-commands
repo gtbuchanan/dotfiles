@@ -1,7 +1,19 @@
 #!/usr/bin/env bash
 #
-# PreToolUse guard: refuse any Bash/PowerShell command that would print a vault
-# secret onto stdout, where it becomes a permanent part of the agent transcript.
+# PreToolUse guard for commands an agent session must not run:
+#
+#   - anything that prints a vault secret onto stdout, where it becomes a
+#     permanent part of the transcript;
+#   - anything that ends PowerShell processes by name, which reaches every pwsh
+#     on the machine rather than the one that was meant.
+#
+# One hook rather than one per concern, and the reason is complexity rather than
+# speed: matching hooks run in PARALLEL, so a second hook costs a whole
+# interpreter startup but adds nothing to the wall clock. What it does add is a
+# second copy of the matching below -- and the PowerShell guard this absorbed
+# had exactly that, a substring match that refused `cat` of its own source and
+# refused a commit message naming the file. Here a new rule is a few lines in
+# the table, sharing one parser that has tests.
 #
 # The rule this enforces was prose in AGENTS.md and nothing else. Prose is the
 # wrong medium for it: `hass-vault credential` is the documented way for the
@@ -129,9 +141,14 @@ split_into_segments() { # $1 = command text -> _segments
 # The name a command would actually resolve to: the last path component, with a
 # Windows launcher extension dropped so hass-vault, hass-vault.ps1 and
 # hass-vault.cmd are one thing rather than three.
+#
+# Lowercased, because PowerShell resolves command names case-insensitively --
+# `STOP-PROCESS` runs exactly as `Stop-Process` does, so a case-sensitive table
+# would be a table with a one-keystroke bypass.
 basename_of() { # $1 = token -> _binary
   _binary=${1##*/}
   _binary=${_binary##*\\}
+  _binary=${_binary,,}
   case $_binary in
   *.ps1) _binary=${_binary%.ps1} ;;
   *.cmd) _binary=${_binary%.cmd} ;;
@@ -143,9 +160,60 @@ basename_of() { # $1 = token -> _binary
 
 # --- the decision table ------------------------------------------------------
 
+# Whether the command names a PowerShell process at all, anywhere in its text
+# rather than in command position.
+#
+# Deliberately not command-position: in `Stop-Process -Name pwsh` the process is
+# an argument, and in `Get-Process pwsh | Stop-Process` it is in a different
+# segment entirely. This is what separates the kill that takes down every pwsh
+# on the machine -- other agent sessions, the user's terminals, the harness's
+# own shell host -- from `Stop-Process -Id 4321`, which reaps one process the
+# caller started and stays allowed.
+targets_powershell() {
+  case $command_lower in *pwsh* | *powershell*) return 0 ;; esac
+  return 1
+}
+
+# Terminating forms that never put their verb in command position, so the
+# segment walk cannot reach them. `.Kill(` is distinctive enough to match
+# anywhere; `Terminate` is an ordinary English word, so it is only believed when
+# an invoker that actually takes a method name is being run.
+verdict_whole_command() {
+  targets_powershell || return 1
+  local hit=1
+  case $command_lower in *'.kill('* | *'.kill ('*) hit=0 ;; esac
+  if [ $hit -eq 1 ] && [ -n "$cim_invoked" ]; then
+    case $command_lower in *terminate*) hit=0 ;; esac
+  fi
+  [ $hit -eq 0 ] || return 1
+  reason=$TERMINATION_REASON
+  return 0
+}
+
+TERMINATION_REASON='Blocked: this ends PowerShell processes by name rather than
+    by pid, which reaches every matching process on the machine -- the pwsh
+    hosts of other agent sessions, terminals the user has open, and the
+    harness own shell host -- not only the one you meant. To reap something
+    you started, find its pid (from the job you launched, or by filtering
+    Get-CimInstance Win32_Process on the command line) and target that:
+    Stop-Process -Id <pid>, or taskkill /PID <pid>.'
+
 # Sets $reason and returns 0 when this binary/subcommand pair emits a secret.
 verdict() { # $1 = binary, $2 = subcommand
   case $1 in
+  stop-process | spps | kill | taskkill | pkill | killall)
+    # The verb alone is not the offence -- reaping a pid is fine -- so this
+    # turns on whether a PowerShell process is named anywhere in the command.
+    targets_powershell || return 1
+    reason=$TERMINATION_REASON
+    return 0
+    ;;
+  invoke-cimmethod | invoke-wmimethod)
+    # Noted for verdict_whole_command, which decides once it can see whether
+    # Terminate is the method being invoked.
+    cim_invoked=1
+    return 1
+    ;;
   hass-vault)
     in_set "$HASS_VAULT_SAFE" "$2" && return 1
     reason='Blocked: this prints the Home Assistant long-lived token in full,
@@ -270,6 +338,10 @@ denied=1
 while IFS= read -r raw; do
   [ -n "$raw" ] || continue
   unescape "$raw"
+  # Lowercased once per command for the whole-command tests, which are
+  # case-insensitive for the same reason the binary table is.
+  command_lower=${_text,,}
+  cim_invoked=''
   split_into_segments "$_text"
   for segment in ${_segments[@]+"${_segments[@]}"}; do
     [ -n "${segment// /}" ] || continue
@@ -278,6 +350,11 @@ while IFS= read -r raw; do
       break
     fi
   done
+  # After the segments, because it needs what they found -- whether a method
+  # invoker was among the commands being run.
+  if [ "$denied" -ne 0 ] && verdict_whole_command; then
+    denied=0
+  fi
   [ "$denied" -eq 0 ] && break
 done < <(
   printf '%s' "$payload" |
