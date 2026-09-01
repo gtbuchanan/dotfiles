@@ -46,6 +46,22 @@
     "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
 {{- end }}
   },
+{{- /*
+  The marketplace the three @claude-code-lsps entries in enabledPlugins resolve
+  through. Claude Code writes it on first install, so it lived only in the
+  deployed file until now -- which made it collateral: settings.json drifts on
+  every run, the fix for that is `apply --force` on this target, and a forced
+  apply would have dropped the marketplace while leaving the plugins that need
+  it enabled.
+*/}}
+  "extraKnownMarketplaces": {
+    "claude-code-lsps": {
+      "source": {
+        "repo": "Piebald-AI/claude-code-lsps",
+        "source": "github"
+      }
+    }
+  },
   "hooks": {
 {{- if eq .chezmoi.os "windows" }}
     "Notification": [
