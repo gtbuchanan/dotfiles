@@ -142,13 +142,11 @@ split_into_segments() { # $1 = command text -> _segments
 # Windows launcher extension dropped so hass-vault, hass-vault.ps1 and
 # hass-vault.cmd are one thing rather than three.
 #
-# Lowercased, because PowerShell resolves command names case-insensitively --
-# `STOP-PROCESS` runs exactly as `Stop-Process` does, so a case-sensitive table
-# would be a table with a one-keystroke bypass.
+# No lowercasing here: the whole command is folded once before it is split, so
+# every token reaching this is already lowercase. See the decide loop.
 basename_of() { # $1 = token -> _binary
   _binary=${1##*/}
   _binary=${_binary##*\\}
-  _binary=${_binary,,}
   case $_binary in
   *.ps1) _binary=${_binary%.ps1} ;;
   *.cmd) _binary=${_binary%.cmd} ;;
@@ -338,11 +336,19 @@ denied=1
 while IFS= read -r raw; do
   [ -n "$raw" ] || continue
   unescape "$raw"
-  # Lowercased once per command for the whole-command tests, which are
-  # case-insensitive for the same reason the binary table is.
-  command_lower=${_text,,}
+  # Folded to lowercase ONCE, here, before the split -- so every binary and
+  # subcommand below is already lowercase and the tables can be written in one
+  # case. PowerShell resolves command names case-insensitively, so a
+  # case-sensitive guard is a guard with a one-keystroke bypass.
+  #
+  # `tr` rather than the obvious ${_text,,}: that is bash 4.0, and macOS still
+  # ships bash 3.2 as /bin/bash. This script IS a security guard, and on 3.2
+  # that expansion is a fatal `bad substitution` -- which does not fail the
+  # command, it fails the CHECK, so every refusal silently became an allow.
+  # Caught by the macOS CI leg; do not reintroduce a bash 4 expansion here.
+  command_lower=$(printf '%s' "$_text" | tr '[:upper:]' '[:lower:]')
   cim_invoked=''
-  split_into_segments "$_text"
+  split_into_segments "$command_lower"
   for segment in ${_segments[@]+"${_segments[@]}"}; do
     [ -n "${segment// /}" ] || continue
     if evaluate "$segment"; then

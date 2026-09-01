@@ -310,6 +310,22 @@ test_case_does_not_change_the_termination_verdict() {
   assert_denied 'shouted' 'STOP-PROCESS -NAME PWSH'
 }
 
+test_the_hook_writes_nothing_to_stderr() {
+  # The failure mode this exists for: a guard that breaks at runtime still exits
+  # 0 and still prints no decision, which is indistinguishable from an allow. So
+  # every refusal silently becomes permission, and only stderr says otherwise.
+  #
+  # Not hypothetical -- a bash 4 expansion shipped here and was fatal on the
+  # bash 3.2 that macOS still provides, turning the guard off on that platform
+  # entirely. The deny assertions caught it, but only on the one CI leg with an
+  # old bash; this catches any such breakage on every leg.
+  local err
+  err=$(payload 'hass-vault credential' | bash "$HOOK" 2>&1 >/dev/null)
+  assertEquals 'a deny is silent on stderr' '' "$err"
+  err=$(payload 'hass-cli state get sun.sun' | bash "$HOOK" 2>&1 >/dev/null)
+  assertEquals 'an allow is too' '' "$err"
+}
+
 # shUnit2 takes over here: it discovers the test_* functions above and prints
 # the run summary.
 # shellcheck source=/dev/null
