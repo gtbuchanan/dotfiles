@@ -46,8 +46,8 @@
     "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
 {{- end }}
   },
-{{- if eq .chezmoi.os "windows" }}
   "hooks": {
+{{- if eq .chezmoi.os "windows" }}
     "Notification": [
       {
         "matcher": "idle_prompt|permission_prompt",
@@ -61,20 +61,38 @@
         ]
       }
     ],
+{{- end }}
     "PreToolUse": [
       {
         "matcher": "Bash|PowerShell",
         "hooks": [
+{{- /*
+  Windows-only: the kills it refuses are session-blind ones aimed at pwsh, so
+  there is nothing for it to guard where pwsh is not the shell.
+*/}}
+{{- if eq .chezmoi.os "windows" }}
           {
             "command": "& $HOME/.claude/deny-pwsh-kill.ps1",
             "shell": "powershell",
+            "type": "command"
+          },
+{{- end }}
+{{- /*
+  Every platform, unlike the guard above: hass-vault and bw-session-* ship on
+  both Windows and Termux, and wiring this unconditionally means a resolver
+  built for linux or darwin later is already covered rather than quietly
+  unguarded. Invoked through `bash` explicitly rather than relying on the hook
+  shell default, matching the android statusline below -- Git Bash supplies it
+  on Windows, where the sibling hook needs pwsh instead.
+*/}}
+          {
+            "command": "bash ~/.claude/deny-vault-secrets",
             "type": "command"
           }
         ]
       }
     ]
   },
-{{- end }}
   "permissions": {
     "allow": [
       "mcp__microsoft-learn__microsoft_code_sample_search",
