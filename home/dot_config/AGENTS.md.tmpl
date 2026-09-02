@@ -94,6 +94,11 @@
   work gets split into units, and that is decided while you work — consulting
   it once the change is written is too late.
 - Never push to a remote unless explicitly told to.
+- Prefer a patch file to `git stash` for setting work aside. The stash
+  stack is shared with every worktree and agent session, and `pop`/`drop`
+  take only the `stash@{n}` index, which shifts as others push and pop —
+  so a pop can silently take an entry that isn't yours. A patch file is
+  yours alone.
 - Do NOT hard-wrap content that stays in GitHub's UI — issue bodies and
   comments. GitHub soft-wraps prose, and hard wraps break list continuation,
   blockquotes, and readability.
