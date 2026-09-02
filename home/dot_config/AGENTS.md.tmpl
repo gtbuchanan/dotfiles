@@ -124,6 +124,16 @@
   reason to skip this, and neither is expecting to throw the work away:
   a typo fix and a feature get the same treatment. The only exception is
   when I explicitly tell you to work in place.
+- If you've already edited the default branch, carry the work into a
+  worktree as a patch rather than redoing it by hand:
+  `git add -- <your paths>`, confirm `git status` shows nothing else
+  staged, `git diff --cached` into a patch outside the repo, `git apply`
+  it in the new worktree, then `git restore --staged --worktree --
+  <your paths>` to clear the original. Staging is how you select, and
+  confirming is why it's a separate step — that tree is shared with other
+  agent sessions and my open editors, and the whole-tree commands
+  (`git stash`, `git reset --hard`) take no pathspec, so they carry off
+  work that isn't yours and destroy it where it lived.
 - Prefer `wt` commands over raw `git worktree add` / `git checkout` /
   `git worktree remove`:
   - `wt switch --create <branch>` — new branch + worktree
