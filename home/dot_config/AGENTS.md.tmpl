@@ -143,8 +143,14 @@
   - `wt list` — list worktrees with merge/dirty status
   - `wt remove [<branch>]` — remove worktree; deletes the branch too
     when worktrunk's 6-condition merge check says it's safe
-  - `wt merge` — rebase + squash + merge + cleanup pipeline
+  - `wt merge` — rebase + fast-forward + cleanup pipeline
   - See the `worktrunk` skill for the full command reference.
+- `wt merge` lands the branch with its commits intact
+  (`merge.squash = false` in the worktrunk config): preserving them is the
+  reason to merge locally rather than open a PR, and work that should
+  arrive as one commit goes through a PR instead. Pass `--squash` to
+  squash a single merge; don't pass `--no-ff`, which trades the
+  fast-forward for a merge commit.
 - Always run `git fetch` before `wt remove` (or any other worktree
   cleanup) so worktrunk's merge detection sees the latest remote refs.
   Without a fresh fetch, a branch that was merged upstream can still look

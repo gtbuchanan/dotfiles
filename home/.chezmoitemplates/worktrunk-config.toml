@@ -4,3 +4,8 @@ pre-start = "wt-pre-start {{ "{{" }} worktree_path {{ "}}" }} {{ "{{" }} primary
 
 # Backgrounded so the slow project setup doesn't block creation.
 post-start = "wt-post-start {{ "{{" }} worktree_path {{ "}}" }}"
+
+# A local merge is chosen precisely to keep the branch's commits; work that
+# should land as one commit goes through a pull request instead.
+[merge]
+squash = false
