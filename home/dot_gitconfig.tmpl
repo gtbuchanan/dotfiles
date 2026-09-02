@@ -79,8 +79,10 @@
 [core]
 {{- if eq .chezmoi.os "windows" }}
 	autocrlf = true
-	# Git Bash comes with its own version of Vim, but we want the Windows version
-	editor = 'C:\\Program Files\\Vim\\vim92\\vim.exe'
+	# Git Bash comes with its own version of Vim, but we want the Windows version.
+	# The installer keeps a versionless link at the install root alongside the
+	# vimNN/ directory, so this path survives Vim upgrades.
+	editor = 'C:/Program Files/Vim/vim.exe'
 	longpaths = true
 {{- else }}
 	editor = vim
