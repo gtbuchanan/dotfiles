@@ -1,5 +1,9 @@
 # winget.yaml hash: {{ include "winget.yaml.tmpl" | sha256sum }}
-$ChezmoiSourceDir = {{ .chezmoi.sourceDir | quote }}
+# Read at run time, never interpolated: run_onchange_ hashes this script's
+# RENDERED content, so a source path baked in here makes the hash follow the
+# source directory and an apply from another one re-runs the whole winget
+# pass for a change that never touched winget.
+$ChezmoiSourceDir = $env:CHEZMOI_SOURCE_DIR
 $OutputDir = Join-Path $ChezmoiSourceDir ".." "dist"
 $TemplateFilePath = Join-Path $ChezmoiSourceDir "winget.yaml.tmpl"
 $ConfigFilePath = Join-Path $OutputDir "winget.yaml"

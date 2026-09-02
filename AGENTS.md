@@ -61,6 +61,33 @@ drifted (e.g., pnpm's global bin layout moved from `$PNPM_HOME` to
 `$PNPM_HOME/bin` and globals need to be reinstalled even though their
 pinned versions match).
 
+## Keeping run_onchange Hashes Stable
+
+`run_onchange_*` scripts fire on the SHA256 of their _rendered_ content, so
+every value a template interpolates into one becomes part of its trigger —
+including values that have nothing to do with what the script does.
+
+Never render the source directory into a `run_onchange_` script. chezmoi
+exports `CHEZMOI_SOURCE_DIR` to scripts and it tracks `--source`, so read it
+at run time instead:
+
+```powershell
+# Not {{ .chezmoi.sourceDir }} — that renders the path into the hash.
+$ChezmoiSourceDir = $env:CHEZMOI_SOURCE_DIR
+```
+
+Baked in, the hash follows the source directory rather than the script:
+`chezmoi apply --source <worktree>` renders a different path and re-runs the
+script for a change that never touched it, then queues another re-run for the
+next apply from the usual source, which flips the path back. The winget script
+did exactly this — see `home/.chezmoiscripts/windows/run_onchange_before_winget.ps1.tmpl`.
+
+The same hazard makes `--source` the wrong way to try a worktree's changes:
+run `chezmoi apply` from the main working tree once the change has landed. To
+check that a worktree's templates render, use `mise run test:templates` (the
+hk `render-templates` step), which renders without applying or running any
+script.
+
 ## File Naming Conventions
 
 Chezmoi uses filename prefixes/suffixes to control deployment behavior:
