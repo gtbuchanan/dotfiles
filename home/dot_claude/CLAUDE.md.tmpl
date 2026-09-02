@@ -72,3 +72,10 @@
   post-start bootstrap (`.local` file mirroring, `pnpm install`, `.vs/`
   carry-over). Always create via `wt switch --create`, then enter
   by path.
+- To merge a worktree, leave it first: `ExitWorktree { action: "keep" }`,
+  then `wt merge -C <worktree-path>`. `wt merge` removes the worktree as
+  its last step, so a session still sitting in it either blocks the
+  removal or gets its cwd deleted underneath it. Use `keep` because
+  `wt merge` does the removal, and `-C` because exiting lands cwd on the
+  default branch, which `wt merge` would otherwise try to merge into
+  itself.
