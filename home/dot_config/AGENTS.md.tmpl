@@ -80,6 +80,11 @@
 - Hardcode a specific figure only when it is verifiable at read-time (it's in
   the same diff/artifact) or is intentionally a point-in-time snapshot that's
   labeled as such (e.g., "as of 2026-01").
+- Counts of structure are volatile too: "two parameters", "three steps:",
+  "the four callers". These get no read-time-verifiable pass — a comment
+  counting parameters goes wrong in place as soon as one is added. Name them
+  ("the `path` and `mode` parameters") or drop the quantifier ("the
+  parameters", "steps:") and let the list count itself.
 
 ## Configuration
 
