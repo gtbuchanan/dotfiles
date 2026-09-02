@@ -67,6 +67,13 @@
   directory. `ExitWorktree` cannot remove worktrunk-managed worktrees (they
   were entered by path, not created by Claude) — use
   `wt remove <branch>` to delete.
+- To move to a different worktree, leave the current one first with
+  `ExitWorktree { action: "keep" }`, then `wt switch <branch>` and
+  `EnterWorktree` with the printed path. Calling `EnterWorktree` with
+  another worktree's `path` while the session is already in one is
+  rejected: switching between worktrees mid-session is only supported for
+  Claude-native ones under `.claude/worktrees/`, and worktrunk's live
+  beside the repo.
 - NEVER call `EnterWorktree` with `name`. That creates a Claude-native
   worktree under `.claude/worktrees/`, bypassing worktrunk and its
   post-start bootstrap (`.local` file mirroring, `pnpm install`, `.vs/`
