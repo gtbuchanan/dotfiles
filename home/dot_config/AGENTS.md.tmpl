@@ -99,6 +99,11 @@
   work gets split into units, and that is decided while you work — consulting
   it once the change is written is too late.
 - Never push to a remote unless explicitly told to.
+- Never land a branch — `wt merge`, `git merge`, a PR merge — unless
+  explicitly told to. Which commits reach a shared branch is my call, the
+  same as pushing, and a branch looking ready is not the same as my having
+  asked for it. Committing the work and telling me it's ready is where the
+  task ends.
 - Prefer a patch file to `git stash` for setting work aside. The stash
   stack is shared with every worktree and agent session, and `pop`/`drop`
   take only the `stash@{n}` index, which shifts as others push and pop —
@@ -171,11 +176,12 @@
 - When running in a linked worktree, always search, read, and edit files
   within the worktree directory. Never fall back to the base working tree
   for file operations — the worktree has its own copy of the repo.
-- When merging the current branch into another and you know you're in a
-  linked worktree, run `wt list` (or `git worktree list`) to find
-  the target branch. If it's in the main working tree, merge from there
-  without prompting. If it's in another linked worktree, prompt before
-  merging.
+- Once I've asked you to merge the current branch into another and you know
+  you're in a linked worktree, run `wt list` (or `git worktree list`) to
+  find the target branch. This settles where to run the merge from, never
+  whether to merge — that decision was mine. If the target is in the main
+  working tree, run it from there without a further prompt. If it's in
+  another linked worktree, prompt before merging.
 
 ## Testing
 
