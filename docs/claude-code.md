@@ -12,7 +12,7 @@ chain that lets desktop toasts switch focus into the right psmux pane.
 | [`home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_claude-code-install.sh.tmpl) | Termux install via the [`claude-code-termux`](https://github.com/gtbuchanan/claude-code-termux) apt package (Renovate-pinned launcher + Claude Code versions; `CLAUDE_CODE_SKIP_SETTINGS=1` so chezmoi keeps `settings.json`) |
 | [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)     | Plugin install, LSP `.cmd`-shim rewriting, tweakcc patching, `claude-pane://` URL-protocol registration                                                                                                                       |
 | [`home/dot_claude/CLAUDE.md.tmpl`](../home/dot_claude/CLAUDE.md.tmpl)                                                                                           | Wrapper that includes shared user instructions + Claude-only sections                                                                                                                                                         |
-| [`home/dot_claude/executable_statusline`](../home/dot_claude/executable_statusline)                                                                             | Powerline-style status bar (model, dir, worktree, git state, context %)                                                                                                                                                       |
+| [`home/dot_claude/executable_statusline`](../home/dot_claude/executable_statusline)                                                                             | Powerline-style status bar (model, dir, worktree, git state, context %, session cost) — see [Claude Code Statusline Cost Segment](#claude-code-statusline-cost-segment)                                                       |
 | [`home/dot_claude/focus-pane.ps1.tmpl`](../home/dot_claude/focus-pane.ps1.tmpl)                                                                                 | `claude-pane://` URL handler — switches psmux pane and brings WezTerm to front                                                                                                                                                |
 | [`home/dot_claude/notify-input.ps1.tmpl`](../home/dot_claude/notify-input.ps1.tmpl)                                                                             | Notification hook handler — emits a BurntToast with a `Focus` button                                                                                                                                                          |
 | [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                   | Claude config (auto-allow MCP tools, plugin enablement, hooks, env, statusLine)                                                                                                                                               |
@@ -30,6 +30,29 @@ The template intentionally only auto-allows MCP readonly tools, not
 built-in tools (Read, Glob, Grep, Agent). Built-ins have no path
 restrictions, so auto-allowing them would widen the blast radius of
 prompt injection.
+
+## Claude Code Statusline Cost Segment
+
+The statusline closes with the session's spend (`cost.total_cost_usd`
+from the payload Claude Code writes to its stdin), but only where that
+figure is money. `ewn` is billed by usage; a `personal` host is on a
+subscription, where the same number is a notional API-equivalent price
+and would read as spend that never happens.
+
+The gate is a `--cost` argument the script takes, and
+`settings.json.tmpl` decides whether to pass it — not a
+`{{ if eq .hosttype "ewn" }}` inside the script. Two things follow from
+that:
+
+- `executable_statusline` stays a plain file rather than becoming a
+  template, so it is not re-parsed as Go template syntax and not subject
+  to the render lint.
+- Both branches are reachable from the one deployed script, so
+  [`test/claude_statusline_test.sh`](../test/claude_statusline_test.sh)
+  exercises them by argument. Rendering through `chezmoi cat` would pin
+  the suite to the host's own hosttype and pull in the
+  config-and-hosttype dance CI would otherwise need — the same trade the
+  `deny-unsafe-commands` suite documents.
 
 ## Windows: Plugins and LSP
 

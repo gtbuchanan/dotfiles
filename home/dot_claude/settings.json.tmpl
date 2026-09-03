@@ -130,12 +130,16 @@
   },
   "model": "opus[1m]",
   "statusLine": {
-{{- /* Android: invoke via bash explicitly so kernel never resolves the /usr/bin/env shebang (no termux-exec preload in glibc claude). */ -}}
+{{- $statusline := "~/.claude/statusline" }}
+{{- /* Android: invoke via bash explicitly so kernel never resolves the /usr/bin/env shebang (no termux-exec preload in glibc claude). */}}
 {{- if eq .chezmoi.os "android" }}
-    "command": "bash ~/.claude/statusline",
-{{- else }}
-    "command": "~/.claude/statusline",
+{{-   $statusline = printf "bash %s" $statusline }}
 {{- end }}
+{{- /* ewn is billed by usage, so the session's spend is real money and earns a segment. On a subscription host the same figure is a notional API-equivalent price, which would read as spend that never happens. */}}
+{{- if eq .hosttype "ewn" }}
+{{-   $statusline = printf "%s --cost" $statusline }}
+{{- end }}
+    "command": {{ $statusline | quote }},
     "padding": 0,
     "type": "command"
   },

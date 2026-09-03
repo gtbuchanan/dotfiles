@@ -1,4 +1,17 @@
 #!/usr/bin/env bash
+
+# --cost adds a session-spend segment. A flag rather than something the script
+# works out for itself, because what decides it is the host's billing: under
+# usage-based billing the figure is money, and under a subscription it is a
+# notional API-equivalent price that would read as spend that never happens.
+# That is a hosttype question, and settings.json.tmpl is where chezmoi can
+# answer it -- which is what keeps this script a plain file rather than a
+# template, and directly testable. See test/claude_statusline_test.sh.
+SHOW_COST=0
+for arg in "$@"; do
+  [ "$arg" = "--cost" ] && SHOW_COST=1
+done
+
 input=$(cat)
 
 MODEL=$(echo "$input" | jq -r '.model.display_name')
@@ -205,6 +218,20 @@ fi
 
 LINE="${LINE}${CTX_BG}${PREV_BG_FG}${SEP}${RESET}${CTX_BG}${DARK_FG} ${PCT}% ${RESET}"
 PREV_BG_FG="${CTX_FG_OUT}"
+
+# --- Cost segment (env_bg, --cost only) ---
+# Last, and in env_bg, so the bar is bookended by the neutral grey the model
+# segment opens with -- the same place and colour starship gives the clock. It
+# is also the only segment that only grows, so keeping it at the end stops it
+# shifting everything else sideways as the session runs on.
+if [ "$SHOW_COST" = "1" ]; then
+  COST=$(echo "$input" | jq -r '.cost.total_cost_usd // 0')
+  # Cents, not the raw float: %.2f both rounds and fixes the width, so the
+  # segment stops re-flowing the bar on every render.
+  COST_DISPLAY=$(printf '$%.2f' "$COST")
+  LINE="${LINE}${ENV_BG}${PREV_BG_FG}${SEP}${RESET}${ENV_BG}${LIGHT_FG} ${COST_DISPLAY} ${RESET}"
+  PREV_BG_FG="${ENV_FG}"
+fi
 
 # --- Right cap ---
 # Its own step rather than a tail on whichever segment happens to be last: it
