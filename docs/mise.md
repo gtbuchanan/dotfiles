@@ -82,14 +82,23 @@ the plain config file free for anything hand-written on a host.
 | --------------------------------------------------------------------------- | -------------- | -------------------------------------------------- |
 | [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                   |
 | [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine               |
+| [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)             |
 | [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`
-drives those versions. hass-cli is the standing exception, and it earns that by
-not being a dev toolchain: it is a user-facing application, so no project
-`mise.toml` would ever pin it and nothing downstream can be shadowed by it.
+drives those versions.
+
+What belongs here instead is the user-facing application — hass-cli, starship —
+which no project `mise.toml` would ever pin and which therefore shadows nothing
+downstream. The reason to pin one here rather than leave it to winget, Homebrew,
+apt, or a piped installer is that those resolve to whatever is current at
+install time: no version is recorded, Renovate has nothing to read, and the
+[release-age quarantine](#global-mise-release-age-quarantine) never applies. A
+pin in this directory gets all three. Since each fragment is one tool, keep the
+rationale that is specific to that tool in it and leave the shared reasoning
+here.
 
 The split into fragments is what keeps them **plain TOML instead of chezmoi
 templates**, and that is the point of the layout. Renovate's own `mise` manager

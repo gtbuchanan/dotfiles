@@ -52,9 +52,5 @@ rm -Rf /tmp/ble-nightly
 curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
 getnf -i "{{ .fontpack }}"
 
-# Install Starship
-# The package doesn't seem to be available in apt on Ubuntu WSL
-curl -sS https://starship.rs/install.sh | sh
-
 # Install mise (tool version + env + task manager) to ~/.local/bin
 curl -fsSL https://mise.run | sh

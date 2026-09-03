@@ -1,0 +1,4 @@
+# The Starship prompt. Resolved during shell startup, so it depends on the
+# activation order and the install step described in docs/mise.md.
+[tools]
+starship = "1.26.0"

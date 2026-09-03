@@ -871,12 +871,17 @@ properties:
       settings:
         id: Microsoft.SQLServerManagementStudio.22
         source: winget
+    # Starship comes from the global mise config now, so remove the winget copy
+    # rather than leaving a second, unpinned one on PATH. Idempotent -- no-op on
+    # machines that never had it. Safe to remove this entry once all known
+    # machines have applied this config.
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install Starship
+        description: Uninstall Starship
       id: starship
       settings:
         id: Starship.Starship
+        ensure: Absent
         source: winget
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage

@@ -91,6 +91,11 @@ disable_tools = [
   # Disabled for the same reason as age, above -- the two are always pinned
   # together by a repo keeping SOPS-encrypted secrets.
   "sops",
+  # `aqua:starship/starship` supports linux, darwin and windows; android is not
+  # among its envs. Termux packages starship natively, so the prompt resolves
+  # the `pkg` build from PATH (installed in run_onchange_before.sh) instead of
+  # the pin every other host uses.
+  "starship",
   # `aqua:astral-sh/uv` has no android asset, so the uv.toml pin can't install
   # here. Termux packages uv natively; disabling the mise one lets PATH fall
   # through to that pkg build (installed in run_onchange_before.sh), which then
