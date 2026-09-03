@@ -27,6 +27,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                     | Termux mise + native-bionic linters (`pkg`)                            |
 | [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                       | macOS mise install (Homebrew formula)                                  |
 | [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)                                         | Linux mise install (`mise.run`)                                        |
+| [`home/.chezmoitemplates/mise-install`](../home/.chezmoitemplates/mise-install)                                                                               | Shared body of the per-platform global-tool install script             |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                     |
 | [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                              | Global mise config fragments, gated per-platform by their own ignore   |
 | [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                     | `mise activate pwsh`                                                   |
@@ -104,6 +105,28 @@ The manager needs one nudge to find them: its built-in patterns key on a literal
 so [`renovate.json`](../.github/renovate.json) adds a pattern for this
 directory. `managerFilePatterns` is additive, so the repo-root `mise.toml` keeps
 matching by default.
+
+## Installing the Global mise Tools
+
+A `conf.d` fragment records a pin; it does not install anything. `mise activate`
+doesn't close that gap either — it adds paths for tools that are already
+installed and passes over one that is merely pinned, which `mise ls` reports as
+`(missing)`. Left there, a tool would arrive only when something called its shim
+and `not_found_auto_install` fetched it, and the caller waits out the download.
+That is survivable for a command typed on demand and not for one the shell
+resolves while starting up.
+
+So a `run_after_mise-install` script per platform — `.sh.tmpl` on Linux, macOS,
+and Termux over the shared
+[`mise-install`](../home/.chezmoitemplates/mise-install) body, `.ps1` on
+Windows — runs `mise -C "$HOME" install` at the end of every apply. `$HOME`
+keeps the global config the only thing in scope, since the same command inside a
+project would install that project's toolchain too.
+
+It converges on every apply rather than firing on a change, because a tool can
+go missing for reasons no pin records: an install directory pruned, a version
+removed by hand, a machine restored from a backup that skipped it. Where
+everything is present it costs a no-op.
 
 ## Global mise Release-Age Quarantine
 
