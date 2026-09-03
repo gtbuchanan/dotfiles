@@ -38,6 +38,20 @@ BASH_COMP_PATH="/usr/share/bash-completion/bash_completion"
 # Enable ble.sh
 . "$HOME/.local/share/blesh/ble.sh"
 
+# Activate mise (tool version + env + task manager); prepends real tool
+# paths, overriding the shims that .profile adds for non-interactive use
+#
+# Ahead of every tool initialized below, each of which resolves a binary at
+# load time: a mise-managed tool activated afterwards would have its init run
+# against whatever copy the system supplies, and the pinned one would only
+# take over for later interactive calls.
+command -v mise >/dev/null && eval "$(mise activate bash)"
+
+# Re-prepend the wrapper directory, since activation puts mise's paths in front
+# of whatever .profile set. A wrapper is only reachable ahead of the shim for
+# the tool it wraps. See dot_profile.tmpl.
+[ -d "$HOME/.local/bin/wrappers" ] && export PATH="$HOME/.local/bin/wrappers:$PATH"
+
 # Enable Starship
 eval "$(starship init bash)"
 
@@ -62,15 +76,6 @@ fi
 # shell's cwd, so `wt config shell init bash` emits a `wt` function that
 # reads the directive file written by the binary and `cd`s the host shell.
 command -v wt >/dev/null && eval "$(wt config shell init bash)"
-
-# Activate mise (tool version + env + task manager); prepends real tool
-# paths, overriding the shims that .profile adds for non-interactive use
-command -v mise >/dev/null && eval "$(mise activate bash)"
-
-# Re-prepend the wrapper directory, since activation puts mise's paths in front
-# of whatever .profile set. A wrapper is only reachable ahead of the shim for
-# the tool it wraps. See dot_profile.tmpl.
-[ -d "$HOME/.local/bin/wrappers" ] && export PATH="$HOME/.local/bin/wrappers:$PATH"
 
 # Add aliases
 . "$HOME/.bash_aliases"

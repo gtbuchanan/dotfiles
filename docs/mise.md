@@ -29,7 +29,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)                                         | Linux mise install (`mise.run`)                                        |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                     |
 | [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                              | Global mise config fragments, gated per-platform by their own ignore   |
-| [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)                           | `mise activate pwsh`                                                   |
+| [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                     | `mise activate pwsh`                                                   |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                           | Shims dir on PATH (non-interactive)                                    |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Windows mise install + shims-dir PATH entry                            |
 
@@ -53,7 +53,15 @@ Interactive shells run `mise activate`, which prepends the **real** tool paths
 system/Homebrew copies:
 
 - bash — [`dot_bashrc.tmpl`](../home/dot_bashrc.tmpl): `eval "$(mise activate bash)"`
-- PowerShell — [`40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl): `mise activate pwsh | … | Invoke-Expression`
+- PowerShell — [`15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1): `mise activate pwsh | … | Invoke-Expression`
+
+Activation runs **ahead of every tool the shell initializes** — the prompt,
+completion generators, shell-integration hooks. Each of those resolves a binary
+at load time, so a mise-managed tool activated afterwards would have its init
+run against whatever copy the system supplies, leaving the pinned version to
+take over only for later interactive calls. In PowerShell that ordering is what
+the `profile.d` numeric prefixes encode; in bash it is the position of the
+activation block within `.bashrc`.
 
 Non-interactive POSIX contexts don't run `mise activate`, so
 [`dot_profile.tmpl`](../home/dot_profile.tmpl) instead prepends the

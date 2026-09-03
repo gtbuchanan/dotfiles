@@ -79,7 +79,9 @@ handing off.
 `.bashrc` is where the interactive surface lives — every shell
 integration (Starship, fzf, delta completion, worktrunk's `wt`
 function, mise activation, wezterm shell integration) is wired up here so
-individual tool docs don't have to.
+individual tool docs don't have to. Activation comes first among them: the
+rest resolve their binary at load time, so a mise-managed tool has to be on
+PATH before its init runs.
 
 ## Auto-tmux
 
