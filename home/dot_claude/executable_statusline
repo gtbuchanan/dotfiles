@@ -203,6 +203,14 @@ else
   CTX_FG_OUT="$CTX_FG_GREEN"
 fi
 
-LINE="${LINE}${CTX_BG}${PREV_BG_FG}${SEP}${RESET}${CTX_BG}${DARK_FG} ${PCT}% ${RESET}${CTX_FG_OUT}${SEP_ROUND_R}${RESET}"
+LINE="${LINE}${CTX_BG}${PREV_BG_FG}${SEP}${RESET}${CTX_BG}${DARK_FG} ${PCT}% ${RESET}"
+PREV_BG_FG="${CTX_FG_OUT}"
+
+# --- Right cap ---
+# Its own step rather than a tail on whichever segment happens to be last: it
+# closes the line in whatever colour PREV_BG_FG carries, so a segment appended
+# after this point needs no edit here. Mirrors the left cap on the model
+# segment, which is already separate for the same reason.
+LINE="${LINE}${PREV_BG_FG}${SEP_ROUND_R}${RESET}"
 
 printf '%b\n' "$LINE"
