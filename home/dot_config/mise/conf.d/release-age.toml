@@ -1,0 +1,17 @@
+# Supply-chain quarantine for the global tool namespace, deployed on every host.
+#
+# Its own fragment rather than a line beside any one tool: it governs resolution
+# for this whole directory, and for every project on the host that doesn't set
+# its own value. Only fuzzy and `latest` specs wait it out — exact pins install
+# immediately.
+#
+# The window matches the Renovate quarantine in the shared preset, so a version
+# reaches a host on the same clock whether Renovate proposes the bump or mise
+# resolves it.
+#
+# No `minimum_release_age_excludes` here: that list exists so our own just-cut
+# releases skip the wait, and nothing self-published is pinned globally. Add it
+# if that changes — it needs mise 2026.6.2+, and older versions ignore the field
+# silently rather than failing.
+[settings]
+minimum_release_age = "3d"

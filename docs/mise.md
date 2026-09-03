@@ -72,6 +72,7 @@ the plain config file free for anything hand-written on a host.
 | Fragment                                                                    | Deployed on    | Holds                                              |
 | --------------------------------------------------------------------------- | -------------- | -------------------------------------------------- |
 | [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                   |
+| [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine               |
 | [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via |
 
@@ -95,6 +96,22 @@ The manager needs one nudge to find them: its built-in patterns key on a literal
 so [`renovate.json`](../.github/renovate.json) adds a pattern for this
 directory. `managerFilePatterns` is additive, so the repo-root `mise.toml` keeps
 matching by default.
+
+## Global mise Release-Age Quarantine
+
+[`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml) sets
+`minimum_release_age` for the global namespace, matching the window the shared
+Renovate preset waits before proposing a bump. It reaches further than the other
+fragments: settings merge across every config mise loads, so this becomes the
+floor for any project on the host that doesn't set its own value.
+
+It only governs how mise **resolves** a spec, which makes it the backstop rather
+than the primary control — a fuzzy or `latest` spec waits the window out, while
+an exact pin installs immediately, because the pin has already been through
+Renovate's own quarantine. The equivalents for the other supply chains are
+`minimumReleaseAge` in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) for
+global npm packages and the `# renovate:` annotations in
+[`.chezmoidata`](../home/.chezmoidata) for the out-of-band installs.
 
 ## Global mise Config Termux Fragment
 
