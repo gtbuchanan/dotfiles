@@ -1,0 +1,4 @@
+# The GitHub CLI. Backs the readonly MCP server's `gh` tool and the PR
+# workflows in AGENTS.md, both of which assume it on any host.
+[tools]
+gh = "2.98.0"

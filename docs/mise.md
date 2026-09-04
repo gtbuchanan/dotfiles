@@ -82,6 +82,7 @@ the plain config file free for anything hand-written on a host.
 | --------------------------------------------------------------------------- | -------------- | -------------------------------------------------- |
 | [`delta.toml`](../home/dot_config/mise/conf.d/delta.toml)                   | every host     | The `delta` pin (Termux uses `pkg`)                |
 | [`fzf.toml`](../home/dot_config/mise/conf.d/fzf.toml)                       | every host     | The `fzf` pin (Termux uses `pkg`)                  |
+| [`gh.toml`](../home/dot_config/mise/conf.d/gh.toml)                         | every host     | The `gh` pin (Termux uses `pkg`)                   |
 | [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                   |
 | [`jq.toml`](../home/dot_config/mise/conf.d/jq.toml)                         | every host     | The `jq` pin (Termux uses `pkg`)                   |
 | [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine               |

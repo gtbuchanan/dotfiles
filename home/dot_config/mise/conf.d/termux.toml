@@ -57,6 +57,10 @@ disable_tools = [
   # the `pkg` build (run_onchange_before.sh) until someone can confirm on a
   # phone. Worth revisiting: this entry is caution, not a missing asset.
   "fzf",
+  # `aqua:cli/cli` publishes linux_arm64 but nothing for android. Termux
+  # packages gh natively, so it is installed from `pkg`
+  # (run_onchange_before.sh) and resolved from PATH.
+  "gh",
   # `aqua:jdx/hk` ships release tarballs for linux/darwin/windows only; its aqua
   # manifest rejects android/arm64 ("unsupported env"). hk is a static musl
   # aarch64 binary that runs unmodified on bionic, so install the release

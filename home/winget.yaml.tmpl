@@ -377,10 +377,11 @@ properties:
           [Environment]::SetEnvironmentVariable("Path", $New.TrimEnd(";"), "Machine")
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install GitHub CLI
+        description: Uninstall GitHub CLI
       id: githubCli
       settings:
         id: GitHub.cli
+        ensure: Absent
         source: winget
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
