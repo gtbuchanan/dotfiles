@@ -47,11 +47,24 @@ disable_tools = [
   # to the pkg build. It tracks Termux's chezmoi release, which may lag the
   # [tools] pin used elsewhere.
   "chezmoi",
+  # `aqua:dandavison/delta` publishes arm variants but no android asset. Termux
+  # packages it as `git-delta` (run_onchange_before.sh), so let the pager and
+  # its completion generator resolve that from PATH.
+  "delta",
+  # Unlike its neighbours here, fzf does publish an android_arm64 build, so
+  # aqua may well resolve one. Termux packages it natively either way, and no
+  # host this repo can build on is able to test that resolution -- so it keeps
+  # the `pkg` build (run_onchange_before.sh) until someone can confirm on a
+  # phone. Worth revisiting: this entry is caution, not a missing asset.
+  "fzf",
   # `aqua:jdx/hk` ships release tarballs for linux/darwin/windows only; its aqua
   # manifest rejects android/arm64 ("unsupported env"). hk is a static musl
   # aarch64 binary that runs unmodified on bionic, so install the release
   # tarball directly (in run_onchange_after_install-hk.sh).
   "hk",
+  # `aqua:jqlang/jq` publishes linux-arm64 but nothing for android. Termux
+  # packages jq natively (run_onchange_before.sh), so resolve it from PATH.
+  "jq",
   # `core:node` has no Android tarball and falls back to building from source,
   # which doesn't compile cleanly against bionic. Use Termux's `nodejs-lts`
   # package (installed in run_onchange_before.sh) instead — mise picks up system
@@ -78,6 +91,10 @@ disable_tools = [
   # step, which isn't run on Termux, so just disable it rather than shimming a
   # glibc build with grun.
   "powershell",
+  # `aqua:BurntSushi/ripgrep` publishes armv7 and aarch64 linux targets but no
+  # android one. Termux packages ripgrep natively (run_onchange_before.sh), so
+  # `rg` resolves from PATH.
+  "ripgrep",
   # `aqua` keys off android/arm64, for which ruff publishes no asset (only
   # linux/darwin/windows). Termux packages it natively to bionic, so install
   # from `pkg` (run_onchange_before.sh) and let hk resolve it from PATH.

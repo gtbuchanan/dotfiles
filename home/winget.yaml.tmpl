@@ -253,10 +253,11 @@ properties:
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install Delta
+        description: Uninstall Delta
       id: delta
       settings:
         id: dandavison.delta
+        ensure: Absent
         source: winget
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
@@ -329,10 +330,11 @@ properties:
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install fzf
+        description: Uninstall fzf
       id: fzf
       settings:
         id: junegunn.fzf
+        ensure: Absent
         source: winget
     - resource: PowerShellGet/PSModule
       dependsOn: [fzf, pwsh]
@@ -430,10 +432,11 @@ properties:
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install jq
+        description: Uninstall jq
       id: jq
       settings:
         id: jqlang.jq
+        ensure: Absent
         source: winget
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -834,10 +837,11 @@ properties:
 {{- end }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install ripgrep
+        description: Uninstall ripgrep
       id: ripgrep
       settings:
         id: BurntSushi.ripgrep.MSVC
+        ensure: Absent
         source: winget
 {{- if eq .hosttype "ewn" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage

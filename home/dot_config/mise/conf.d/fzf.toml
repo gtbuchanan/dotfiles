@@ -1,0 +1,4 @@
+# fzf. Its `--bash` key bindings and PSFzf's Import-Module both resolve the
+# binary during shell startup, after activation.
+[tools]
+fzf = "0.74.3"
