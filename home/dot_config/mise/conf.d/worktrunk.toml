@@ -1,0 +1,5 @@
+# Worktrunk, which provides both `wt` and `git-wt`. Kept in sync with the
+# Termux pin in .chezmoidata/wt.yaml, the one platform that installs it out of
+# band.
+[tools]
+worktrunk = "0.75.0"

@@ -101,4 +101,9 @@ disable_tools = [
   # through to that pkg build (installed in run_onchange_before.sh), which then
   # serves as the engine mise's pipx backend shells out to.
   "uv",
+  # `aqua:max-sixty/worktrunk` supports darwin, windows and amd64; android is
+  # not among its envs. Worktrunk ships a static aarch64 musl binary that runs
+  # unmodified on bionic, so the release is fetched directly (in
+  # run_onchange_after_install-wt.sh) and symlinked into ~/.local/bin.
+  "worktrunk",
 ]

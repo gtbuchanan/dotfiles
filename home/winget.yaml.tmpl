@@ -1299,19 +1299,19 @@ properties:
       settings:
         id: WiresharkFoundation.Wireshark
         source: winget
-    # Worktrunk ships both `wt.exe` and `git-wt.exe` on Windows, but winget
-    # only symlinks `git-wt.exe` into `WinGet\Links\` (the `wt.exe` link
-    # collides with Windows Terminal's App Execution Alias). Removing that
-    # alias plus a chezmoi-managed `~/.local/bin/wt.exe` symlink (see
-    # `home/dot_local/bin/symlink_wt.exe.tmpl`) exposes worktrunk as `wt`
-    # across every shell with no per-shell wrapper hacks, so tab completion
-    # (which clap registers under `wt`) just works.
+    # Worktrunk comes from the global mise config now, which shims both `wt`
+    # and `git-wt`. Remove the winget copy rather than leaving a second one on
+    # PATH: this resource installed but never upgraded, so it drifted far behind
+    # the pinned version while still winning from `WinGet\Links\`. Idempotent --
+    # no-op on machines that never had it. Safe to remove this entry once all
+    # known machines have applied this config.
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install worktrunk
+        description: Uninstall worktrunk
       id: worktrunk
       settings:
         id: max-sixty.worktrunk
+        ensure: Absent
         source: winget
     # Uninstall the previous worktree manager (timvw/wt). Idempotent --
     # no-op on machines that never had it. Safe to remove this entry once
@@ -1324,12 +1324,11 @@ properties:
         id: timvw.wt
         source: winget
         ensure: Absent
-    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows
-    # worktrunk's `wt.exe` regardless of PATH order.
+    # HACK: Windows Terminal's `wt.exe` App Execution Alias shadows the mise
+    # shim's `wt.exe` regardless of PATH order.
     # HACK: There appears to be no Windows API for App Execution Aliases, so we delete the file
     # https://superuser.com/a/1746939
     - resource: xPSDesiredStateConfiguration/xScript
-      dependsOn: [worktrunk]
       directives:
         description: Remove Windows Terminal App Execution Alias
       id: wtAppAlias

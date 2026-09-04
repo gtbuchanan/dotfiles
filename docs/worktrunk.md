@@ -11,56 +11,52 @@ rules live in [`home/dot_config/AGENTS.md.tmpl`](../home/dot_config/AGENTS.md.tm
 
 | File                                                                                                                                          | Role                                               |
 | --------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| [`home/.chezmoidata/wt.yaml`](../home/.chezmoidata/wt.yaml)                                                                                   | Pinned version (Renovate-tracked)                  |
+| [`home/.chezmoidata/wt.yaml`](../home/.chezmoidata/wt.yaml)                                                                                   | Pinned version for Termux (Renovate-tracked)       |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                       | Skill archive → `~/.agents/skills/worktrunk/`      |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-wt.sh.tmpl) | Termux manual install                              |
 | [`home/.chezmoitemplates/worktrunk-config.toml`](../home/.chezmoitemplates/worktrunk-config.toml)                                             | Shared user-config template                        |
 | [`home/AppData/Roaming/worktrunk/config.toml.tmpl`](../home/AppData/Roaming/worktrunk/config.toml.tmpl)                                       | Renders shared config on Windows (`%APPDATA%`)     |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                             | Bash shell integration                             |
+| [`home/dot_config/mise/conf.d/worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)                                                 | Pinned version everywhere else (Renovate-tracked)  |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)           | PowerShell shell integration                       |
 | [`home/dot_config/worktrunk/config.toml.tmpl`](../home/dot_config/worktrunk/config.toml.tmpl)                                                 | Renders shared config on Linux/macOS/Android (XDG) |
 | [`home/dot_local/bin/executable_wt-pre-start`](../home/dot_local/bin/executable_wt-pre-start)                                                 | `pre-start` hook script                            |
 | [`home/dot_local/bin/executable_wt-post-start`](../home/dot_local/bin/executable_wt-post-start)                                               | `post-start` hook script                           |
-| [`home/dot_local/bin/symlink_wt.exe.tmpl`](../home/dot_local/bin/symlink_wt.exe.tmpl)                                                         | Windows symlink → winget-installed `wt.exe`        |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                           | Windows install + App Execution Alias removal      |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                           | App Execution Alias removal                        |
 
 ## `wt` Resolution Per Platform
 
+Everywhere but Termux, worktrunk is a pin in the
+[global mise config](mise.md#global-mise-config-fragments); aqua declares both
+`wt` and `git-wt`, so mise shims each of them.
+
 ### Windows
 
-Two `wt.exe` binaries compete:
+Windows Terminal registers its own `wt.exe` as an App Execution Alias in
+`%LOCALAPPDATA%\Microsoft\WindowsApps\`, and an alias shadows PATH no matter
+where the shims sit, so [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)
+deletes the alias file (the `wtAppAlias` xScript resource — there is no Windows
+API for managing aliases, so the shim is deleted directly). With it gone, `wt`
+resolves to mise's shim.
 
-- Worktrunk's `wt.exe` ships in the winget package directory but is _not_
-  symlinked into `WinGet\Links\` — winget skips it because the link would
-  collide with the existing App Execution Alias. Only `git-wt.exe` gets
-  a Links entry.
-- Windows Terminal's `wt.exe` is registered as an App Execution Alias
-  in `%LOCALAPPDATA%\Microsoft\WindowsApps\`, which sits early on PATH.
-
-[`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl) installs worktrunk, then deletes the App
-Execution Alias file (the `wtAppAlias` xScript resource — there is no
-Windows API for managing aliases, so we delete the shim directly).
-Chezmoi then deploys `~/.local/bin/wt.exe` as a symlink to worktrunk's
-binary. `~/.local/bin` is on user PATH, so `wt` resolves to the symlink
-on every shell.
-
-**Why the symlink is named `wt.exe`, not a `git-wt`-based wrapper:**
-`wt config shell init <shell>` emits both a wrapper function and a clap
-tab completer. The completer's `-CommandName` is hardcoded to the
-binary's clap name (`wt`) — passing `--cmd=git-wt` retargets the wrapper
-function but not the completer. Naming the symlink `wt.exe` lets the
-default init output drive both.
+**Why the name has to be `wt`, rather than driving `git-wt`:**
+`wt config shell init <shell>` emits both a wrapper function and a clap tab
+completer. The completer's `-CommandName` is hardcoded to the binary's clap
+name (`wt`) — passing `--cmd=git-wt` retargets the wrapper function but not the
+completer. The shim being `wt.exe` lets the default init output drive both.
 
 ### Linux / macOS
 
-Not yet installed by this repo. When added, the binary lands on PATH
-as `wt` directly — there is no `wt.exe` collision.
+The mise pin puts `wt` on PATH directly; there is no `wt.exe` collision to work
+around.
 
 ### Android (Termux)
 
-Not in the Termux registry. The install script fetches the
-`aarch64-unknown-linux-musl` static binary from GitHub releases (version
-from `wt.yaml`, SHA-256 verified) and symlinks it into `~/.local/bin/wt`.
+Neither the Termux registry nor aqua covers android, so worktrunk is in
+`disable_tools` and installed out of band: the script fetches the
+`aarch64-unknown-linux-musl` static binary from GitHub releases (version from
+`wt.yaml`, SHA-256 verified) and symlinks it into `~/.local/bin/wt`. That pin
+and the mise one are bumped separately and should move together.
 
 ## User Config
 

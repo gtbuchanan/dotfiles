@@ -85,6 +85,7 @@ the plain config file free for anything hand-written on a host.
 | [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)             |
 | [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via |
+| [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)  |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`

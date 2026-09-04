@@ -1,3 +1,6 @@
 ---
+# Termux only. Every other platform takes worktrunk from the mise pin in
+# dot_config/mise/conf.d/worktrunk.toml, which android has no aqua asset for.
+# Renovate bumps the two independently, so they should be moved together.
 # renovate: datasource=github-releases depName=max-sixty/worktrunk
 worktrunk_version: '0.75.0'

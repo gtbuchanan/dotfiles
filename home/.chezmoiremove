@@ -20,6 +20,13 @@ AppData/Roaming/wt
 .local/bin/wt-bootstrap.ps1
 .agents/skills/wt
 
+# Worktrunk is a mise pin now, and its shims supply both `wt` and `git-wt`.
+# Dropping the symlink from the source only stops chezmoi managing it, so a host
+# that already has it would keep a dangling link into the winget package
+# directory the same apply uninstalls -- ahead of the shim on PATH, since
+# ~/.local/bin outranks it.
+.local/bin/wt.exe
+
 # The PowerShell PreToolUse guard was folded into ~/.claude/deny-unsafe-commands,
 # which covers the same terminations. Dropping it from the source only stops
 # chezmoi managing it — the deployed copy would keep running as a second hook,
