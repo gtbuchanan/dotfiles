@@ -51,7 +51,8 @@
       "matchStrings": [
         "(?<depName>\\w[\\w.]*)\\s*=\\s*'(?<currentValue>[^']+)'"
       ],
-      "registryUrlTemplate": "https://www.powershellgallery.com/api/v2/"
+      "registryUrlTemplate": "https://www.powershellgallery.com/api/v2/",
+      "versioningTemplate": "loose"
     },
     {
       "customType": "regex",
