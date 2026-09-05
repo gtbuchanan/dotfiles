@@ -45,9 +45,5 @@ curl -L https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-night
 bash /tmp/ble-nightly/ble.sh --install "$HOME/.local/share"
 rm -Rf /tmp/ble-nightly
 
-# Install Nerd Font
-curl -fsSL https://raw.githubusercontent.com/getnf/getnf/main/install.sh | bash
-getnf -i "{{ .fontpack }}"
-
 # Install mise (tool version + env + task manager) to ~/.local/bin
 curl -fsSL https://mise.run | sh

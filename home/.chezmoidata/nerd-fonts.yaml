@@ -1,0 +1,6 @@
+---
+# Nerd Fonts release the font pack is downloaded from, on every Unix platform.
+# Windows installs the same font through the NerdFonts PowerShell module, which
+# takes no version and is unaffected by this pin.
+# renovate: datasource=github-releases depName=ryanoasis/nerd-fonts
+nerd_fonts_version: '3.5.1'

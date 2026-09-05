@@ -1,0 +1,63 @@
+
+# Nerd Font pack, downloaded from the release pinned in .chezmoidata and
+# verified against the SHA-256.txt published beside it.
+
+NERD_FONT_VERSION='{{ .nerd_fonts_version }}'
+NERD_FONT_PACK='{{ .fontpack }}'
+NERD_FONT_ARCHIVE="$NERD_FONT_PACK.tar.xz"
+NERD_FONT_BASE="https://github.com/ryanoasis/nerd-fonts/releases/download/v$NERD_FONT_VERSION"
+{{ if eq .chezmoi.os "darwin" }}
+# CoreText reads ~/Library/Fonts itself and is not documented to recurse, so the
+# pack lands flat rather than in a subdirectory of its own. Files from an older
+# release are left in place: they carry the version in their names, so they do
+# not collide, and nothing else in this directory is ours to delete.
+NERD_FONT_DIR="$HOME/Library/Fonts"
+{{ else }}
+# fontconfig scans ~/.local/share/fonts recursively, so the pack gets its own
+# directory and can be replaced wholesale on a version bump.
+NERD_FONT_DIR="$HOME/.local/share/fonts/$NERD_FONT_PACK"
+{{ end }}
+nerd_font_tmp=$(mktemp -d)
+trap 'rm -rf "$nerd_font_tmp"' EXIT
+
+curl -fsSL "$NERD_FONT_BASE/$NERD_FONT_ARCHIVE" -o "$nerd_font_tmp/$NERD_FONT_ARCHIVE"
+
+# The checksum file covers every asset in the release; take the one line for
+# this archive. An empty result means the asset was renamed upstream, which
+# must fail loudly rather than skip the check.
+nerd_font_expected=$(curl -fsSL "$NERD_FONT_BASE/SHA-256.txt" |
+  awk -v archive="$NERD_FONT_ARCHIVE" '$2 == archive { print $1 }')
+if [ -z "$nerd_font_expected" ]; then
+  echo "No SHA-256 entry for $NERD_FONT_ARCHIVE in the v$NERD_FONT_VERSION release" >&2
+  exit 1
+fi
+
+nerd_font_actual=$(sha256sum "$nerd_font_tmp/$NERD_FONT_ARCHIVE" | cut -d' ' -f1)
+if [ "$nerd_font_actual" != "$nerd_font_expected" ]; then
+  echo "Checksum mismatch for $NERD_FONT_ARCHIVE: expected $nerd_font_expected, got $nerd_font_actual" >&2
+  exit 1
+fi
+
+{{ if ne .chezmoi.os "darwin" }}rm -rf "$NERD_FONT_DIR"
+{{ end }}mkdir -p "$NERD_FONT_DIR"
+tar -xJf "$nerd_font_tmp/$NERD_FONT_ARCHIVE" -C "$NERD_FONT_DIR"
+
+# macOS has no fc-cache and CoreText notices the new files on its own, so this
+# is an `if` rather than a `&&` chain: as the last command under `set -e`, a
+# false chain would fail the script wherever fc-cache is absent.
+if command -v fc-cache > /dev/null; then
+  fc-cache -f "$NERD_FONT_DIR"
+fi
+{{ if eq .chezmoi.os "android" }}
+# Termux reads no system font directory -- it renders whatever TTF sits at
+# ~/.termux/font.ttf. Prefer the Mono Regular variant, fall back to plain
+# Regular for packs that ship no Mono cut, then broadcast the reload intent so
+# the change lands without restarting the app.
+mkdir -p "$HOME/.termux"
+nerd_font_file=$(find "$NERD_FONT_DIR" -name '*NerdFontMono-Regular.ttf' | head -1)
+[ -z "$nerd_font_file" ] && nerd_font_file=$(find "$NERD_FONT_DIR" -name '*Regular.ttf' | head -1)
+if [ -n "$nerd_font_file" ]; then
+  cp "$nerd_font_file" "$HOME/.termux/font.ttf"
+  am broadcast --user 0 -a com.termux.app.reload_style com.termux > /dev/null 2>&1 || true
+fi
+{{ end }}
