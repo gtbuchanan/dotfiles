@@ -37,6 +37,9 @@ Always edit the corresponding source in **this repo** under `home/`, then run
 - After modifying `home/winget.yaml.tmpl`, the compiled output is regenerated automatically
   by the before-script on the next `chezmoi apply`. The `dist/winget.yaml` file is generated
   output — do not edit it directly.
+- Validate a new chezmoi config key with `chezmoi --source <dir> managed` before
+  using it — chezmoi.io documents the development version, and an unknown key
+  makes chezmoi reject the whole file.
 - To preview changes without applying: `chezmoi diff`.
 
 ## Forcing run_onchange Scripts to Re-run
