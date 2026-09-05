@@ -84,7 +84,8 @@
 '.config/wezterm/wezterm.sh':
   refreshPeriod: 128h
   type: file
-  url: https://raw.githubusercontent.com/wezterm/wezterm/refs/heads/main/assets/shell-integration/wezterm.sh
+  # renovate: branch=main
+  url: https://raw.githubusercontent.com/wezterm/wezterm/b99b1ca2cc0a77e97600410726cdf5e3750bd89b/assets/shell-integration/wezterm.sh
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
@@ -93,7 +94,7 @@
   type: archive
   stripComponents: 1
   include: ["PowerShellEditorServices/**"]
-  url: https://github.com/PowerShell/PowerShellEditorServices/releases/latest/download/PowerShellEditorServices.zip
+  url: https://github.com/PowerShell/PowerShellEditorServices/releases/download/v4.7.0/PowerShellEditorServices.zip
 
 {{- else }}
 '.tmux/plugins/tpm-redux':
@@ -122,7 +123,8 @@
 '.vim/autoload/plug.vim':
   refreshPeriod: 168h
   type: file
-  url: https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+  # renovate: branch=master
+  url: https://raw.githubusercontent.com/junegunn/vim-plug/88e31471818e9a29a8a20a0ee61360cfd7bdc1cd/plug.vim
 
 # Git repos this dotfiles repo references but doesn't vendor, cloned under
 # ~/{{ .codeDir }}. Cloned on first apply, refreshed weekly so chezmoi doesn't

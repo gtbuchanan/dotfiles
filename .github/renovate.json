@@ -65,6 +65,29 @@
         "blesh_version:\\s*'(?<currentValue>[^']+)'\\s*\\n[ \\t]*blesh_sha256:\\s*'(?<currentDigest>[^']+)'"
       ],
       "versioningTemplate": "loose"
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "git-refs",
+      "depNameTemplate": "https://github.com/{{depName}}",
+      "description": "Single files taken from a branch snapshot rather than a release, pinned by commit so the bytes cannot change under a refreshPeriod. The branch to follow is not recoverable from a pinned URL, so the annotation above each one carries it -- these two repos do not share a default branch.",
+      "managerFilePatterns": [
+        "/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"
+      ],
+      "matchStrings": [
+        "# renovate: branch=(?<currentValue>\\S+)\\s*\\n[ \\t]*url: https://raw\\.githubusercontent\\.com/(?<depName>[\\w-]+/[\\w.-]+)/(?<currentDigest>[a-f0-9]{40})/"
+      ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "github-releases",
+      "description": "Release assets downloaded by tag. The `releases/latest/download/` form these replace resolves at fetch time, so the version was whatever upstream had published that day.",
+      "managerFilePatterns": [
+        "/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"
+      ],
+      "matchStrings": [
+        "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/releases/download/(?<currentValue>[\\w.-]+)/"
+      ]
     }
   ],
   "extends": [
