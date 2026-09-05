@@ -72,6 +72,13 @@
   include: ["*/skills/worktrunk/**"]
   url: https://github.com/max-sixty/worktrunk/archive/refs/tags/v{{ .worktrunk_version }}.tar.gz
 
+'.agents/skills/writing-for-agents':
+  exact: true
+  type: archive
+  stripComponents: 4
+  include: ["*/skills/productivity/writing-for-agents/**"]
+  url: https://github.com/mattpocock/skills/archive/3cca18b368ae95cdbdebbff572ccafa662551015.tar.gz
+
 {{- if ne .chezmoi.os "windows" }}
 # https://wezterm.org/shell-integration.html
 '.config/wezterm/wezterm.sh':
