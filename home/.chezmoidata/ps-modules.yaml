@@ -1,0 +1,15 @@
+---
+# PowerShell Gallery modules, versioned in one place because two installers
+# provide them: winget's PSModule resources on Windows, and the shared
+# install-ps-modules body everywhere else. Renovate tracks these through a
+# dedicated manager in .github/renovate.json -- the shared .chezmoidata manager
+# resolves an annotation's datasource against nuget.org, which is the wrong
+# feed, so these keys carry no annotation and are matched by name instead.
+#
+# BurntToast and NerdFonts are Windows-only; PSFzf and posh-git are imported by
+# profile.d/30-modules on every platform that has PowerShell.
+ps_modules:
+  BurntToast: '1.1.0'
+  NerdFonts: '1.1.1'
+  PSFzf: '2.7.12'
+  posh-git: '1.1.0'

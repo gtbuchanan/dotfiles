@@ -1,9 +1,11 @@
 # Install the PowerShell modules the profile hard-imports (profile.d/30-modules:
 # PSFzf, posh-git). They ship via winget on Windows, but nothing provides them
-# on Unix, so install from the PSGallery with the bundled PSResourceGet. Shared
-# by the per-OS install-ps-modules scripts. Idempotent; a no-op where pwsh is
-# absent (e.g. macOS without PowerShell). fzf/git (the tools these modules wrap)
-# come from the OS package sets.
+# on Unix, so install from the PSGallery with the bundled PSResourceGet. Versions
+# come from .chezmoidata/ps-modules.yaml, the same source the winget resources
+# read, so one bump moves every platform. Shared by the per-OS install-ps-modules
+# scripts. Idempotent; a no-op where pwsh is absent (e.g. macOS without
+# PowerShell). fzf/git (the tools these modules wrap) come from the OS package
+# sets.
 pwsh_bin=$(command -v pwsh 2>/dev/null || true)
 if [ -z "$pwsh_bin" ] && [ -x "$HOME/.local/bin/pwsh" ]; then
   pwsh_bin="$HOME/.local/bin/pwsh"
@@ -13,10 +15,26 @@ if [ -z "$pwsh_bin" ]; then
 else
   "$pwsh_bin" -NoProfile -NoLogo -Command '
     $ErrorActionPreference = "Stop"
-    foreach ($m in "PSFzf", "posh-git") {
-      if (-not (Get-InstalledPSResource -Name $m -ErrorAction SilentlyContinue)) {
-        Write-Host "Installing PowerShell module $m..."
-        Install-PSResource -Name $m -Repository PSGallery -TrustRepository -Scope CurrentUser
+    $modules = @{
+      "PSFzf"    = "{{ index .ps_modules "PSFzf" }}"
+      "posh-git" = "{{ index .ps_modules "posh-git" }}"
+    }
+    foreach ($m in $modules.GetEnumerator()) {
+      # Matches on the pinned version rather than presence, so a bump installs
+      # over an older copy instead of leaving it in place.
+      $installed = Get-InstalledPSResource -Name $m.Key -ErrorAction SilentlyContinue |
+        Where-Object { $_.Version.ToString() -eq $m.Value }
+      if (-not $installed) {
+        Write-Host "Installing PowerShell module $($m.Key) $($m.Value)..."
+        $params = @{
+          # Brackets pin the exact version; a bare number reads as a minimum.
+          Version         = "[$($m.Value)]"
+          Name            = $m.Key
+          Repository      = "PSGallery"
+          Scope           = "CurrentUser"
+          TrustRepository = $true
+        }
+        Install-PSResource @params
       }
     }
   '

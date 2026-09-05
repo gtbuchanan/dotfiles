@@ -173,6 +173,7 @@ properties:
       settings:
         Name: BurntToast
         InstallationPolicy: Trusted
+        RequiredVersion: {{ index .ps_modules "BurntToast" }}
 {{- if eq .hosttype "personal" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
@@ -344,6 +345,7 @@ properties:
       settings:
         Name: PSFzf
         InstallationPolicy: Trusted
+        RequiredVersion: {{ index .ps_modules "PSFzf" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Git
@@ -566,6 +568,7 @@ properties:
       settings:
         Name: NerdFonts
         InstallationPolicy: Trusted
+        RequiredVersion: {{ index .ps_modules "NerdFonts" }}
     - resource: xPSDesiredStateConfiguration/xScript
       dependsOn: [nerdFonts]
       directives:
@@ -735,6 +738,7 @@ properties:
       settings:
         Name: posh-git
         InstallationPolicy: Trusted
+        RequiredVersion: {{ index .ps_modules "posh-git" }}
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
         description: Install Postman

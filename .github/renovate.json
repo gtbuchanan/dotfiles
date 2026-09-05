@@ -89,6 +89,19 @@
       "matchStrings": [
         "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/releases/download/(?<currentValue>[\\w.-]+)/"
       ]
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "nuget",
+      "description": "PowerShell Gallery modules shared by the winget resources and the Unix install-ps-modules body. Matched by key rather than by a `# renovate:` annotation, because the shared .chezmoidata manager would resolve the nuget datasource against nuget.org instead of the Gallery.",
+      "managerFilePatterns": [
+        "/^home/\\.chezmoidata/ps-modules\\.yaml$/"
+      ],
+      "matchStrings": [
+        "(?<depName>[\\w-]+):\\s*'(?<currentValue>[\\d.]+)'"
+      ],
+      "registryUrlTemplate": "https://www.powershellgallery.com/api/v2/",
+      "versioningTemplate": "loose"
     }
   ],
   "extends": [
