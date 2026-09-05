@@ -48,10 +48,5 @@ PKG_PACKAGES=(
 pkg update
 pkg install -y $(printf "%s " "${PKG_PACKAGES[@]}")
 
-# Install ble.sh
-curl -L https://github.com/akinomyoga/ble.sh/releases/download/nightly/ble-nightly.tar.xz | tar -xJf - -C "$TMPDIR"
-bash "$TMPDIR/ble-nightly/ble.sh" --install "$HOME/.local/share"
-rm -Rf "$TMPDIR/ble-nightly"
-
 # Install pnpm
 npm i -g pnpm

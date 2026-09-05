@@ -1,0 +1,27 @@
+
+# ble.sh, from the dated nightly asset pinned in .chezmoidata. That asset is
+# immutable, so the recorded digest is a statement about exact bytes rather
+# than a value that has to be chased -- a mismatch means the download is not
+# what was pinned, and the apply stops rather than sourcing it into every shell.
+
+BLESH_VERSION='{{ .blesh_version }}'
+BLESH_SHA256='{{ .blesh_sha256 }}'
+BLESH_STEM="ble-nightly-$BLESH_VERSION"
+# The `+` in the asset name is percent-encoded: it is literal in a URL path,
+# but curl follows GitHub's redirect to a signed URL that carries the filename
+# in a query string, where a bare `+` decodes as a space.
+BLESH_URL="https://github.com/akinomyoga/ble.sh/releases/download/nightly/${BLESH_STEM//+/%2B}.tar.xz"
+
+blesh_tmp=$(mktemp -d)
+trap 'rm -rf "$blesh_tmp"' EXIT
+
+curl -fsSL "$BLESH_URL" -o "$blesh_tmp/blesh.tar.xz"
+
+blesh_actual=$(sha256sum "$blesh_tmp/blesh.tar.xz" | cut -d' ' -f1)
+if [ "$blesh_actual" != "$BLESH_SHA256" ]; then
+  echo "Checksum mismatch for $BLESH_STEM: expected $BLESH_SHA256, got $blesh_actual" >&2
+  exit 1
+fi
+
+tar -xJf "$blesh_tmp/blesh.tar.xz" -C "$blesh_tmp"
+bash "$blesh_tmp/$BLESH_STEM/ble.sh" --install "$HOME/.local/share"

@@ -1,5 +1,15 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "customDatasources": {
+    "blesh-nightly": {
+      "defaultRegistryUrlTemplate": "https://api.github.com/repos/akinomyoga/ble.sh/releases/tags/nightly",
+      "description": "ble.sh publishes no usable releases -- its newest version tag predates the rolling `nightly` tag by years -- but every nightly build is kept as its own immutable asset stamped with a date and commit. No built-in datasource enumerates release assets, so this one reads them from the API and turns each into a version plus the digest GitHub publishes alongside it.",
+      "format": "json",
+      "transformTemplates": [
+        "{\"releases\": assets[$contains(name, /^ble-nightly-\\d{8}\\+[0-9a-f]+\\.tar\\.xz$/) and digest != null].{\"version\": $replace(name, /^ble-nightly-(.+)\\.tar\\.xz$/, \"$1\"), \"digest\": $substringAfter(digest, \"sha256:\"), \"releaseTimestamp\": updated_at}}"
+      ]
+    }
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -42,6 +52,19 @@
         "(?<depName>\\w[\\w.]*)\\s*=\\s*'(?<currentValue>[^']+)'"
       ],
       "registryUrlTemplate": "https://www.powershellgallery.com/api/v2/"
+    },
+    {
+      "customType": "regex",
+      "datasourceTemplate": "custom.blesh-nightly",
+      "depNameTemplate": "ble.sh",
+      "description": "Moves blesh_version and blesh_sha256 as one unit. The shared .chezmoidata manager above captures a single value per `# renovate:` annotation and so cannot express a version with its digest, which is why the data file carries no annotation and this matches the two keys by name instead.",
+      "managerFilePatterns": [
+        "/^home/\\.chezmoidata/blesh\\.yaml$/"
+      ],
+      "matchStrings": [
+        "blesh_version:\\s*'(?<currentValue>[^']+)'\\s*\\n[ \\t]*blesh_sha256:\\s*'(?<currentDigest>[^']+)'"
+      ],
+      "versioningTemplate": "loose"
     }
   ],
   "extends": [

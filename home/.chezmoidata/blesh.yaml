@@ -1,0 +1,13 @@
+---
+blesh_sha256: '532c8f7c13c5fbec70a5787c8c03d781c1e54f8237cbd78609892a5f87fe4195'
+# ble.sh, pinned to one dated nightly asset. The bare `ble-nightly.tar.xz` is
+# overwritten in place on every build, while the dated assets are immutable and
+# kept indefinitely -- so this pair identifies exact bytes, which the install
+# checks the download against.
+#
+# Deliberately carries no `# renovate:` annotation. The shared .chezmoidata
+# manager captures a single value per annotation, and this dep needs a version
+# and a digest moved together; a dedicated custom manager in
+# .github/renovate.json matches both keys by name instead. An annotation here
+# would additionally match that shared manager and register the dep twice.
+blesh_version: '20260905+69ee058'
