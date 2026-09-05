@@ -116,7 +116,7 @@ version = "0.7.0"
 backend = "npm:@gtbuchanan/cli"
 
 [[tools."npm:renovate"]]
-version = "43.231.2"
+version = "43.288.0"
 backend = "npm:renovate"
 
 [[tools.pkl]]
