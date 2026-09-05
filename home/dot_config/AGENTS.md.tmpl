@@ -98,6 +98,10 @@
   gtb-change-decomposition skill before your first edit. It governs how the
   work gets split into units, and that is decided while you work — consulting
   it once the change is written is too late.
+- When making changes in a repo that will reach GitHub as a pull request, load
+  the gtb-gh-pr-boundaries skill before your first edit. It decides how many
+  pull requests the work becomes and what each one branches from, and a branch
+  that already carries the answer cannot be re-cut without redoing the work.
 - Never push to a remote unless explicitly told to.
 - Never land a branch — `wt merge`, `git merge`, a PR merge — unless
   explicitly told to. Which commits reach a shared branch is my call, the
