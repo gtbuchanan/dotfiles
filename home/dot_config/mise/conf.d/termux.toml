@@ -86,7 +86,7 @@ disable_tools = [
   # pkl for validate/check/fix/install.
   "pkl",
   # `aqua:pnpm/pnpm` lists linux/{x64,arm64}, darwin/arm64, windows — no
-  # android/arm64. Install via `npm i -g pnpm` instead (also in
+  # android/arm64. Install via `npm i -g pnpm@11` instead (also in
   # run_onchange_before.sh).
   "pnpm",
   # `aqua:PowerShell/PowerShell` has no android asset — it keys off `android`

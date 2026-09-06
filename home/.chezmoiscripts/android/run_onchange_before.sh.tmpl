@@ -48,5 +48,10 @@ PKG_PACKAGES=(
 pkg update
 pkg install -y $(printf "%s " "${PKG_PACKAGES[@]}")
 
-# Install pnpm
-npm i -g pnpm
+# Install pnpm, held to the 11 line. pnpm 12 replaced the JavaScript
+# implementation with a native binary and publishes no android-arm64 build of
+# it, so its preinstall script aborts the install rather than falling back
+# ("pnpm does not ship a prebuilt binary for android-arm64"). The same missing
+# target is what makes the ~/.local/bin/pnpm wrapper pass --pm-on-fail=warn, so
+# a project's `packageManager` pin cannot be satisfied here either way.
+npm i -g pnpm@11
