@@ -11,4 +11,4 @@
 # Plain TOML rather than a chezmoi template, so Renovate's mise manager parses
 # the version below directly — see docs/mise.md.
 [tools]
-uv = "0.12.7"
+uv = "0.12.9"
