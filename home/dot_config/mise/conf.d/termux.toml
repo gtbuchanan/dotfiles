@@ -128,3 +128,12 @@ disable_tools = [
   # run_onchange_after_install-wt.sh) and symlinked into ~/.local/bin.
   "worktrunk",
 ]
+
+# mise's built-in npm resolver reaches the registry through
+# rustls-platform-verifier, which on Android expects a JNI handle to the system
+# trust store that a Termux process has no way to hand it -- so every `npm:`
+# tool install aborts the whole mise invocation with "Expect
+# rustls-platform-verifier to be initialized", taking `mise x` and every hk hook
+# step with it. Shelling out to npm skips that client entirely; the cost is a
+# slower install, which only a version bump pays.
+npm.shell_out = true
