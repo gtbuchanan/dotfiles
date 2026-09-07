@@ -2,9 +2,6 @@
 # resets the PSReadLine keymap, which would clobber the PSFzf Tab rebind below
 # if it ran first. The profile.d numeric prefixes keep this in order.
 
-# Configure PowerShellGet
-Import-Module PowerShellGet
-
 # Configure PSFzf
 Import-Module PSFzf
 Set-PSReadLineKeyHandler `
