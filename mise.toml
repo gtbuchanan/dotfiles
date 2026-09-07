@@ -48,7 +48,7 @@ chezmoi = "2.72.1"
 hk = "1.54.1"
 node = "24.20.0"
 "npm:@gtbuchanan/cli" = "0.7.1"
-"npm:renovate" = "43.231.2"
+"npm:renovate" = "43.288.0"
 pkl = "0.32.1"
 pnpm = "11.25.0"
 # Backs the hk psscriptanalyzer step (and lint-powershell.ps1) so pwsh is pinned
