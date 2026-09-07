@@ -17,8 +17,13 @@ function Invoke-Starship-PreCommand {
   $host.ui.Write($prompt)
 }
 
-# Enable Starship
-Invoke-Expression (&starship init powershell)
+# Enable Starship. `--print-full-init` emits the whole init script directly;
+# the documented `starship init powershell` instead emits a stub that shells
+# out to starship a second time, so this spawns one process at startup rather
+# than two. See https://github.com/starship/starship/issues/1032.
+# The full init spans multiple lines, which the shell captures as an array, so
+# join it back into one string for Invoke-Expression.
+Invoke-Expression (@(starship init powershell --print-full-init) -join "`n")
 
 # Enable Vi mode
 $env:VI_MODE_PROMPT = "I "
