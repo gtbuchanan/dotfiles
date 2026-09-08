@@ -14,15 +14,21 @@
 # TabExpansion2, because that is the API PSFzf's Tab handler actually calls
 # (PSFzf.TabExpansion.ps1) and so is the path a real `git <Tab>` takes here.
 #
+# Skipped where posh-git and PSFzf are absent. The suite dot-sources the real
+# part, which imports both, so it needs them installed rather than merely a git
+# binary -- the hosted CI runners have git but not the modules, which the winget
+# and install-ps-modules paths provision on a real host.
+#
 #   mise run test:pester [-- -FilterName '*lazy posh-git*']
 
 BeforeDiscovery {
-  $script:GitAvailable = [bool](
-    Get-Command git -CommandType Application -ErrorAction SilentlyContinue
-  )
+  $poshGit = [bool](Get-Module -ListAvailable posh-git)
+  $psFzf = [bool](Get-Module -ListAvailable PSFzf)
+  $gitBin = [bool](Get-Command git -CommandType Application -ErrorAction SilentlyContinue)
+  $script:ModulesAvailable = $poshGit -and $psFzf -and $gitBin
 }
 
-Describe 'lazy posh-git completion' -Skip:(-not $script:GitAvailable) {
+Describe 'lazy posh-git completion' -Skip:(-not $script:ModulesAvailable) {
 
   BeforeAll {
     $root = Split-Path $PSScriptRoot -Parent
@@ -103,6 +109,11 @@ Get-Matches `$Line | ForEach-Object { "match=`$_" }
     # regress.
     $first = (Complete 'git ch').Matches
     $second = (Complete 'git ch' -Twice).Matches
+
+    # Asserted non-empty first: comparing two empty results passes for any
+    # breakage that yields no completions at all, which is how this case stayed
+    # green on a runner where neither module was installed.
+    $first | Should -Not -BeNullOrEmpty
     $second | Should -Be $first
   }
 }
