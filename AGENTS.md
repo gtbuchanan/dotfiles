@@ -70,9 +70,9 @@ pinned versions match).
 every value a template interpolates into one becomes part of its trigger —
 including values that have nothing to do with what the script does.
 
-Never render the source directory into a `run_onchange_` script. chezmoi
-exports `CHEZMOI_SOURCE_DIR` to scripts and it tracks `--source`, so read it
-at run time instead:
+Never render a path that tracks `--source` into a `run_onchange_` script.
+`.chezmoi.sourceDir` and `.chezmoi.workingTree` both do. chezmoi exports each
+to scripts as an environment variable, so read it at run time instead:
 
 ```powershell
 # Not {{ .chezmoi.sourceDir }} — that renders the path into the hash.
@@ -83,13 +83,21 @@ Baked in, the hash follows the source directory rather than the script:
 `chezmoi apply --source <worktree>` renders a different path and re-runs the
 script for a change that never touched it, then queues another re-run for the
 next apply from the usual source, which flips the path back. The winget script
-did exactly this — see `home/.chezmoiscripts/windows/run_onchange_before_winget.ps1.tmpl`.
+did this with `.chezmoi.sourceDir`
+(`home/.chezmoiscripts/windows/run_onchange_before_winget.ps1.tmpl`), and the
+`pnpm-globals` callers with `.chezmoi.workingTree`; both read the environment
+now, so no script under `.chezmoiscripts/` renders a source-dependent path.
+The rule is what keeps that true — the shared template takes the caller's
+shell expression for the working tree rather than the path itself.
 
-The same hazard makes `--source` the wrong way to try a worktree's changes:
-run `chezmoi apply` from the main working tree once the change has landed. To
-check that a worktree's templates render, use `mise run test:templates` (the
-hk `render-templates` step), which renders without applying or running any
-script.
+`--source` is still the wrong way to try a worktree's changes, for a separate
+reason: templates outside `.chezmoiscripts/` do render `.chezmoi.sourceDir`
+into what they deploy — `10-functions.ps1.tmpl` puts it in `cmcd` — so an
+apply from a worktree leaves deployed files pointing at a directory that
+disappears with the branch. Run `chezmoi apply` from the main working tree
+once the change has landed. To check that a worktree's templates render, use
+`mise run test:templates` (the hk `render-templates` step), which renders
+without applying or running any script.
 
 ## File Naming Conventions
 

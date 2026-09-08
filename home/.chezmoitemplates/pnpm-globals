@@ -4,13 +4,20 @@
   pnpm-workspace.yaml (single source of truth, Renovate-managed). The root
   global-pnpmfile.cjs is always wired via --config.global-pnpmfile (its
   readPackage patches are name-guarded no-ops for packages that don't need
-  them), so the caller only passes its `workingTree` and `include` list. The
-  file is deliberately not named .pnpmfile.cjs — see its header comment.
+  them), so the caller only passes its `root` and `include` list. The file is
+  deliberately not named .pnpmfile.cjs — see its header comment.
+
+  `root` is the caller's own shell expression for the working tree, not a
+  path: every caller is a `run_onchange_` script, and rendering the path
+  itself would put it in the trigger hash. See "Keeping run_onchange Hashes
+  Stable" in AGENTS.md. Pass "$CHEZMOI_WORKING_TREE" from sh and
+  "$env:CHEZMOI_WORKING_TREE" from PowerShell; both are quoted below, so a
+  working tree containing a space survives.
 */ -}}
 {{- $catalog := (include "../pnpm-workspace.yaml" | fromYaml).catalogs.globals -}}
 {{- $include := index . "include" -}}
-{{- $wt := index . "workingTree" | replace "\\" "/" -}}
-{{- $args := printf " --config.global-pnpmfile=%s/global-pnpmfile.cjs" $wt -}}
+{{- $root := index . "root" -}}
+{{- $args := printf " --config.global-pnpmfile=\"%s/global-pnpmfile.cjs\"" $root -}}
 {{- range $i, $name := $include -}}
 {{-   $version := index $catalog $name -}}
 {{-   if hasPrefix "github:" $version -}}

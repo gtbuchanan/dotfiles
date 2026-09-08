@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 {{ template "pnpm-globals" dict
-  "workingTree" .chezmoi.workingTree
+  "root" "$env:CHEZMOI_WORKING_TREE"
   "include" (list "tweakcc")
 }}
 $HttpServers = @{

@@ -15,7 +15,7 @@ $ErrorActionPreference = 'Stop'
 {{-   $globals = append $globals "@bitwarden/cli" }}
 {{-   $globals = append $globals "bitwarden-cli-bio" }}
 {{- end }}
-{{ template "pnpm-globals" dict "workingTree" .chezmoi.workingTree "include" $globals }}
+{{ template "pnpm-globals" dict "root" "$env:CHEZMOI_WORKING_TREE" "include" $globals }}
 
 # Codex CLI is now installed via winget (OpenAI.Codex). Remove the legacy
 # pnpm-managed global so the two don't shadow each other on PATH. Idempotent --
