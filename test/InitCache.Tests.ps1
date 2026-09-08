@@ -122,6 +122,19 @@ Describe 'init cache' {
     $script:calls | Should -Be 1
   }
 
+  It 'regenerates when the entry predates the current key format' {
+    # The key carries a format version so that fixing *what* a generator stores
+    # evicts the entries already written by the broken one. Keyed on the binary
+    # alone, a bad payload is served until the tool happens to be upgraded.
+    $item = Get-Item -LiteralPath $script:binary -Force
+    $legacy = '{0}|{1}|{2}' -f $item.FullName, $item.LastWriteTimeUtc.Ticks, $item.Length
+    $cacheFile = Join-Path $script:cacheDir 'tool'
+    Set-Content -LiteralPath $cacheFile -Value "$legacy`nstale payload" -NoNewline
+
+    Get-CachedInitScript @script:call | Should -BeExactly $script:payload
+    $script:calls | Should -Be 1
+  }
+
   It 'keeps separate entries per name' {
     Get-CachedInitScript @script:call -Name 'alpha' | Out-Null
     Get-CachedInitScript @script:call -Name 'beta' | Out-Null

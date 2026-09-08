@@ -12,6 +12,11 @@
 # the tool its version is the same spawn the cache exists to avoid. mise-managed
 # tools also live in a version-stamped directory, so an upgrade moves the path
 # and misses the cache regardless.
+#
+# The leading format version evicts every entry when it changes. Binary identity
+# alone answers "is this still the same tool", not "is what we stored from it
+# still right" -- so a fix to a generator would otherwise keep serving the bad
+# payload until the tool happened to be upgraded. Bump it with any such fix.
 function Get-InitCacheKey ([string] $BinaryPath) {
   $item = Get-Item -LiteralPath $BinaryPath -Force -ErrorAction Stop
   # Resolve links before reading size and mtime. winget publishes mise as a
@@ -21,7 +26,7 @@ function Get-InitCacheKey ([string] $BinaryPath) {
   if ($item.ResolvedTarget -and $item.ResolvedTarget -ne $item.FullName) {
     $item = Get-Item -LiteralPath $item.ResolvedTarget -Force -ErrorAction Stop
   }
-  '{0}|{1}|{2}' -f $item.FullName, $item.LastWriteTimeUtc.Ticks, $item.Length
+  '2|{0}|{1}|{2}' -f $item.FullName, $item.LastWriteTimeUtc.Ticks, $item.Length
 }
 
 function Get-InitCacheDirectory {
