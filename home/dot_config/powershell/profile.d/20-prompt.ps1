@@ -23,7 +23,21 @@ function Invoke-Starship-PreCommand {
 # than two. See https://github.com/starship/starship/issues/1032.
 # The full init spans multiple lines, which the shell captures as an array, so
 # join it back into one string for Invoke-Expression.
-Invoke-Expression (@(starship init powershell --print-full-init) -join "`n")
+#
+# Resolved to a single command because the wrappers directory and mise's shims
+# dir both carry a starship, and the cache keys on the binary behind the name.
+$starship = Get-Command starship -CommandType Application -ErrorAction SilentlyContinue |
+  Select-Object -First 1
+if ($starship) {
+  # Guarded because a present-but-failing binary yields an empty script, which
+  # Invoke-Expression rejects outright rather than treating as a no-op.
+  $starshipInit = Get-CachedInitScript -Name 'starship' -BinaryPath $starship.Source -Generate {
+    (@(& $starship init powershell --print-full-init) -join "`n")
+  }
+  if ($starshipInit) {
+    $starshipInit | Invoke-Expression
+  }
+}
 
 # Enable Vi mode
 $env:VI_MODE_PROMPT = "I "

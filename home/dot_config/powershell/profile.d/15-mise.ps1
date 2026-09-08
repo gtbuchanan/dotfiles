@@ -19,7 +19,14 @@ if ($mise) {
   # has a target on first run; invoke the captured binary so this stub
   # doesn't shadow it. Prevents a benign but $Error-polluting path-not-found.
   function mise { }
-  & $mise activate pwsh | Out-String | Invoke-Expression
+  # Guarded because a present-but-failing binary yields an empty script, which
+  # Invoke-Expression rejects outright rather than treating as a no-op.
+  $miseInit = Get-CachedInitScript -Name 'mise' -BinaryPath $mise.Source -Generate {
+    & $mise activate pwsh | Out-String
+  }
+  if ($miseInit) {
+    $miseInit | Invoke-Expression
+  }
 }
 
 # Re-prepend the wrapper directory, since activation puts mise's real tool paths

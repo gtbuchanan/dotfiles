@@ -22,15 +22,32 @@ if (Test-Path $sshAskpass) {
 # session. On Windows, `wt` resolves to worktrunk via the `~/.local/bin/wt.exe`
 # symlink (Windows Terminal's App Execution Alias for `wt.exe` is removed by
 # the winget config). See worktrunk's shell-integration.md.
-if (Get-Command wt -ErrorAction SilentlyContinue) {
-  Invoke-Expression (& wt config shell init powershell | Out-String)
+$wt = Get-Command wt -CommandType Application -ErrorAction SilentlyContinue |
+  Select-Object -First 1
+if ($wt) {
+  # Guarded because a present-but-failing binary yields an empty script, which
+  # Invoke-Expression rejects outright rather than treating as a no-op.
+  $wtInit = Get-CachedInitScript -Name 'wt' -BinaryPath $wt.Source -Generate {
+    & $wt config shell init powershell | Out-String
+  }
+  if ($wtInit) {
+    $wtInit | Invoke-Expression
+  }
 }
 
 # Enable delta autocomplete (--generate-completion needs delta >= 0.18; skip
 # gracefully where an older delta ships, e.g. Ubuntu's 0.16.5)
-if (Get-Command delta -ErrorAction SilentlyContinue) {
-  $deltaCompletion = delta --generate-completion powershell 2>$null
-  if ($LASTEXITCODE -eq 0) {
-    $deltaCompletion | Out-String | Invoke-Expression
+$delta = Get-Command delta -CommandType Application -ErrorAction SilentlyContinue |
+  Select-Object -First 1
+if ($delta) {
+  # The generator yields an empty string where the flag is unsupported, and
+  # that empty result is cached like any other. Keyed on the binary, so a delta
+  # new enough to support it re-probes on upgrade rather than every shell.
+  $deltaCompletion = Get-CachedInitScript -Name 'delta' -BinaryPath $delta.Source -Generate {
+    $out = & $delta --generate-completion powershell 2>$null
+    if ($LASTEXITCODE -eq 0) { $out | Out-String } else { '' }
+  }
+  if ($deltaCompletion) {
+    $deltaCompletion | Invoke-Expression
   }
 }
