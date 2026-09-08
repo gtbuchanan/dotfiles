@@ -2,6 +2,12 @@
 # resets the PSReadLine keymap, which would clobber the PSFzf Tab rebind below
 # if it ran first. The profile.d numeric prefixes keep this in order.
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+  'PSReviewUnusedParameter', 'wordToComplete',
+  Justification = 'Completer arguments bind positionally, so this one must be declared'
+)]
+param()
+
 # Configure PSFzf
 Import-Module PSFzf
 Set-PSReadLineKeyHandler `
@@ -38,5 +44,28 @@ Set-PsFzfOption `
   -PSReadlineChordReverseHistoryArgs 'Alt+a' `
   -PSReadlineChordSetLocation 'Alt+c'
 
-# Configure posh-git
-Import-Module posh-git
+# Configure posh-git lazily. Only its git tab completion is wanted here --
+# starship renders the git prompt -- and that completion is registered as an
+# import side effect rather than an exported command, so PowerShell's module
+# auto-loading can never trigger it from `git <Tab>`. This stub does the import
+# on the first completion and delegates; that import registers posh-git's own
+# completer over this one, so the stub serves a single call per session and the
+# import cost is paid only by sessions that complete a git command.
+#
+# `g` is named explicitly because posh-git discovers aliases pointing at git
+# when it loads, which a stub registered before it cannot. See 00-aliases.
+$gitCompleter = {
+  param($wordToComplete, $commandAst, $cursorPosition)
+
+  Import-Module posh-git
+
+  # Pad the text back out to the cursor. Completion strips the trailing space,
+  # and Expand-GitCommand needs it to tell `git checkout ` (offer refs) from
+  # `git checkout` (still completing the subcommand).
+  $padLength = $cursorPosition - $commandAst.Extent.StartOffset
+  Expand-GitCommand $commandAst.ToString().PadRight($padLength, ' ').Substring(0, $padLength)
+}
+Microsoft.PowerShell.Core\Register-ArgumentCompleter `
+  -Native `
+  -CommandName git, gitk, tgit, g `
+  -ScriptBlock $gitCompleter
