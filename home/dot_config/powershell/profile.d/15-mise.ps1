@@ -19,11 +19,22 @@ if ($mise) {
   # has a target on first run; invoke the captured binary so this stub
   # doesn't shadow it. Prevents a benign but $Error-polluting path-not-found.
   function mise { }
+  # Only a shell mise has not already activated emits a script worth keeping.
+  # In one it has -- any nested shell, which inherits MISE_SHELL -- mise
+  # prepends `hook-env` output, and that hard-codes the PATH of the session
+  # generating it. Cached, that one session's PATH is replayed into every later
+  # shell on the host: a nested shell started under Git Bash left MSYS
+  # /usr/bin ahead of C:\Program Files\OpenSSH, so `ssh` stopped resolving to
+  # the native client everywhere. Nested shells pay the spawn instead.
+  $activate = { & $mise activate pwsh | Out-String }
+  $miseInit = if ($env:MISE_SHELL) {
+    & $activate
+  }
+  else {
+    Get-CachedInitScript -Name 'mise' -BinaryPath $mise.Source -Generate $activate
+  }
   # Guarded because a present-but-failing binary yields an empty script, which
   # Invoke-Expression rejects outright rather than treating as a no-op.
-  $miseInit = Get-CachedInitScript -Name 'mise' -BinaryPath $mise.Source -Generate {
-    & $mise activate pwsh | Out-String
-  }
   if ($miseInit) {
     $miseInit | Invoke-Expression
   }
