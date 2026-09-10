@@ -45,8 +45,8 @@
 
 ## Markdown
 
-- Only use numbered lists for sequential steps. Use `1.` for every item.
-- Use unordered lists for non-sequential items
+- Number every item in an ordered list `1.` — the renderer sequences them, so
+  inserting a step leaves the rest untouched.
 - Write headers as future-proof permalinks. The auto-generated anchor
   (`#header-slug`) is a public contract — external links, cross-doc
   references, and bookmarks depend on it, so renames break them silently.
@@ -60,31 +60,13 @@
   - Once published, treat header text as immutable. If the content
     evolves, add a new section rather than renaming an existing one.
 
-## Durable Writing
+## Technical Writing
 
-- Avoid volatile specifics in text that outlives the moment it was written —
-  commit messages, PR/issue descriptions, docs, code comments. Exact counts
-  (test runs, number of commits/files/lines changed), version numbers,
-  timings, and benchmark figures drift the instant the underlying thing
-  changes, and nothing keeps them in sync. The reader then trusts a stale
-  number with no signal that it's wrong.
-- This targets numbers that describe a *current* state. Values that record
-  *when or what happened* are immutable historical facts, not drift — a date
-  in a date-keyed log (RCA, post-mortem, changelog, decision record) is the
-  whole point, so keep it. Likewise a commit/PR reference or a pinned version
-  that documents the state at that moment.
-- Prefer qualitative phrasing ("the full suite passes", "several commits",
-  "added a few cases") over a hardcoded count. When a number genuinely adds
-  value, anchor it to a live source the reader can re-check (link the CI run,
-  cite the file/section) rather than transcribing it.
-- Hardcode a specific figure only when it is verifiable at read-time (it's in
-  the same diff/artifact) or is intentionally a point-in-time snapshot that's
-  labeled as such (e.g., "as of 2026-01").
-- Counts of structure are volatile too: "two parameters", "three steps:",
-  "the four callers". These get no read-time-verifiable pass — a comment
-  counting parameters goes wrong in place as soon as one is added. Name them
-  ("the `path` and `mode` parameters") or drop the quantifier ("the
-  parameters", "steps:") and let the list count itself.
+- Load the `gtb-technical-writing` skill before writing or revising prose an
+  engineer reads — documentation, a README, an ADR, a code comment, a design
+  note, an issue or pull request body, a runbook, a postmortem. It governs
+  sentence-level craft and what earns a place in prose that ships beside the
+  code it describes.
 
 ## Configuration
 
