@@ -1,8 +1,3 @@
-{{- /*
-  Only auto-allow MCP readonly tools here. Built-in tools (Read, Glob,
-  Grep, Agent) are intentionally excluded: they have no path restrictions,
-  so auto-allowing them would widen the blast radius of prompt injection.
-*/ -}}
 {
   "autoMemoryEnabled": false,
 {{- /* Android: binary is managed by the claude-code-termux package; block the in-session updater from clobbering the ELF-patched binary. */ -}}
@@ -106,7 +101,22 @@
     ]
   },
   "permissions": {
+{{- /*
+  Bare built-in tools (Read, Glob, Grep, Agent) are deliberately absent: they
+  carry no path restriction, so auto-allowing one widens the blast radius of
+  prompt injection to the whole filesystem. Only path-scoped rules belong here.
+*/}}
     "allow": [
+{{- /*
+  Read-only and path-scoped, over a tree whose SKILL.md bodies are already in
+  context by the time anything reads them. Without these the read gate refuses a
+  skill's own references/ files, which sit outside every working directory, so
+  any skill that discloses detail behind a pointer breaks at the pointer. Both
+  spellings are listed because ~/.claude/skills is a symlink to ~/.agents/skills,
+  and a gate that resolves it matches the target.
+*/}}
+      "Read(~/.agents/skills/**)",
+      "Read(~/.claude/skills/**)",
       "mcp__microsoft-learn__microsoft_code_sample_search",
       "mcp__microsoft-learn__microsoft_docs_fetch",
       "mcp__microsoft-learn__microsoft_docs_search",
