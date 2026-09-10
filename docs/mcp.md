@@ -2,7 +2,7 @@
 
 This repo registers MCP servers with the agent clients running on each
 machine: Claude Code via `claude mcp add` calls in install scripts,
-VS Code (Copilot) via `mcp.servers` in the shared VS Code settings
+VS Code (Copilot) via a per-OS user `mcp.json` rendered from a shared
 template, and GitHub Copilot CLI via a chezmoi-managed
 `~/.copilot/mcp-config.json`. Currently provisioned on Windows and
 Android only — Linux and macOS would need install scripts added.
@@ -15,7 +15,7 @@ Android only — Linux and macOS would need install scripts added.
 | [`home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_mcp-readonly-install.sh.tmpl)   | Android: install + register `readonly-mcp` (stdio); `setsid` workaround |
 | [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Windows: HTTP MCP registrations (folded into Claude configure)          |
 | [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Windows: install + register `readonly-mcp` (stdio)                      |
-| [`home/.chezmoitemplates/vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json)                                                                     | VS Code `mcp.servers` config (shared across OSes)                       |
+| [`home/.chezmoitemplates/vscode_mcp.json`](../home/.chezmoitemplates/vscode_mcp.json)                                                                               | VS Code `servers` config, rendered into each OS's user `mcp.json`       |
 | [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                       | Claude permissions `allow` list — explicitly enumerates every MCP tool  |
 | [`home/dot_config/powershell/profile.d/10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl)                                       | `copilot` wrapper re-passing each server as `--allow-tool` (Windows)    |
 | [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json)                                                                                           | Copilot CLI `mcpServers` config (shared across OSes)                    |
@@ -34,9 +34,9 @@ Installed via the pnpm-globals template, then registered per client:
 
 - **Claude**: each OS's `mcp-readonly-install` script registers the
   binary as a user-scope stdio MCP.
-- **VS Code**: a `mcp.servers.readonly` entry in the shared
-  [`vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) template, applied to every OS that deploys
-  VS Code settings.
+- **VS Code**: a `servers.readonly` entry in the shared
+  [`vscode_mcp.json`](../home/.chezmoitemplates/vscode_mcp.json) template, applied to every OS that deploys
+  VS Code config.
 - **Copilot CLI**: an `mcpServers.readonly` entry in
   [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json), deployed to
   `~/.copilot/mcp-config.json` on every OS.
@@ -51,8 +51,8 @@ Microsoft's hosted HTTP MCP. Registered per client:
 
 - **Claude**: each OS's `claude-configure` script registers the
   endpoint as a user-scope HTTP MCP.
-- **VS Code**: an `mcp.servers.microsoft-learn` entry in the shared
-  [`vscode_settings.json`](../home/.chezmoitemplates/vscode_settings.json) template.
+- **VS Code**: a `servers.microsoft-learn` entry in the shared
+  [`vscode_mcp.json`](../home/.chezmoitemplates/vscode_mcp.json) template.
 - **Copilot CLI**: an `mcpServers.microsoft-learn` entry in
   [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json).
 
@@ -68,9 +68,15 @@ The clients have meaningfully different registration mechanisms:
   `settings.json` under `permissions.allow`; see
   [`claude-code.md`](claude-code.md) for why only MCP tools are
   auto-allowed and built-ins aren't.
-- **VS Code** reads `mcp.servers` declaratively from user settings.
-  The shared template includes the registration, so any platform that
-  deploys VS Code settings picks it up.
+- **VS Code** reads `servers` declaratively from a dedicated user
+  `mcp.json`, whose path varies by OS: `%APPDATA%\Code\User\mcp.json`,
+  `~/.config/Code/User/mcp.json`, or
+  `~/Library/Application Support/Code/User/mcp.json`. Each of the three
+  is a one-line target including the shared template, so a server is
+  registered once. An `mcp` key in `settings.json` still works, but VS
+  Code prompts to move it whenever it finds one, and accepting that
+  prompt only drifts from the settings template until the next apply
+  writes the key back — so the entries stay out of that template.
 - **Copilot CLI** reads `mcpServers` declaratively from
   `~/.copilot/mcp-config.json`. `copilot mcp add` exists but only
   writes that same file, so chezmoi owns it directly and no install

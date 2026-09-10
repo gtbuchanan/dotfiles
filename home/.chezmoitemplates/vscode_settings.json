@@ -29,17 +29,6 @@
   },
   "githubPullRequests.pullBranch": "never",
   "markdown-preview-enhanced.previewTheme": "github-dark.css",
-  "mcp": {
-    "servers": {
-      "microsoft-learn": {
-        "type": "http",
-        "url": "https://learn.microsoft.com/api/mcp"
-      },
-      "readonly": {
-        "command": "readonly-mcp"
-      }
-    }
-  },
 {{- range $key := list "mssql.connections" "mssql.connectionGroups" }}
   "{{ $key }}":
 {{- get $json $key | default list | toPrettyJson | indent 1 | trim | comment " " }},
