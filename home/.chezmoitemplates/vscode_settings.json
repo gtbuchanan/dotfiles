@@ -34,6 +34,15 @@
 {{- get $json $key | default list | toPrettyJson | indent 1 | trim | comment " " }},
 {{- end }}
   "mssql.enableRichExperiences": true,
+{{- /* Todo Tree 0.0.226 searches appRoot for vscode-ripgrep and
+       @vscode/ripgrep only, and VS Code ships @vscode/ripgrep-universal now,
+       so the extension fails to start until this setting names an rg. Its
+       bundled copy lives under a directory named for the installed build, so
+       an upgrade would break the path; mise's shim outlives one. */}}
+  "todo-tree.ripgrep.ripgrep":
+{{- if eq .chezmoi.os "windows" }} "{{ .chezmoi.homeDir }}/AppData/Local/mise/shims/rg.exe",
+{{- else }} "{{ .chezmoi.homeDir }}/.local/share/mise/shims/rg",
+{{- end }}
   "workbench.colorTheme": "Default Dark+",
   "workbench.startupEditor": "none"
 }
