@@ -13,7 +13,15 @@ param()
 # Activate mise (tool version + env + task manager); prepends real tool
 # paths, overriding the shims dir that stays on the user PATH (added by the
 # winget config on Windows) for non-interactive contexts
-$mise = Get-Command mise -CommandType Application -ErrorAction SilentlyContinue
+#
+# `Get-Command` returns every match on PATH rather than the one that would run,
+# so take the first: that is the one a shell resolves, and the rest are shadowed
+# copies. Two on PATH at once is ordinary: a shim directory ahead of an install
+# directory, or a stub ahead of the real binary. Without this, the array that
+# came back stringified into the command name (`mise.cmd mise.exe`), breaking
+# both `& $mise` and `$mise.Source`.
+$mise = Get-Command mise -CommandType Application -ErrorAction SilentlyContinue |
+  Select-Object -First 1
 if ($mise) {
   # Placeholder so mise's own activation cleanup (Remove-Item function:mise)
   # has a target on first run; invoke the captured binary so this stub
