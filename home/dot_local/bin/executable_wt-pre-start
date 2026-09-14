@@ -1,7 +1,8 @@
 #!/bin/sh
 # worktrunk pre-start hook: blocking, prerequisite setup for a fresh worktree.
 # Runs before creation returns so the worktree is usable immediately and the
-# post-start bootstrap's `mise run` isn't blocked on an untrusted-config prompt.
+# post-start bootstrap can read the worktree's mise config when it decides what
+# setup to run.
 #
 # Mirrors untracked per-checkout files and Visual Studio state from the primary
 # worktree, then trusts the worktree's mise config. Worktrunk runs hooks
@@ -42,10 +43,20 @@ for pattern in '.vs/*/config/applicationhost.config' '.vs/*/v*/.suo'; do
   done
 done
 
-# A fresh worktree's mise config lives at a new path, so it's untrusted even
-# when the primary worktree's copy is trusted — mise tracks trust per
-# config-file path. Auto-trust it so the post-start bootstrap runs without an
-# interactive prompt, but only when all three hold:
+# Since mise 2026.7.5 a linked worktree inherits trust from the equivalent path
+# in the repository's main checkout, so this is a no-op for a repo you have
+# already worked in. It still matters where that inheritance has nothing to
+# inherit from: a fresh clone whose first act is `wt switch --create` has never
+# had its main checkout trusted, and neither will the worktree.
+#
+# Leaving it untrusted costs wt-post-start, which reads the config to decide
+# what setup to run: an unreadable one makes a project with a prepare task look
+# like a project with none. Normal mode raises no prompt — `mise run` trusts the
+# config of any task it is asked to run. That is also why the owner and fork
+# conditions below are load-bearing, and why wt-post-start refuses to run
+# anything while the config is untrusted.
+#
+# So: trust it, but only when all three hold:
 #   1. The worktree actually has a mise config (skip the mise call otherwise).
 #   2. origin belongs to a repo you trust (github.com/gtbuchanan/* or
 #      github.com/energyworldnet/*) — never auto-trust a third-party clone.
@@ -57,8 +68,34 @@ done
 #      when this one-shot pre-start hook fires — and gh is already required
 #      and authenticated for `wt switch pr:`. Fail closed: an unresolvable
 #      lookup is treated as a fork (no trust, manual review).
-if [ -f "$WT_PATH/mise.toml" ] || [ -f "$WT_PATH/.mise.toml" ] ||
-  [ -f "$WT_PATH/.config/mise/config.toml" ]; then
+#
+# `mise trust` with no argument trusts the directory rather than one file, so
+# the check below only has to find *a* config — but it has to find every shape
+# one can take (https://mise.jdx.dev/configuration.html): a `mise`-prefixed
+# name may be a dotfile, may carry a `.<env>` segment, may be `.local`, and the
+# directory forms take `conf.d/` drop-ins. Missing a shape fails quietly, since
+# the worktree is still created and the hook still exits 0; the omission
+# surfaces later as a bootstrap parked on a trust prompt.
+mise_config=false
+for candidate in \
+  "$WT_PATH"/mise.toml "$WT_PATH"/mise.*.toml \
+  "$WT_PATH"/.mise.toml "$WT_PATH"/.mise.*.toml \
+  "$WT_PATH"/mise/config.toml "$WT_PATH"/mise/config.*.toml \
+  "$WT_PATH"/mise/conf.d/*.toml \
+  "$WT_PATH"/.mise/config.toml "$WT_PATH"/.mise/config.*.toml \
+  "$WT_PATH"/.mise/conf.d/*.toml \
+  "$WT_PATH"/.config/mise.toml "$WT_PATH"/.config/mise.*.toml \
+  "$WT_PATH"/.config/mise/config.toml "$WT_PATH"/.config/mise/config.*.toml \
+  "$WT_PATH"/.config/mise/conf.d/*.toml \
+  "$WT_PATH"/.tool-versions; do
+  # An unmatched glob stays literal in sh, and `-f` rejects it for us.
+  if [ -f "$candidate" ]; then
+    mise_config=true
+    break
+  fi
+done
+
+if [ "$mise_config" = true ]; then
   is_fork=false
   if [ -n "$WT_PR" ]; then
     case "$(cd "$WT_PATH" && gh pr view "$WT_PR" --json isCrossRepository \

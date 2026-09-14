@@ -1,16 +1,56 @@
 #!/bin/sh
 # worktrunk post-start hook: slow, background project setup for a fresh
 # worktree. Runs after creation returns, once wt-pre-start has mirrored the
-# per-checkout files and trusted the worktree's mise config.
+# per-checkout files and settled whether the worktree's mise config is trusted.
 #
 # Args: $1=worktree_path
 
 WT_PATH="$1"
 
-if mise -C "$WT_PATH" tasks info prepare >/dev/null 2>&1; then
+# Whether mise may act here at all, settled before any task lookup.
+#
+# `mise tasks info <name>` exits non-zero for two unrelated reasons: the task
+# does not exist, and mise could not read the config. Branching on it alone
+# reads "not allowed to look" as "there is no prepare task", so an untrusted
+# worktree drops to the package-manager fallback and its prepare task never
+# runs. `mise tasks ls` separates them: it exits 0 whenever the config is
+# readable, including when the worktree has no mise config, and non-zero only
+# when one exists and mise cannot read it.
+#
+# An absent mise is a third state rather than the second: a worktree without
+# mise is what the package-manager fallback is for.
+if ! command -v mise >/dev/null 2>&1; then
+  mise_state=absent
+elif mise -C "$WT_PATH" tasks ls >/dev/null 2>&1; then
+  mise_state=readable
+else
+  mise_state=untrusted
+fi
+
+# Skipping is the decision here, not a degraded fallback. wt-pre-start withheld
+# trust on purpose — a fork PR, or a clone whose origin is not ours — and
+# `mise run` would undo that by itself, because mise trusts the config of any
+# task it is asked to run. So this stops before `mise run`, and before the
+# package-manager fallback, whose install lifecycle scripts are the same
+# arbitrary code from the same checkout by another route.
+#
+# Report it. A silent skip looks exactly like a project that needed no setup,
+# so the worktree reads as ready when its setup never ran.
+#
+# Exit 0 even so: worktrunk reports a failing post-start hook as a failed
+# worktree creation, and the worktree itself is fine.
+if [ "$mise_state" = untrusted ]; then
+  echo "wt-post-start: $WT_PATH has a mise config that is not trusted." >&2
+  echo "wt-post-start: skipping project setup. Review it, then run 'mise trust' there." >&2
+  exit 0
+fi
+
+if [ "$mise_state" = readable ] &&
+  mise -C "$WT_PATH" tasks info prepare >/dev/null 2>&1; then
   # Run project-level per-worktree preparation, when available
   mise -C "$WT_PATH" run prepare
-elif mise -C "$WT_PATH" tasks info bootstrap >/dev/null 2>&1; then
+elif [ "$mise_state" = readable ] &&
+  mise -C "$WT_PATH" tasks info bootstrap >/dev/null 2>&1; then
   # TODO: mise now has a built-in `bootstrap` command with different semantics, so this is
   # deprecated in favor of `prepare` task above. Remove it after projects have migrated
   mise -C "$WT_PATH" run bootstrap

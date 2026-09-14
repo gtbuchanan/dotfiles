@@ -80,6 +80,13 @@ there (e.g., `mise trust`).
 The config wires worktrunk `post-start` to our `wt-post-start` shell script. Add new slow,
 non-blocking steps there (e.g., dependency installation).
 
+When the worktree's mise config is untrusted, `wt-post-start` runs no project setup — not the
+`prepare` task and not the package-manager fallback, whose install lifecycle scripts come from the
+same checkout — and reports the skip on stderr. A worktree lands there when `wt-pre-start` withheld
+trust (a fork PR, or an origin outside our orgs) or when nothing trusted the repository's main
+checkout for the worktree to inherit from. Read the config, then `mise trust` in the worktree and
+run the setup by hand.
+
 ## Skill
 
 The worktrunk skill ships as a chezmoi external archive pinned to the
