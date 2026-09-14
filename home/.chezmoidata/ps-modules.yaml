@@ -10,6 +10,6 @@
 # profile.d/30-modules on every platform that has PowerShell.
 ps_modules:
   BurntToast: '1.1.0'
-  NerdFonts: '1.1.1'
+  NerdFonts: '1.1.2'
   PSFzf: '2.7.12'
   posh-git: '1.1.0'
