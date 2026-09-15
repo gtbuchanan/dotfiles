@@ -208,10 +208,14 @@
   use absolute paths for targets outside it.
 - `pnpm -C dir <cmd>` only works for built-in pnpm commands (install, test, run, etc.).
   To run a local binary from a different directory, use `pnpm -C dir exec <tool>`.
-- When no `-C` flag is available, use
-  `pushd dir && command; rc=$?; popd; exit $rc` instead of `cd dir && command`.
-  This ensures the working directory is always restored and the command's exit
-  code is preserved.
+- When no `-C` flag is available, contain the directory change so the session's
+  cwd never moves — it persists between calls, so a stray `cd` misdirects every
+  command after it. Both forms preserve the command's exit code:
+  - Bash: `pushd dir && command; rc=$?; popd; exit $rc`
+  - PowerShell: `Push-Location dir; try { command } finally { Pop-Location }`
+    — read a native command's status from `$LASTEXITCODE`, which survives the
+    pop; `$?` does not, since `Pop-Location` sets it `True`. A cmdlet never
+    sets `$LASTEXITCODE`, so give it `-ErrorAction Stop` and let it throw.
 - For long-running commands (builds, test suites, pipelines, anything that
   takes more than a few seconds), redirect output to a file and run in the
   background, then read/tail the file to inspect progress. Do NOT pipe
