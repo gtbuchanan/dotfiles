@@ -6,20 +6,23 @@
 - Prefer the PowerShell tool over Bash, regardless of what the environment
   block reports.
 {{- end }}
-- For long-running commands, use `Bash` with `run_in_background: true`.
-  This OVERRIDES the AGENTS.md guidance to manually redirect output to a
-  file (`command *> output.log`): in the Claude Code harness, manual
+- For long-running commands, pass `run_in_background: true` to whichever shell
+  tool you'd otherwise run the command in — backgrounding is a property of the
+  call, not a reason to switch tools, and every shell tool takes the
+  parameter. This OVERRIDES the AGENTS.md guidance to manually redirect output
+  to a file (`command *> output.log`): in the Claude Code harness, manual
   redirection is redundant — the harness already captures stdout/stderr to
   an output file — and it actively hurts, because it diverts the stream the
   harness would otherwise surface in the UI, leaving you blind to progress.
   Do NOT redirect; let the harness capture. Read the captured file (path in
   the tool result) when notified on exit, and spot-check it if you suspect a
   hang. Don't pipe through `head`/`tail`/`Select-Object` and don't busy-poll.
-- Pair every background `Bash` with a stall-detector `Monitor` — the Bash
-  `timeout` only bounds the foreground call, so backgrounded processes can
-  hang silently for the rest of the session. Sketch (polls output size,
-  emits when it doesn't grow for 60s; stop with `TaskStop` after the task
-  completes):
+- Pair every backgrounded call with a stall-detector `Monitor` — a shell
+  tool's `timeout` only bounds the foreground call, so backgrounded processes
+  can hang silently for the rest of the session. `Monitor` runs its own
+  command under Bash regardless of which tool started the job, so the sketch
+  stays POSIX. Sketch (polls output size, emits when it doesn't grow for 60s;
+  stop with `TaskStop` after the task completes):
   ```
   prev=-1
   while true; do
