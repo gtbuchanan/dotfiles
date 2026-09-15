@@ -19,7 +19,7 @@ catalogs:
     '@pnp/cli-microsoft365': 11.11.0
     '@readonly-mcp/core': github:readonly-mcp/core#6c14823a4159b1bf9b821dd3d8334ec477852f1a
     '@vtsls/language-server': 0.3.0
-    '@vue/language-server': 2.2.12
+    '@vue/language-server': 3.3.11
     bitwarden-cli-bio: 1.4.2
     tweakcc: 4.3.3
     vscode-langservers-extracted: 4.10.0
