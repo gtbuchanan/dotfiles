@@ -47,12 +47,3 @@ if ($mise) {
     $miseInit | Invoke-Expression
   }
 }
-
-# Re-prepend the wrapper directory, since activation puts mise's real tool paths
-# in front of whatever the user PATH set. A wrapper is only reachable ahead of
-# the tool it wraps, and mise-managed tools resolve to their install directory
-# here, not the shim. See the winget config's wrappersPath resource.
-$wrappers = Join-Path $HOME '.local\bin\wrappers'
-if (Test-Path $wrappers) {
-  $env:PATH = "$wrappers$([IO.Path]::PathSeparator)$env:PATH"
-}

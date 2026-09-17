@@ -1,0 +1,11 @@
+# Puts ~/.local/bin/wrappers ahead of mise's tool directories, on every host.
+#
+# A wrapper only runs when it outranks the tool it is named after, and mise
+# orders `_.path` entries ahead of its install directories on every hook-env
+# run. A shell profile prepending the directory after `mise activate` loses it
+# on the next run, since hook-env rebuilds PATH from the copy mise captured at
+# activation.
+#
+# A path, not a credential -- no token has gone back into mise's `[env]`.
+[env]
+_.path = ["~/.local/bin/wrappers"]

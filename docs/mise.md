@@ -70,6 +70,12 @@ Non-interactive POSIX contexts don't run `mise activate`, so
 system tools). Windows covers the same gap via the user-PATH shims entry
 above.
 
+A wrapper named after a mise-managed tool has to outrank the install directory
+as well, which no profile can do: hook-env rebuilds PATH from the copy mise
+captured at activation, dropping anything prepended after it.
+[`conf.d/wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml) does it
+from mise's own config instead.
+
 ## Global mise Config Fragments
 
 The repo-managed global config is a set of fragments under
@@ -91,6 +97,7 @@ the plain config file free for anything hand-written on a host.
 | [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via |
 | [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)  |
+| [`wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)             | every host     | `~/.local/bin/wrappers` ahead of the tool paths    |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`

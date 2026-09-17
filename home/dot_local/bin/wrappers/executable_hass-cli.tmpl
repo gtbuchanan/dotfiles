@@ -8,11 +8,11 @@
 # hid them from `mise doctor` but not from `mise env`. This wrapper narrows that
 # to the one process that needs them.
 #
-# It works because PATH puts ~/.local/bin/wrappers ahead of mise's shims, in
-# .profile for non-interactive callers and again after `mise activate` in
-# .bashrc. So agents, scripts, and interactive shells all reach this rather than
-# the shim -- which is what a shell function could never do, and why `[env]` was
-# the original answer.
+# It works because PATH puts ~/.local/bin/wrappers ahead of the tool it wraps:
+# ahead of the shims in .profile, and ahead of mise's install directories in
+# conf.d/wrappers.toml. So agents, scripts, and interactive shells all reach
+# this rather than the binary -- which is what a shell function could never do,
+# and why `[env]` was the original answer.
 #
 # Two things follow from only running when someone asked for hass-cli.
 #

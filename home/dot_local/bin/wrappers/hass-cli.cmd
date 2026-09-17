@@ -8,13 +8,12 @@ rem shim and to every child of an activated shell -- and `redact` hid them from
 rem `mise doctor` but not from `mise env`, which prints both in full. This
 rem wrapper narrows all of that to the one process that needs them.
 rem
-rem It works because PATH puts %USERPROFILE%\.local\bin\wrappers ahead of mise's
-rem shims: on the user PATH via the winget config for non-interactive callers,
-rem and again after `mise activate` in the PowerShell profile, which prepends
-rem mise's real tool paths and would otherwise bury this. So agents, scripts,
-rem Git Bash, and interactive shells all reach this rather than the binary --
-rem which is what a shell function could never do, and why `[env]` was the
-rem original answer.
+rem It works because PATH puts %USERPROFILE%\.local\bin\wrappers ahead of the
+rem tool it wraps: ahead of the shims on the user PATH via the winget config,
+rem and ahead of mise's install directories in conf.d\wrappers.toml. So agents,
+rem scripts, Git Bash, and interactive shells all reach this rather than the
+rem binary -- which is what a shell function could never do, and why `[env]`
+rem was the original answer.
 rem
 rem Two things follow from only running when someone asked for hass-cli. It may
 rem prompt, where an `[env]` resolver had to stay silent rather than raise a

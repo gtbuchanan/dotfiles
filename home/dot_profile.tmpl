@@ -35,7 +35,8 @@ PATH="$(brew --prefix node@20)/bin:$PATH"
 [ -d "$HOME/.local/share/mise/shims" ] && PATH="$HOME/.local/share/mise/shims:$PATH"
 
 # Wrappers that must outrank the shim for the tool they wrap — a wrapper named
-# after a mise-managed tool is only reachable ahead of that tool's shim.
+# after a mise-managed tool is only reachable ahead of that tool's shim. In an
+# activated shell conf.d/wrappers.toml does it, against the install directory.
 #
 # Its own directory rather than putting ~/.local/bin in front, which would
 # change resolution for everything in there to win one name. Nothing collides

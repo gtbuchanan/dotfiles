@@ -15,7 +15,7 @@ there.
 | [`home/dot_config/powershell/Microsoft.PowerShell_profile.ps1`](../home/dot_config/powershell/Microsoft.PowerShell_profile.ps1)                 | Loader: dot-sources `profile.d/*.ps1` in order                 |
 | [`home/dot_config/powershell/profile.d/00-aliases.ps1.tmpl`](../home/dot_config/powershell/profile.d/00-aliases.ps1.tmpl)                       | `Set-Alias`/`Remove-Alias` (+ `tg` on ewn+Windows)             |
 | [`home/dot_config/powershell/profile.d/10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl)                   | `ccc`, `cmcd`, and Windows-only `ls`/`su`/`refreshenv`         |
-| [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                       | mise activation + wrapper-dir PATH re-prepend                  |
+| [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                       | mise activation, cached per binary                             |
 | [`home/dot_config/powershell/profile.d/20-prompt.ps1`](../home/dot_config/powershell/profile.d/20-prompt.ps1)                                   | Starship init + OSC 7, PSReadLine vi-mode                      |
 | [`home/dot_config/powershell/profile.d/30-modules.ps1`](../home/dot_config/powershell/profile.d/30-modules.ps1)                                 | PowerShellGet, PSFzf + keybindings, posh-git                   |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl)             | `GPG_TTY`, ssh-askpass, worktrunk shell init, delta completion |
