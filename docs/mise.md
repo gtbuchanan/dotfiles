@@ -253,10 +253,28 @@ the skill deploy path shared by every tool.
 
 `mise bootstrap` — a converging machine provisioner mise grew over its 2026
 releases — overlaps chezmoi's job enough to raise the question of whether it
-could replace it here. Evaluated as of 2026-08 against mise 2026.8.2:
-**no.** Keep chezmoi as the file-deployment layer.
+could replace it here. Re-evaluated 2026-09 against mise 2026.9.11: **no.**
+Keep chezmoi as the file-deployment layer.
 
-What bootstrap does bring:
+Both triggers the 2026-08 pass set have landed, which is what prompted this
+one. They named the two gaps most likely to move rather than the whole blocker
+list, so closing them shortens that list without emptying it:
+
+- **winget** became a `[bootstrap.packages]` manager in 2026.9.3 — exact
+  package IDs, version pins, source refresh, automatic source-agreement
+  acceptance. Scoop, Chocolatey, and package removal remain future work
+  upstream.
+- **`variants`** landed on `[dotfiles]` entries in 2026.9.5, selecting a
+  destination by `os` (optionally with architecture) or mise profile.
+
+`variants` reaches past what the trigger asked for. An entry whose variants
+match no OS and declare no `default` drops off that platform entirely instead
+of merely going un-retargeted: on Windows a `linux`/`macos` entry is absent
+from both `dotfiles status` and `dotfiles apply --dry-run` while a `windows`
+sibling resolves. That is a working `.chezmoiignore` for dotfile entries, and
+it retires the `mise.<env>.toml` sharding this section used to propose.
+
+What bootstrap brings, beyond those two:
 
 - `[dotfiles]`, keyed by target path, with `symlink`, `symlink-each`, `copy`,
   and `template` (tera) modes — plus _edit_ entries that own a
@@ -264,6 +282,8 @@ What bootstrap does bring:
   otherwise own. Confirmed working on Windows: template mode renders with
   `[vars]` in scope, and `symlink` falls back to copying for files (documented
   behavior, since file symlinks need elevation there).
+- A dotfile history layer under `mise dot` — checkpoints, rollback, `watch`,
+  per-file encryption, and a setup repository to sync them between machines.
 - System-level convergence that chezmoi can only model as shell scripts —
   `[bootstrap.packages]`, `[bootstrap.services]`, `[bootstrap.linux.firewall]`,
   `[bootstrap.linux.systemd.units]`, `[bootstrap.macos.defaults]`,
@@ -273,34 +293,40 @@ What bootstrap does bring:
 - `mise bootstrap remote` (bootstrap other machines over OpenSSH) and
   `mise bootstrap plan`, neither of which chezmoi has an analogue for.
 
+`mise bootstrap status` now runs on Windows and reports tool state; the
+2026-08 failure (`managed system files are only supported on Unix`) is gone.
+
 What blocks it for this repo:
 
-| Gap                                                                                                                                                                                                                                                                                                 | Dependency here                                                                                                                                                                             |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| No conditional gating of entries. `mise.toml` is strict TOML and tera renders inside string _values_, not over the file, so `{% if os() == "windows" %}` around `[dotfiles]` entries is a parse error. `[bootstrap.packages]` entries take an `os` filter; `[dotfiles]` entries have no equivalent. | [`.chezmoiignore`](../home/.chezmoiignore) gates whole categories of targets per-OS. The workaround would be sharding into `mise.<env>.toml` files and setting `MISE_ENV` on every machine. |
-| No Windows package manager — no `winget`, `scoop`, or `chocolatey` backend anywhere in the CLI or schema.                                                                                                                                                                                           | [`winget.yaml.tmpl`](../home/winget.yaml.tmpl), which provisions Windows packages including mise itself.                                                                                    |
-| `mise bootstrap status` fails outright on Windows (`managed system files are only supported on Unix`); only sub-phases such as `bootstrap dotfiles` run.                                                                                                                                            | Windows is a primary platform.                                                                                                                                                              |
-| No prompted, persisted per-host data. `[vars]` is static; `[bootstrap.secrets]` prompts only for secret inputs.                                                                                                                                                                                     | `promptChoiceOnce` for `hosttype` in [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl), fanning out to `email`, `signingkey`, `osid`, and `wsl`.                                           |
-| No permission attributes on dotfile entries; `template` mode simply inherits the source file's permissions.                                                                                                                                                                                         | The `private_`, `readonly_`, and `executable_` prefixes — notably [`private_dot_ssh`](../home/private_dot_ssh).                                                                             |
-| No `modify_` equivalent. Edit entries manage comment-marker blocks or exact lines, not structured merges.                                                                                                                                                                                           | The `modify_` scripts, above all the VS Code `settings.json` merge that has to survive VS Code's own writes.                                                                                |
-| No archive or single-file externals; `[bootstrap.repos]` is git-only.                                                                                                                                                                                                                               | The `type: archive` and `type: file` externals (agent skills, vim-plug).                                                                                                                    |
-| Bootstrap hooks run on every invocation and must be idempotent. Task `sources`/`outputs` fingerprinting is the nearest analogue to re-firing on a rendered-content hash change, but it isn't the same contract.                                                                                     | The `run_onchange_*` scripts.                                                                                                                                                               |
+| Gap                                                                                                                                                                                                                                                                                                                                                                                        | Dependency here                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Windows configuration stops at packages. `bootstrap` has `linux` and `macos` sections and no `windows` one, so winget reaches the 100 `WinGetPackage` resources of the manifest and none of the other 51 — 26 `VSCodeExtension`, 8 `xScript`, 4 `PSModule`, 3 `xEnvironment`, 2 `xService`, and the Developer Mode, Explorer, Taskbar, dark-mode, PowerToys, and scheduled-task resources. | [`winget.yaml.tmpl`](../home/winget.yaml.tmpl), which provisions Windows packages including mise itself, plus every OS setting this host expects. |
+| No prompted, persisted per-host data. `[vars]` is static; `[bootstrap.secrets]` prompts only for secret inputs.                                                                                                                                                                                                                                                                            | `promptChoiceOnce` for `hosttype` in [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl), fanning out to `email`, `signingkey`, `osid`, and `wsl`. |
+| No permission attributes on dotfile entries; `template` mode simply inherits the source file's permissions. The schema's entry properties are `block`, `comment`, `content`, `encrypt`, `exclude`, `line`, `manifest`, `mode`, `position`, `source`, `template`, and `variants`.                                                                                                           | The `private_`, `readonly_`, and `executable_` prefixes — notably [`private_dot_ssh`](../home/private_dot_ssh).                                   |
+| No `modify_` equivalent. Edit entries manage comment-marker blocks or exact lines, not structured merges.                                                                                                                                                                                                                                                                                  | The `modify_` scripts, above all the VS Code `settings.json` merge that has to survive VS Code's own writes.                                      |
+| No archive or single-file externals; a `[bootstrap.repos]` entry takes `url` and `ref` and nothing else.                                                                                                                                                                                                                                                                                   | The `type: archive` and `type: file` externals (agent skills, vim-plug).                                                                          |
+| Bootstrap hooks run on every invocation and must be idempotent. Task `sources`/`outputs` fingerprinting is the nearest analogue to re-firing on a rendered-content hash change, but it isn't the same contract.                                                                                                                                                                            | The `run_onchange_*` scripts.                                                                                                                     |
 
 Migration would also mean porting every `*.tmpl` from Go `text/template` to
 tera.
 
 Maturity weighs in too, for a repo that has to work on every platform above:
-bootstrap is new and moving quickly, and mise's published JSON schema already
-lags its own CLI — `--help` documents `[bootstrap.files]`,
-`[bootstrap.services]`, `[bootstrap.compose]`, and
-`[bootstrap.users]`/`[bootstrap.groups]`, while `mise.json` omits them.
+bootstrap is moving fast enough that the published JSON schema still lags its
+own CLI — `mise bootstrap compose` and `mise bootstrap accounts` manage
+`[bootstrap.compose]` and `[bootstrap.users]`/`[bootstrap.groups]`, none of
+which `mise.json` declares. The delivery channel lags as well. winget ships
+the mise this repo installs on its primary platform, and it sat at 2026.9.5
+while upstream was six releases ahead at 2026.9.11, so `min_version` in a
+project `mise.toml` is what any newly adopted bootstrap feature would collide
+with first.
 
 Re-evaluate if either of these lands:
 
-- a `winget:` (or `scoop:`) manager for `[bootstrap.packages]`, which would
-  give `winget.yaml.tmpl` somewhere to go; or
-- an `os` filter on `[dotfiles]` entries, matching what
-  `[bootstrap.packages]` already accepts — the `.chezmoiignore` replacement.
+- a Windows counterpart to `[bootstrap.macos.defaults]` — somewhere for the
+  OS settings, VS Code extensions, and PowerShell modules that make up the
+  other third of `winget.yaml.tmpl`; or
+- permission attributes on `[dotfiles]` entries, which `private_dot_ssh`
+  needs before any file deployment could move.
 
 A narrower question stays open: moving only the _provisioning_ half (the
 `run_onchange_*` scripts and `winget.yaml.tmpl`) into `mise bootstrap` while
