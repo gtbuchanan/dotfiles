@@ -57,11 +57,16 @@ echo # stub mise init
     }
     else {
       $stub = Join-Path $bin 'mise'
-      Set-Content -LiteralPath $stub -Encoding ascii -Value @'
-#!/usr/bin/env bash
+      # The interpreter is resolved rather than written as `/usr/bin/env bash`.
+      # Termux has no /usr, and that shebang runs there only because
+      # termux-exec rewrites it from an LD_PRELOAD shim -- which pwsh drops, so
+      # the stub the profile spawns would fail to start with ENOENT.
+      $bash = @(Get-Command bash -CommandType Application)[0].Source
+      $body = @'
 echo call >>"$MISE_STUB_LOG"
 echo '# stub mise init'
 '@
+      Set-Content -LiteralPath $stub -Encoding ascii -Value @("#!$bash", $body)
       & chmod +x $stub
     }
 
