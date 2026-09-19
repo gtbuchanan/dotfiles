@@ -85,8 +85,11 @@ disable_tools = [
   # wrapper out of band (same run_onchange_after_install-hk.sh). hk only invokes
   # pkl for validate/check/fix/install.
   "pkl",
-  # `aqua:pnpm/pnpm` lists linux/{x64,arm64}, darwin/arm64, windows — no
-  # android/arm64. Install via `npm i -g pnpm` instead (also in
+  # `aqua:pnpm/pnpm` omits android from its supported_envs, so mise rejects the
+  # install as an unsupported env before it looks for an asset, even though
+  # pnpm publishes one the entry's template would name. Adding android there
+  # would still leave the entry hard-linking `pnpx` and `pnx` onto the binary,
+  # which Android refuses. Install via `npm i -g pnpm` instead (also in
   # run_onchange_before.sh).
   "pnpm",
   # `aqua:PowerShell/PowerShell` has no android asset — it keys off `android`
