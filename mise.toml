@@ -3,21 +3,17 @@
 # never applied by chezmoi. Mirrors gtbuchanan/tooling's mise.toml so local
 # pre-commit runs match that repo's shared hk preset.
 
-# Hard floor for minimum_release_age_excludes (below): older mise silently
-# ignores the field instead of failing, so enforce the version rather than
-# soft-warn.
-min_version = "2026.6.2"
+# Two floors, whichever is higher. minimum_release_age_excludes (below) needs
+# 2026.6.2 — older mise silently ignores the field instead of failing, so
+# enforce the version rather than soft-warn. hk 2.x installs through the
+# `packslip` backend rather than `aqua`, and the lock entry that backend writes
+# (a per-platform `signer`, no `url_api`) needs 2026.9.5 to produce or consume.
+min_version = "2026.9.5"
 
 [env]
 # hk wraps hook steps in `mise x` so mise-managed tools resolve without
 # activation.
 HK_MISE = "1"
-# Route pkl through the external CLI (pinned in [tools]) instead of hk's
-# embedded evaluator, whose leniency (it accepts redefining a spread-in
-# Mapping member the CLI rejects) lets bad configs pass CI yet fail on the
-# strict CLI Android must use. Pinning it repo-wide keeps local and CI
-# evaluation identical.
-HK_PKL_BACKEND = "pkl"
 
 [hooks]
 # Installs hk's git hooks (pre-commit) on `mise install`.
@@ -45,7 +41,7 @@ actionlint = "1.7.12"
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
 chezmoi = "2.72.1"
-hk = "1.54.1"
+hk = "2.0.0"
 node = "24.20.0"
 "npm:@gtbuchanan/cli" = "0.7.1"
 "npm:renovate" = "43.231.2"

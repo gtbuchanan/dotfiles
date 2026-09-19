@@ -6,12 +6,12 @@
   as a workflow-lint step), but Termux-native mise resolves android/arm64,
   for which aqua has no asset (see dot_config/mise/conf.d/termux.toml).
   actionlint is a static Go binary, so the prebuilt linux_arm64 release runs
-  unmodified on bionic — no loader shim, unlike pkl.
+  unmodified on bionic — no loader shim, unlike hk and pkl.
 
-  It's a standalone linter that hk merely orchestrates, not an hk runtime
-  dependency (cf. pkl in install-hk.sh), so it's installed on its own and
-  version-pinned separately in `home/.chezmoidata/actionlint.yaml`
-  (Renovate-tracked), kept in sync with tooling's mise.toml.
+  It's a standalone linter that hk merely orchestrates, so it's installed
+  on its own and version-pinned separately in
+  `home/.chezmoidata/actionlint.yaml` (Renovate-tracked), kept in sync with
+  tooling's mise.toml.
 */}}
 set -euo pipefail
 

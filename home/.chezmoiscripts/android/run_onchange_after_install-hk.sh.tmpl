@@ -5,13 +5,30 @@
   Termux-native mise can't install hk, pkl, or actionlint via aqua — its
   OS detection is compile-time, so it always resolves android/arm64, for
   which aqua has no assets (see dot_config/mise/conf.d/termux.toml's
-  disable_tools and the per-tool rationale there). This installs the two
-  tools hk needs to run locally out of band.
+  disable_tools and the per-tool rationale there). This installs both
+  tools out of band.
 
-  hk:  static musl aarch64 release tarball, runs unmodified on bionic.
+  hk:  static musl aarch64 release tarball, runs unmodified on bionic. Keep
+       it native rather than shimming the glibc build through grun: grun
+       unsets LD_PRELOAD, and hk spawns every step as a child process, so
+       losing termux-exec's shebang rewriting there breaks each step that
+       runs a `#!/usr/bin/env` script — `gtb` and `renovate-config-validator`
+       (npm bin shims) and the mise file tasks among them.
+
+       hk 2.0 evaluates hk.pkl with its embedded pklr and no longer shells
+       out to the pkl CLI. pklr reads its CA roots from the system store and
+       finds none here, so the wrapper below names Termux's bundle. It also
+       fetches each `package://` import over HTTPS on first evaluation, which
+       a static musl binary can't do on bionic: it resolves names through
+       /etc/resolv.conf, which Android has no equivalent of. Evaluation
+       succeeds once those packages are in pklr's cache and fails cold, so a
+       bump to hk or to the hk-config pin needs a seeded cache here.
   pkl: glibc-dynamic `pkl-linux-aarch64`, launched through glibc-runner
        (`grun`, provided by the claude-code-termux package installed in
-       run_onchange_after_claude-code-install.sh, which sorts earlier).
+       run_onchange_after_claude-code-install.sh, which sorts earlier). hk
+       evaluates Pkl in-process and never invokes it, so pkl serves
+       gtbuchanan/tooling alone, which runs `pkl eval` and
+       `pkl project package` to author the hk-config package.
 
   Versions pinned in `home/.chezmoidata/hk.yaml` (Renovate-tracked) and
   kept in sync with gtbuchanan/tooling's mise.toml so local runs match CI.
@@ -38,14 +55,23 @@ if [ ! -x "$HK_BINARY" ]; then
   echo "Installing hk $HK_VERSION..."
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' EXIT
-  # Tarball contains a single top-level `hk` binary.
+  # Tarball carries the binary beside skills/ and completions; take the binary.
   curl -fsSL "$HK_URL" | tar -xz -C "$tmp" hk
   chmod +x "$tmp/hk"
   mv "$tmp/hk" "$HK_BINARY"
   rm -rf "$tmp"
   trap - EXIT
 fi
-ln -sf "$HK_BINARY" "$BIN_DIR/hk"
+
+# Delete first: where $BIN_DIR/hk is still the symlink an earlier layout left,
+# the redirect below writes through it and overwrites the binary it points at.
+rm -f "$BIN_DIR/hk"
+cat > "$BIN_DIR/hk" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+export SSL_CERT_FILE="\${SSL_CERT_FILE:-$PREFIX/etc/tls/cert.pem}"
+exec "$HK_BINARY" "\$@"
+EOF
+chmod +x "$BIN_DIR/hk"
 find "$HK_DIR" -mindepth 1 -maxdepth 1 -type f -name 'hk-*' ! -name "hk-$HK_VERSION" -delete
 
 # --- pkl ------------------------------------------------------------------

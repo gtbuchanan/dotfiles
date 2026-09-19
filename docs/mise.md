@@ -94,7 +94,7 @@ the plain config file free for anything hand-written on a host.
 | [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine               |
 | [`ripgrep.toml`](../home/dot_config/mise/conf.d/ripgrep.toml)               | every host     | The `ripgrep` pin (Termux uses `pkg`)              |
 | [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)             |
-| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | `HK_PKL_BACKEND` + the `disable_tools` workarounds |
+| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | The `disable_tools` workarounds                    |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via |
 | [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)  |
 | [`wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)             | every host     | `~/.local/bin/wrappers` ahead of the tool paths    |
@@ -171,21 +171,15 @@ global npm packages and the `# renovate:` annotations in
 The Termux fragment exists only because mise's backend OS detection is
 **compile-time**: Termux-native mise always resolves `android/arm64`, for
 which aqua publishes no assets and `core` backends fall back to
-from-source builds that don't compile against bionic. The config therefore:
-
-- sets `HK_PKL_BACKEND = "pkl"` so hk routes pkl through the external CLI
-  instead of its embedded evaluator. The repo `mise.toml` pins this backend on
-  every platform for consistent evaluation; on Termux it is also mandatory —
-  the embedded backend's rustls/reqwest client can't fetch the remote pkl
-  package over HTTPS on bionic; and
-- lists every tool with no usable Android backend in `disable_tools`. Most
-  are then supplied from PATH instead — either native `pkg` builds or
-  out-of-band release fetches (below). The exception is `powershell`, which
-  gets no replacement: its only consumer, the psscriptanalyzer hk step, isn't
-  run on Termux. `chezmoi` is a special case in the other direction — aqua
-  _does_ ship an Android asset and mise installs it, but the generic Go binary
-  can't resolve DNS on bionic (breaking `.chezmoiexternal` fetches), so it too
-  is disabled in favor of the `pkg` build.
+from-source builds that don't compile against bionic. The config therefore
+lists every tool with no usable Android backend in `disable_tools`. Most are
+then supplied from PATH instead — either native `pkg` builds or out-of-band
+release fetches (below). The exception is `powershell`, which gets no
+replacement: its only consumer, the psscriptanalyzer hk step, isn't run on
+Termux. `chezmoi` is a special case in the other direction — aqua _does_ ship
+an Android asset and mise installs it, but the generic Go binary can't resolve
+DNS on bionic (breaking `.chezmoiexternal` fetches), so it too is disabled in
+favor of the `pkg` build.
 
 Each disabled tool's rationale lives beside its own `disable_tools` entry —
 keep that as the source of truth and update it when a tool's Android story
@@ -194,9 +188,9 @@ changes.
 ## hk Pre-Commit Toolchain on Termux
 
 Downstream repos run hk for pre-commit linting; on normal platforms mise
-installs hk and its dependencies via aqua. On Termux that path is dead (see
-above), so the toolchain is reconstructed from two install routes, both
-landing wrappers/symlinks in `~/.local/bin`:
+installs hk and the linters it drives from their own backends. On Termux that
+path is dead (see above), so the toolchain is reconstructed from two install
+routes, both landing wrappers/symlinks in `~/.local/bin`:
 
 - **Native bionic builds from `pkg`** — tools Termux already packages are
   installed by
@@ -206,12 +200,25 @@ landing wrappers/symlinks in `~/.local/bin`:
   their own `run_onchange_after_install-*` script, so a version bump re-fires
   only the affected install:
   - `hk` and `pkl` are installed together by
-    [`install-hk.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)
-    because pkl is an hk **runtime** dependency (hk invokes it for
-    validate/check/fix/install). pkl can't be exec'd directly on bionic, so
-    `grun -c` patches its ELF interpreter and a wrapper launches it through
-    `grun` (provided by the `claude-code-termux` package; see
-    [`claude-code.md`](claude-code.md)).
+    [`install-hk.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl).
+    hk is a static musl binary and runs as-is; pkl can't be exec'd directly on
+    bionic, so `grun -c` patches its ELF interpreter and a wrapper launches it
+    through `grun` (provided by the `claude-code-termux` package; see
+    [`claude-code.md`](claude-code.md)). hk stays native rather than taking the
+    glibc build through `grun` too: `grun` unsets `LD_PRELOAD`, and hk runs
+    every step as a child process, so losing termux-exec's shebang rewriting
+    there breaks each step that runs a `#!/usr/bin/env` script. hk's own
+    wrapper only names Termux's CA bundle in `SSL_CERT_FILE`, which its
+    embedded Pkl evaluator needs. hk evaluates Pkl in-process and never invokes
+    pkl; pkl is installed for `gtbuchanan/tooling`, which calls it directly to
+    author the hk-config package.
+
+    That evaluator fetches each `package://` import over HTTPS the first time
+    it evaluates a config, which the musl binary can't do on bionic — it
+    resolves names through `/etc/resolv.conf`, which Android has no equivalent
+    of. Evaluation succeeds against pklr's package cache and fails cold, so
+    bumping hk or the hk-config pin needs that cache seeded on Termux.
+
   - `actionlint` is installed alone by
     [`install-actionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl)
     — hk merely **orchestrates** it as a workflow-lint step, it's not an hk
@@ -232,7 +239,7 @@ re-fire on a bump:
 
 All carry `renovate:` annotations (datasource `github-releases`) for automated
 bumps, and are kept in sync with `gtbuchanan/tooling`'s `mise.toml` so local
-Termux hk runs match what CI installs through aqua. actionlint publishes
+Termux hk runs match what CI installs through mise. actionlint publishes
 per-asset checksums, which the install script verifies; jdx/hk does not
 publish per-tarball checksums, so hk is pinned by version only.
 
