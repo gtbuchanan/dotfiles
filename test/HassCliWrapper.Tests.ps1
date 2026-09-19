@@ -8,8 +8,13 @@
 # question, so nothing here is stubbed at the argument boundary itself.
 #
 #   mise run test:pester [-- -FilterName '*hass-cli wrapper*']
+#
+# Windows-only: the wrapper exists to fix how PowerShell quotes for cmd, and
+# the stub standing in for the credential wrapper is a .cmd. Elsewhere that
+# stub is not executable, so the wrapper's own `exit $LASTEXITCODE` throws on a
+# variable nothing ever set, which says nothing about the quoting under test.
 
-Describe 'hass-cli wrapper argument passing' {
+Describe 'hass-cli wrapper argument passing' -Skip:(-not $IsWindows) {
 
   BeforeAll {
     $script:wrapper = Join-Path (Split-Path $PSScriptRoot -Parent) `
