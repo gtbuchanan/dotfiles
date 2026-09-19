@@ -39,3 +39,11 @@ AppData/Roaming/wt
 # managing it, so a host that already has it would keep exporting the token to
 # everything mise spawns — the exact exposure the wrapper closes.
 .config/mise/conf.d/home-assistant-credentials.toml
+
+# pnpm publishes an android-arm64 build now, so a project's `packageManager`
+# pin resolves here like anywhere else and the wrapper that forced
+# --pm-on-fail=warn has nothing left to suppress. Dropping it from the source
+# only stops chezmoi managing it, and ~/.local/bin outranks $PREFIX/bin on
+# PATH, so a host that already has it would go on shadowing the real pnpm with
+# a wrapper that downgrades a genuine version disagreement to a warning.
+.local/bin/pnpm
