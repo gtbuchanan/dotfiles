@@ -90,6 +90,13 @@ disable_tools = [
   # needed by the psscriptanalyzer hk step, which isn't run on Termux, so just
   # disable it rather than shimming a glibc build with grun.
   "powershell",
+  # `core:python` has no android build and falls back to compiling CPython from
+  # source, which doesn't compile against bionic. Termux packages python
+  # natively (run_onchange_before.sh), so resolve it from PATH; that build
+  # tracks Termux's release, which may lag a repo's pin. It matters beyond
+  # repos that run Python: one that pins a version otherwise fails `mise x`
+  # outright, which takes every hk hook step with it.
+  "python",
   # `aqua:BurntSushi/ripgrep` publishes armv7 and aarch64 linux targets but no
   # android one. Termux packages ripgrep natively (run_onchange_before.sh), so
   # `rg` resolves from PATH.

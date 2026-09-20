@@ -16,6 +16,10 @@
 #
 # uv likewise: aqua ships no android asset, so the pkg build serves from PATH as
 # the engine mise's pipx backend installs `pipx:` tools with.
+#
+# python is the same story: mise's only android path is compiling CPython from
+# source, which doesn't compile against bionic, so a repo pinning a Python
+# version resolves the pkg build from PATH.
 PKG_PACKAGES=(
   "age"
   "bash-completion"
@@ -31,6 +35,7 @@ PKG_PACKAGES=(
   "ncurses-utils"
   "nodejs-lts"
   "openssh"
+  "python"
   "ripgrep"
   "ruff"
   "shellcheck"
