@@ -324,6 +324,37 @@ test_a_gap_in_the_saved_window_or_pane_indices_changes_nothing() {
     "$(calls_matching 'send-keys.*main:31\.32.*claude --resume 22222222-3333-4444-5555-666666666666')"
 }
 
+test_selects_the_window_that_was_active_when_the_layout_was_saved() {
+  # Saved and then dropped until now, which left a restored session sitting
+  # on whichever window was created last. psmux-resurrect selected it from
+  # the saved index, which a new server generation has already reassigned;
+  # this targets the index psmux reported for the window it just created.
+  write_layout 'main' '[
+    {"name":"one","layout":"L1","active":false,
+      "panes":[{"cwd":"/repo","sessionId":null}]},
+    {"name":"two","layout":"L2","active":true,
+      "panes":[{"cwd":"/repo/other","sessionId":null}]}
+  ]'
+  write_psmux_stub
+
+  run_restore
+
+  # new-window reports 31 for the second window; its saved index field is
+  # absent entirely, so :31 can only come from what psmux just reported.
+  assertEquals 'selected the saved active window' 1 \
+    "$(calls_matching 'select-window.*main:31')"
+}
+
+test_leaves_the_selection_alone_when_no_window_was_active() {
+  write_layout 'main' '[{"name":"one","layout":"L","active":false,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'no window selected' 0 "$(calls_matching 'select-window')"
+}
+
 test_creates_a_second_window_with_its_own_panes_and_layout() {
   write_layout 'main' '[
     {"name":"one","layout":"L1","active":true,

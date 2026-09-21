@@ -169,6 +169,13 @@ restore_session() {
   p select-layout -t "$name:$window_index" "$window_layout"
   resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
 
+  # Which window to leave the session on, held until every window exists:
+  # `new-window` switches to what it creates, so selecting any earlier would
+  # be undone by the next one.
+  local active_window=''
+  [ "$(printf '%s' "$window" | jq -r '.active')" = 'true' ] &&
+    active_window="$window_index"
+
   local i
   for ((i = 1; i < window_count; i++)); do
     window=$(printf '%s' "$windows_json" | jq -c ".[$i]")
@@ -185,7 +192,14 @@ restore_session() {
     actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
     p select-layout -t "$name:$window_index" "$window_layout"
     resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
+
+    [ "$(printf '%s' "$window" | jq -r '.active')" = 'true' ] &&
+      active_window="$window_index"
   done
+
+  if [ -n "$active_window" ]; then
+    p select-window -t "$name:$active_window"
+  fi
 }
 
 session_count=$(jq '.sessions | length' "$layout" 2>/dev/null) || exit 0

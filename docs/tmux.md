@@ -79,6 +79,13 @@ It applies the saved layout string via `select-layout`, which the old
 psmux-resurrect computed and never called, so restored panes came back in a
 default tiled layout no matter what was saved.
 
+The window that was active when the layout was saved is selected last, once
+every window exists, because `new-window` switches to what it creates and an
+earlier selection would be undone by the next one. psmux-resurrect selected
+it too, but from the saved index, which a new server generation has already
+reassigned; restore targets the index psmux reported for the window it just
+created, as it does everywhere else.
+
 Each pane that recorded a Claude session id is resumed directly —
 `send-keys ... "claude --resume <id>"` — never `ccr`/`--continue`. A restored
 pane's own live pane-id lookup (what `ccr` does) can never match anything,
