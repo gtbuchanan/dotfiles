@@ -98,6 +98,26 @@
           }
         ]
       }
+    ],
+{{- /*
+  Pairs the pane with the session started in it, so `ccr` can resume that
+  conversation by id rather than the newest one in the directory.
+
+  Unconditional, and bash rather than PowerShell, because tmux and psmux both
+  export TMUX_PANE: one hook covers the tmux hosts and the Windows ones alike.
+  Invoked through `bash` explicitly, matching the guard above -- Git Bash
+  supplies it on Windows -- which also keeps pwsh's second of startup off the
+  front of every session.
+*/}}
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "command": "bash ~/.claude/pane-session --record",
+            "type": "command"
+          }
+        ]
+      }
     ]
   },
   "permissions": {

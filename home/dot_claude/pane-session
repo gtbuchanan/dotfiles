@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+#
+# SessionStart hook pairing a multiplexer pane with the Claude session started
+# in it, so a pane can resume its own conversation rather than the newest one.
+#
+# `claude --continue` resolves the most recent transcript for the working
+# directory: ~/.claude/projects/<slugified-cwd>/ holds one .jsonl per session
+# and records nothing about which pane produced it. Two panes in one repo
+# therefore resume the same conversation, and whichever resumes first becomes
+# the "most recent" that the other then picks up. --record writes the pane's
+# session id here and --resolve reads it back, which is what lets `ccr` pass
+# `--resume <id>`.
+#
+# tmux and psmux both export TMUX_PANE into the pane and child processes
+# inherit it, so the pane id arrives in the environment on every platform.
+# notify-input.ps1 instead walks the process tree to a `#{pane_pid}`; it
+# predates this and can be simplified to match.
+#
+# A server hands out pane ids from %0 on each start, so a record outlives the
+# pane it describes and that id can later belong to an unrelated pane. Each
+# record stores the pane's directory and --resolve rejects one that no longer
+# matches, which costs a stale pane a fallback to `--continue` rather than
+# resuming a conversation from somewhere else.
+#
+# Every failure is silent and exits 0: a SessionStart hook that fails surfaces
+# as an error on a session that is otherwise fine, and the cost of recording
+# nothing is that `ccr` falls back to `--continue`.
+#
+# A record therefore names its directory in whatever spelling jq received. On
+# Windows that is the native path, because jq is a native binary and MSYS
+# rewrites path-shaped values on the way in: /tmp/x and /c/Users/.../Temp/x
+# both arrive as C:/Users/.../Temp/x. Both modes cross that same boundary, so a
+# pane still matches its own record whichever spelling its shell reports, and
+# the comparison is stricter off Windows only in that nothing normalizes it.
+
+mode=''
+root="$HOME/.claude/panes"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --record) mode='record' ;;
+  --resolve) mode='resolve' ;;
+  --root)
+    [ $# -ge 2 ] || exit 0
+    root="$2"
+    shift
+    ;;
+  *) exit 0 ;;
+  esac
+  shift
+done
+
+[ -n "$mode" ] || exit 0
+
+pane="${TMUX_PANE:-}"
+[ -n "$pane" ] || exit 0
+
+# $TMUX is <socket>,<server pid>,<session id>. The socket's leaf is what
+# separates one server from another -- `-L other` puts `other` there -- while
+# the pid in its parent directory changes on every start, so keying on the leaf
+# survives a restart and keying on the whole path would not.
+namespace='default'
+if [ -n "${TMUX:-}" ]; then
+  socket="${TMUX%%,*}"
+  namespace="${socket##*/}"
+fi
+
+# Pane ids carry a '%' and session names are free text, so both are reduced to
+# what a filename can hold.
+key=$(printf '%s-%s' "$namespace" "$pane" | tr -c 'A-Za-z0-9._-' '_')
+record="$root/$key.json"
+
+if [ "$mode" = 'record' ]; then
+  payload=$(cat)
+  [ -n "$payload" ] || exit 0
+
+  session_id=$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)
+  [ -n "$session_id" ] || exit 0
+
+  mkdir -p "$root" || exit 0
+
+  # Written aside and moved so a concurrent --resolve reads either the previous
+  # record or this one, never half of one.
+  staging="$record.$$"
+  cwd="$PWD" namespace="$namespace" paneId="$pane" sessionId="$session_id" \
+    recorded="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    jq -n '{
+      cwd: $ENV.cwd,
+      namespace: $ENV.namespace,
+      paneId: $ENV.paneId,
+      recorded: $ENV.recorded,
+      sessionId: $ENV.sessionId
+    }' >"$staging" 2>/dev/null &&
+    mv -f "$staging" "$record" 2>/dev/null
+  rm -f "$staging" 2>/dev/null
+  exit 0
+fi
+
+[ -f "$record" ] || exit 0
+cwd="$PWD" jq -r 'select(.cwd == $ENV.cwd) | .sessionId // empty' \
+  "$record" 2>/dev/null
+exit 0
