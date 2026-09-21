@@ -138,7 +138,10 @@ to `--continue` rather than resuming a conversation from somewhere else.
 
 `--forget` only removes a record that still names the ending session,
 because a pane can start a second session before the first one's
-SessionEnd hook runs.
+SessionEnd hook runs. `SessionEnd` itself is best-effort — a crash, a
+`kill -9`, or a power loss skips it — so `--record` also prunes any
+record older than 30 days on every call, bounding what an unreaped
+pane leaves behind.
 
 `notify-input.ps1` resolves its pane the older way, walking the process
 tree to a `#{pane_pid}`; reading `TMUX_PANE` would do the same job

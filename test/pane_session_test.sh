@@ -234,6 +234,41 @@ test_forget_without_a_session_id_does_not_clear_a_corrupt_record() {
   assertTrue 'the corrupt record is untouched' "[ -f '$file' ]"
 }
 
+# --- pruning ------------------------------------------------------------------
+
+# Plants a record for pane $1 with a raw epoch $2, bypassing --record: the
+# real hook always stamps the current time, so an aged-out record can only be
+# produced by hand.
+plant_aged_record() {
+  local pane="$1" epoch="$2" namespace="${3:-default}"
+  local key file
+  key=$(printf '%s-%s' "$namespace" "$pane" | tr -c 'A-Za-z0-9._-' '_')
+  file="$RECORDS/$key.json"
+  mkdir -p "$RECORDS"
+  jq -n --arg cwd "$PANE_CWD" --arg paneId "$pane" --argjson epoch "$epoch" \
+    '{cwd: $cwd, paneId: $paneId, sessionId: "aged-out", recordedEpoch: $epoch}' \
+    >"$file"
+}
+
+test_a_record_far_past_the_retention_window_is_pruned_on_the_next_write() {
+  plant_aged_record '%3' 1
+
+  # A different pane's own --record call is what triggers the sweep; nothing
+  # about pane %3 is otherwise touched.
+  record '%4' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertEquals '' "$(resolve '%3' "$PANE_CWD")"
+}
+
+test_a_record_within_the_retention_window_survives_a_sweep() {
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  record '%4' 'bbbbbbbb-0000-0000-0000-000000000000' "$PANE_CWD"
+
+  assertEquals '11111111-2222-3333-4444-555555555555' \
+    "$(resolve '%3' "$PANE_CWD")"
+}
+
 # shUnit2 takes over here: it discovers the test_* functions above and prints
 # the run summary.
 # shellcheck source=/dev/null

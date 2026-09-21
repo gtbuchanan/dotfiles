@@ -37,9 +37,31 @@
 # both arrive as C:/Users/.../Temp/x. Both modes cross that same boundary, so a
 # pane still matches its own record whichever spelling its shell reports, and
 # the comparison is stricter off Windows only in that nothing normalizes it.
+#
+# --forget only reaches a record when Claude Code itself runs SessionEnd for
+# the session that owns it, which a crash, a `kill -9`, or a power loss skips
+# outright. --record therefore prunes anything past the retention window on
+# every call, so an unreaped record is bounded in age rather than permanent.
 
 mode=''
 root="$HOME/.claude/panes"
+readonly max_age_seconds=$((30 * 24 * 60 * 60))
+
+# Deletes every record older than max_age_seconds. A corrupt or pre-pruning
+# record with no recordedEpoch field reads back as 0 -- older than anything --
+# so it is swept too rather than kept around indefinitely by a missing field.
+prune_stale() {
+  [ -d "$root" ] || return 0
+
+  local threshold f age
+  threshold=$(($(date +%s) - max_age_seconds))
+  for f in "$root"/*.json; do
+    [ -e "$f" ] || continue
+    age=$(jq -r '.recordedEpoch // 0' "$f" 2>/dev/null)
+    case "$age" in '' | *[!0-9]*) age=0 ;; esac
+    [ "$age" -lt "$threshold" ] && rm -f "$f" 2>/dev/null
+  done
+}
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -77,6 +99,8 @@ key=$(printf '%s-%s' "$namespace" "$pane" | tr -c 'A-Za-z0-9._-' '_')
 record="$root/$key.json"
 
 if [ "$mode" = 'record' ]; then
+  prune_stale
+
   payload=$(cat)
   [ -n "$payload" ] || exit 0
 
@@ -89,12 +113,13 @@ if [ "$mode" = 'record' ]; then
   # record or this one, never half of one.
   staging="$record.$$"
   cwd="$PWD" namespace="$namespace" paneId="$pane" sessionId="$session_id" \
-    recorded="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    recorded="$(date -u +%Y-%m-%dT%H:%M:%SZ)" recordedEpoch="$(date +%s)" \
     jq -n '{
       cwd: $ENV.cwd,
       namespace: $ENV.namespace,
       paneId: $ENV.paneId,
       recorded: $ENV.recorded,
+      recordedEpoch: ($ENV.recordedEpoch | tonumber),
       sessionId: $ENV.sessionId
     }' >"$staging" 2>/dev/null &&
     mv -f "$staging" "$record" 2>/dev/null
