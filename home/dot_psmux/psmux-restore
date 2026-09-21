@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+#
+# Rebuilds the layout psmux-snapshot captured -- sessions, windows, panes,
+# the saved layout actually applied -- then resumes each pane's own
+# conversation directly: `claude --resume <id>`, not `ccr`/`--continue`.
+# A freshly restored pane's own live lookup (the one `ccr` does) can never
+# match anything, because a new server hands out pane ids from %0; falling
+# back to `--continue` there is wrong the instant two restored panes share a
+# directory, which is exactly the ambiguity this whole chain exists to avoid.
+#
+# Every session/window/pane index used here is the one psmux just reported
+# for what it created (`-P -F`), never the number that happened to be saved
+# for it. A saved index describes the server that no longer exists; renumber-
+# windows, a different base-index, or simply creating things in a different
+# server generation can all make it stale, and psmux already hands back the
+# real one for free.
+#
+# A session already present is left alone -- most likely the one the user's
+# own `psmux` invocation just created, which this script has no business
+# touching. Run from `dot_tmux.conf.tmpl`, which psmux reads exactly once per
+# server lifetime, so this never re-fires on a later attach; the caller
+# backgrounds it so a slow or many-paned restore never delays that attach.
+#
+# Every failure is silent: a session or two failing to come back is nothing
+# to interrupt over, since psmux itself is already usable by the time this
+# runs.
+#
+# Settle delays are plain sleeps, the same crude tool psmux-resurrect used
+# for the same problem (a pane addressed before its shell has started can
+# drop what's sent to it) -- proven sufficient by hand against a live server,
+# not derived from any readiness signal.
+
+layout="$HOME/.psmux/layout.json"
+readonly settle_delay=0.3
+readonly shell_ready_delay=1
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --layout)
+    [ $# -ge 2 ] || exit 0
+    layout="$2"
+    shift
+    ;;
+  *) exit 0 ;;
+  esac
+  shift
+done
+
+bin=''
+for n in psmux pmux tmux; do
+  bin=$(command -v "$n" 2>/dev/null) && break
+done
+[ -n "$bin" ] || exit 0
+
+namespace=$(jq -r '.namespace // "default"' "$layout" 2>/dev/null) || exit 0
+
+# `-L <name>` only reaches a server actually started with a matching -L; the
+# ordinary, unnamed default server's own socket leaf happens to read
+# "default" too, but `-L default` is a different, unrelated address --
+# confirmed live, it reported "no server running" for a server bare psmux
+# (no -L) had just listed. Bare invocation is what a real client uses to
+# reach the unnamed default, so a "default" namespace falls back to that
+# rather than trying to name it.
+if [ "$namespace" = 'default' ]; then
+  p() { "$bin" "$@"; }
+else
+  p() { "$bin" -L "$namespace" "$@"; }
+fi
+
+# Creates every pane of a window beyond the one that already exists (the sole
+# pane of a session's auto-created first window, or a new window's own).
+# $windowPanes is that window's panes array (JSON); echoes the actual pane
+# index psmux reports for each entry, in the same order, one per line.
+restore_panes() {
+  local target="$1" window_panes="$2" first_index="$3"
+  echo "$first_index"
+
+  local count cwd i
+  count=$(printf '%s' "$window_panes" | jq 'length')
+  for ((i = 1; i < count; i++)); do
+    cwd=$(printf '%s' "$window_panes" | jq -r ".[$i].cwd")
+    p split-window -t "$target" -c "$cwd" -P -F '#{pane_index}'
+    sleep "$settle_delay"
+  done
+}
+
+# Sends `claude --resume <id>` into every pane that recorded one.
+# $actualIndices is the newline-separated output of restore_panes, in the
+# same order as $windowPanes.
+resume_panes() {
+  local session="$1" window_index="$2" window_panes="$3" actual_indices="$4"
+
+  local count i pane_index session_id
+  count=$(printf '%s' "$window_panes" | jq 'length')
+  for ((i = 0; i < count; i++)); do
+    pane_index=$(printf '%s\n' "$actual_indices" | sed -n "$((i + 1))p")
+    session_id=$(printf '%s' "$window_panes" | jq -r ".[$i].sessionId")
+    [ "$session_id" != 'null' ] || continue
+
+    p send-keys -t "$session:$window_index.$pane_index" \
+      "claude --resume $session_id" Enter
+    sleep "$shell_ready_delay"
+  done
+}
+
+restore_session() {
+  local session_json="$1" name windows_json window_count
+  name=$(printf '%s' "$session_json" | jq -r '.name')
+
+  p has-session -t "$name" 2>/dev/null && return 0
+
+  windows_json=$(printf '%s' "$session_json" | jq -c '.windows')
+  window_count=$(printf '%s' "$windows_json" | jq 'length')
+  [ "$window_count" -gt 0 ] || return 0
+
+  local window window_name window_layout window_panes first_pane_cwd
+  local window_index first_pane_index actual_indices
+
+  window=$(printf '%s' "$windows_json" | jq -c '.[0]')
+  window_name=$(printf '%s' "$window" | jq -r '.name')
+  window_layout=$(printf '%s' "$window" | jq -r '.layout')
+  window_panes=$(printf '%s' "$window" | jq -c '.panes')
+  first_pane_cwd=$(printf '%s' "$window_panes" | jq -r '.[0].cwd')
+
+  window_index=$(p new-session -d -s "$name" -c "$first_pane_cwd" \
+    -P -F '#{window_index}')
+  sleep "$shell_ready_delay"
+
+  p rename-window -t "$name:$window_index" "$window_name"
+
+  first_pane_index=$(p list-panes -t "$name:$window_index" -F '#{pane_index}')
+  actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
+  p select-layout -t "$name:$window_index" "$window_layout"
+  resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
+
+  local i
+  for ((i = 1; i < window_count; i++)); do
+    window=$(printf '%s' "$windows_json" | jq -c ".[$i]")
+    window_name=$(printf '%s' "$window" | jq -r '.name')
+    window_layout=$(printf '%s' "$window" | jq -r '.layout')
+    window_panes=$(printf '%s' "$window" | jq -c '.panes')
+    first_pane_cwd=$(printf '%s' "$window_panes" | jq -r '.[0].cwd')
+
+    window_index=$(p new-window -t "$name" -n "$window_name" -c "$first_pane_cwd" \
+      -P -F '#{window_index}')
+    sleep "$shell_ready_delay"
+
+    first_pane_index=$(p list-panes -t "$name:$window_index" -F '#{pane_index}')
+    actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
+    p select-layout -t "$name:$window_index" "$window_layout"
+    resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
+  done
+}
+
+session_count=$(jq '.sessions | length' "$layout" 2>/dev/null) || exit 0
+for ((s = 0; s < session_count; s++)); do
+  restore_session "$(jq -c ".sessions[$s]" "$layout")"
+done
+exit 0
