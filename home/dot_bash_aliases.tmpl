@@ -13,6 +13,20 @@ bwu() {
 alias c=clear
 alias cc=claude
 ccc() { clear; claude "$@"; }
+# Resumes the conversation this pane was holding, which `--continue` cannot
+# pick out once a second pane in the same directory has resumed one. Falls back
+# to it where the pane has no record: outside tmux, or after a server restart
+# reissued its id.
+ccr() {
+  local id
+  id=$(bash "$HOME/.claude/pane-session" --resolve 2>/dev/null)
+  clear
+  if [ -n "$id" ]; then
+    claude --resume "$id" "$@"
+  else
+    claude --continue "$@"
+  fi
+}
 alias cm=chezmoi
 alias cmcd='cd $(cm source-path)/..'
 alias cmm=chezmoi_modify_manager

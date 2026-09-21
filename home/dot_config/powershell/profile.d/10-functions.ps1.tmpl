@@ -1,6 +1,18 @@
 $ChezmoiSourcePath = Join-Path "{{ .chezmoi.sourceDir }}" ".."
 
 Function ccc { clear; claude @args }
+
+# Resumes the conversation this pane was holding, which `--continue` cannot
+# pick out once a second pane in the same directory has resumed one. Falls back
+# to it where the pane has no record: outside psmux, or after a server restart
+# reissued its id. The lookup is the same bash script the SessionStart hook
+# records with, so both halves agree on the pane's key.
+Function ccr {
+  $id = bash (Join-Path $HOME '.claude/pane-session') --resolve 2>$null
+  clear
+  if ($id) { claude --resume $id @args } else { claude --continue @args }
+}
+
 Function cmcd { Set-Location $ChezmoiSourcePath }
 
 {{- if eq .chezmoi.os "windows" }}
