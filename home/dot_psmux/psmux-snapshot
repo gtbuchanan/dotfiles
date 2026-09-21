@@ -38,6 +38,11 @@ while [ $# -gt 0 ]; do
     layout="$2"
     shift
     ;;
+  --namespace)
+    [ $# -ge 2 ] || exit 0
+    namespace_override="$2"
+    shift
+    ;;
   *) exit 0 ;;
   esac
   shift
@@ -62,16 +67,29 @@ esac
 # only looked like it worked. Bare invocation is what a real client actually
 # uses to reach the unnamed default, verified live against it directly, so
 # that is what a "default" namespace here falls back to as well.
-[ -n "${TMUX:-}" ] || exit 0
-socket="${TMUX%%,*}"
-namespace="${socket##*/}"
+#
+# --namespace names the server instead, for a caller with no pane of its own:
+# nothing psmux launches has a usable $TMUX, since a run-shell at server boot
+# inherits whatever started the server, which names an unrelated server or
+# nothing at all. Without either, the server cannot be identified and this
+# writes nothing rather than guessing at one.
+if [ -n "${namespace_override:-}" ]; then
+  namespace="$namespace_override"
 
-# The middle field is the server's own pid, which is what separates one
-# server's lifetime from the next -- a reboot always brings a new one. It is
-# recorded so a later snapshot can tell whether the layout already on disk
-# describes this server or the one before it.
-server_pid="${TMUX#*,}"
-server_pid="${server_pid%%,*}"
+  # Only $TMUX carries the pid, so a layout taken this way records none. It
+  # identifies which boot a saved layout belongs to, and an absent pid says
+  # the periodic saver took it, which is true and better than a guess.
+  server_pid=''
+else
+  [ -n "${TMUX:-}" ] || exit 0
+  socket="${TMUX%%,*}"
+  namespace="${socket##*/}"
+
+  # The middle field is the server's own pid, which is what separates one
+  # server's lifetime from the next -- a reboot always brings a new one.
+  server_pid="${TMUX#*,}"
+  server_pid="${server_pid%%,*}"
+fi
 
 # psmux ships a `tmux` shim for other tools' benefit; this repo's own psmux
 # would otherwise never be reached ahead of it. tmux is tried last so this
@@ -180,7 +198,8 @@ namespace="$namespace" saved="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
 serverPid="$server_pid" \
   jq -n --argjson sessions "$grouped" \
   '{namespace: $ENV.namespace, saved: $ENV.saved,
-    serverPid: $ENV.serverPid, sessions: $sessions}' \
+    serverPid: (if $ENV.serverPid == "" then null else $ENV.serverPid end),
+    sessions: $sessions}' \
   >"$staging" 2>/dev/null &&
   mv -f "$staging" "$layout" 2>/dev/null &&
   keep_in_history

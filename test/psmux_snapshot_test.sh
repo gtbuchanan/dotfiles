@@ -97,6 +97,14 @@ STUB
   chmod +x "$BIN/psmux"
 }
 
+# Runs with $TMUX cleared, as anything psmux launches itself does. The
+# variable is unset explicitly rather than left out, because this suite is
+# itself usually run from inside a pane and would otherwise inherit one.
+run_snapshot_without_tmux() {
+  PATH="$BIN:$PATH" env -u TMUX \
+    bash "$SNAPSHOT" --root "$RECORDS" --layout "$LAYOUT" "$@"
+}
+
 # $TMUX is <socket>,<server pid>,<session id>, and the pid is what separates
 # one server's lifetime from the next: it is how the snapshot knows a reboot
 # has happened since the layout on disk was written.
@@ -237,6 +245,61 @@ test_a_second_run_overwrites_the_first_rather_than_appending() {
 
   assertEquals 'still two sessions, not four' 2 \
     "$(jq '.sessions | length' "$LAYOUT")"
+}
+
+test_an_explicit_namespace_addresses_that_server_without_tmux() {
+  # Nothing launched by psmux itself has a usable $TMUX: a run-shell at
+  # server boot inherits whatever started the server, which names another
+  # server or nothing at all. An explicit namespace is how anything running
+  # outside a pane says which server it means.
+  cat >"$BIN/psmux" <<STUB
+#!/usr/bin/env bash
+case "\$*" in
+  *'-L custom'*'list-panes'*) printf '%s\\n' '%9	work	0	shell	1	L	0	$PANE_CWD' ;;
+  *) exit 1 ;;
+esac
+STUB
+  chmod +x "$BIN/psmux"
+
+  run_snapshot_without_tmux --namespace custom
+
+  assertEquals 'reached the named server with no TMUX set' 'work' \
+    "$(jq -r '.sessions[0].name' "$LAYOUT" 2>/dev/null)"
+}
+
+test_an_explicit_default_namespace_still_uses_bare_invocation() {
+  cat >"$BIN/psmux" <<STUB
+#!/usr/bin/env bash
+case "\$*" in
+  *'-L'*|*'-S'*) exit 1 ;;
+  *'list-panes'*) printf '%s\\n' '%3	main	0	shell	1	L	0	$PANE_CWD' ;;
+  *) exit 1 ;;
+esac
+STUB
+  chmod +x "$BIN/psmux"
+
+  run_snapshot_without_tmux --namespace default
+
+  assertEquals 'the unnamed default server is still addressed bare' 'main' \
+    "$(jq -r '.sessions[0].name' "$LAYOUT" 2>/dev/null)"
+}
+
+test_a_layout_taken_without_tmux_records_no_server_pid() {
+  # The pid identifies the boot a save belongs to and only $TMUX carries it,
+  # so a save taken outside a pane says so rather than inventing one.
+  stub_psmux
+  run_snapshot_without_tmux --namespace default
+
+  assertEquals 'no pid claimed' 'null' \
+    "$(jq -r '.serverPid' "$LAYOUT" 2>/dev/null)"
+}
+
+test_is_a_noop_with_neither_tmux_nor_a_namespace() {
+  stub_psmux
+  run_snapshot_without_tmux
+
+  assertFalse 'wrote nothing rather than guessing a server' \
+    "[ -e '$LAYOUT' ]"
 }
 
 test_every_layout_is_also_kept_in_the_history() {
