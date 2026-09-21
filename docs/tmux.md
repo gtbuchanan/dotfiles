@@ -48,6 +48,21 @@ own Claude session id, cross-referenced from the per-pane records
 backgrounds a call to it on every Claude session start and end, so the
 snapshot is never more than one of those stale; nothing here runs on a timer.
 
+Every layout written is also copied into `~/.psmux/layouts/`, named for the
+second it was taken and the pid that wrote it, and that history is what a
+restore which rebuilt nothing can be reconstructed from by hand. Without it
+the boot's own snapshot is the only record left within minutes, and the
+per-pane records cannot stand in: a new server reissues pane ids from the
+start, so sessions opened after the reboot overwrite the records naming the
+panes that were open before it. Each layout also carries the server's pid,
+taken from `$TMUX`, which is what identifies the boot a given save belongs
+to. Saves are kept by age — the same thirty days `pane-session` keeps its
+records for — rather than by count, since a busy boot takes a dozen
+snapshots in an hour and would push a pre-reboot layout out of any list
+short enough to be worth keeping. psmux-resurrect kept a comparable history
+of timestamped saves plus a `last` pointer; the pointer is unnecessary here,
+because `layout.json` is always the current one.
+
 `psmux-restore` reads that file once, when the server itself boots — a
 `run-shell` line at the top level of `dot_tmux.conf.tmpl`, which psmux reads
 exactly once per server lifetime, not on a later `psmux attach`. That's

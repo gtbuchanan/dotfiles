@@ -24,6 +24,7 @@
 
 root="$HOME/.claude/panes"
 layout="$HOME/.psmux/layout.json"
+readonly max_age_seconds=$((30 * 24 * 60 * 60))
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -42,6 +43,15 @@ while [ $# -gt 0 ]; do
   shift
 done
 
+# Beside the layout rather than under a path of its own, so --layout moves
+# the history with the file it is a history of. Split with parameter
+# expansion rather than `dirname`, which this script reaches before it has
+# established that anything outside the shell is callable.
+case "$layout" in
+*/*) history_dir="${layout%/*}/layouts" ;;
+*) history_dir='layouts' ;;
+esac
+
 # $TMUX is <socket>,<server pid>,<session id>. Its socket leaf names the
 # server for -L *only* when the server was actually started with a matching
 # -L; the ordinary, unnamed default server's own leaf happens to read
@@ -55,6 +65,13 @@ done
 [ -n "${TMUX:-}" ] || exit 0
 socket="${TMUX%%,*}"
 namespace="${socket##*/}"
+
+# The middle field is the server's own pid, which is what separates one
+# server's lifetime from the next -- a reboot always brings a new one. It is
+# recorded so a later snapshot can tell whether the layout already on disk
+# describes this server or the one before it.
+server_pid="${TMUX#*,}"
+server_pid="${server_pid%%,*}"
 
 # psmux ships a `tmux` shim for other tools' benefit; this repo's own psmux
 # would otherwise never be reached ahead of it. tmux is tried last so this
@@ -119,12 +136,53 @@ grouped=$(printf '%s' "$ndjson" | jq -s '
 
 mkdir -p "$(dirname "$layout")" || exit 0
 
+# Keeps a dated copy of every layout written, so a restore that rebuilt
+# nothing can be reconstructed from the one taken before the reboot. Nothing
+# else holds it: the boot's own snapshot replaces the live layout within
+# minutes, and the per-pane records cannot stand in, since a new server hands
+# out pane ids from %1 and the sessions started after the reboot overwrite
+# the records naming the panes open before it. Each name carries the writing
+# process's pid as well as the second, because a SessionEnd and the
+# SessionStart replacing it land together and a name of only the timestamp
+# would lose one of the pair. Kept by age rather than by count: a busy boot
+# takes a dozen snapshots in an hour, which would push a pre-reboot layout
+# out of any list short enough to be worth keeping.
+keep_in_history() {
+  mkdir -p "$history_dir" 2>/dev/null || return 0
+  cp -f "$layout" \
+    "$history_dir/layout-$(date -u +%Y%m%d-%H%M%S)-$$.json" 2>/dev/null
+  return 0
+}
+
+# Drops history past the retention window, matching the one pane-session
+# keeps its own records for. Only files this script names are considered,
+# and a file whose age cannot be read is kept: this runs unattended against
+# a directory under the user's home, where deleting on a failed read is the
+# more expensive way to be wrong.
+sweep_history() {
+  [ -d "$history_dir" ] || return 0
+
+  local threshold f mtime
+  threshold=$(($(date +%s) - max_age_seconds))
+  for f in "$history_dir"/layout-*.json; do
+    [ -e "$f" ] || continue
+    mtime=$(stat -c %Y "$f" 2>/dev/null) || continue
+    case "$mtime" in '' | *[!0-9]*) continue ;; esac
+    [ "$mtime" -lt "$threshold" ] && rm -f "$f" 2>/dev/null
+  done
+  return 0
+}
+
 # Written aside and moved so a restore reading mid-write never sees a
 # half-written file.
 staging="$layout.$$"
 namespace="$namespace" saved="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+serverPid="$server_pid" \
   jq -n --argjson sessions "$grouped" \
-  '{namespace: $ENV.namespace, saved: $ENV.saved, sessions: $sessions}' \
+  '{namespace: $ENV.namespace, saved: $ENV.saved,
+    serverPid: $ENV.serverPid, sessions: $sessions}' \
   >"$staging" 2>/dev/null &&
-  mv -f "$staging" "$layout" 2>/dev/null
+  mv -f "$staging" "$layout" 2>/dev/null &&
+  keep_in_history
+sweep_history
 rm -f "$staging" 2>/dev/null

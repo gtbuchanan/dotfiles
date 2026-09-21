@@ -83,11 +83,34 @@ run_snapshot() {
     bash "$SNAPSHOT" --root "$RECORDS" --layout "$LAYOUT"
 }
 
+# Reports one pane in a session named $1, so two runs can be told apart by
+# the name the layout ends up carrying.
+stub_psmux_naming() {
+  cat >"$BIN/psmux" <<STUB
+#!/usr/bin/env bash
+case "\$*" in
+  *'-L'*) exit 1 ;;
+  *'list-panes'*) printf '%s\\n' '%3	$1	0	shell	1	L	0	$PANE_CWD' ;;
+  *) exit 1 ;;
+esac
+STUB
+  chmod +x "$BIN/psmux"
+}
+
+# $TMUX is <socket>,<server pid>,<session id>, and the pid is what separates
+# one server's lifetime from the next: it is how the snapshot knows a reboot
+# has happened since the layout on disk was written.
+run_snapshot_from_server() {
+  PATH="$BIN:$PATH" TMUX="/tmp/psmux-37668/default,$1,0" \
+    bash "$SNAPSHOT" --root "$RECORDS" --layout "$LAYOUT"
+}
+
 setUp() {
   SANDBOX=$(mktemp -d)
   RECORDS="$SANDBOX/panes"
   BIN="$SANDBOX/bin"
   LAYOUT="$SANDBOX/layout.json"
+  HISTORY="$SANDBOX/layouts"
   PANE_CWD="$SANDBOX/repo"
   ELSEWHERE="$SANDBOX/other"
   mkdir -p "$RECORDS" "$BIN" "$PANE_CWD" "$ELSEWHERE"
@@ -214,6 +237,62 @@ test_a_second_run_overwrites_the_first_rather_than_appending() {
 
   assertEquals 'still two sessions, not four' 2 \
     "$(jq '.sessions | length' "$LAYOUT")"
+}
+
+test_every_layout_is_also_kept_in_the_history() {
+  # The first snapshot after a reboot replaces what the machine was running
+  # with what survived the boot, and nothing else holds the difference: a
+  # new server hands out pane ids from %1, so the per-pane records naming
+  # the old panes are overwritten by the sessions started after it.
+  stub_psmux_naming 'before'
+  run_snapshot_from_server 1111
+  stub_psmux_naming 'after'
+  run_snapshot_from_server 2222
+
+  assertEquals 'the running server wrote the layout' 'after' \
+    "$(jq -r '.sessions[0].name' "$LAYOUT")"
+  assertEquals 'both layouts are in the history' 2 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'the pre-reboot one among them' 1 \
+    "$(grep -l '"before"' "$HISTORY"/*.json 2>/dev/null | wc -l)"
+}
+
+test_the_history_keeps_saves_that_share_a_second() {
+  # Two snapshots inside the same second are ordinary: a SessionEnd and the
+  # SessionStart replacing it land together. A name carrying only a
+  # timestamp would collide and the older of the pair would be lost.
+  stub_psmux_naming 'before'
+  run_snapshot_from_server 1111
+  stub_psmux_naming 'after'
+  run_snapshot_from_server 1111
+
+  assertEquals 'both survived' 2 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+}
+
+test_a_layout_past_the_retention_window_is_swept() {
+  stub_psmux
+  run_snapshot
+  mkdir -p "$HISTORY"
+  : >"$HISTORY/layout-20000101-000000-0.json"
+  touch -d '2000-01-01' "$HISTORY/layout-20000101-000000-0.json" 2>/dev/null
+  run_snapshot
+
+  assertFalse 'the ancient one is gone' \
+    "[ -e '$HISTORY/layout-20000101-000000-0.json' ]"
+  assertNotEquals 'recent ones are kept' 0 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+}
+
+test_a_file_that_is_not_a_layout_is_left_in_place() {
+  # The sweep runs unattended against a directory under the user's home.
+  stub_psmux
+  mkdir -p "$HISTORY"
+  : >"$HISTORY/notes.txt"
+  touch -d '2000-01-01' "$HISTORY/notes.txt" 2>/dev/null
+  run_snapshot
+
+  assertTrue 'an unrelated old file is untouched' "[ -e '$HISTORY/notes.txt' ]"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints
