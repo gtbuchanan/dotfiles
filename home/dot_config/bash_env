@@ -1,0 +1,25 @@
+# Sourced by every non-interactive bash, which reads it because BASH_ENV names
+# this file. That is the only hook such a shell has: it reads no profile at all,
+# neither /etc/profile nor ~/.bashrc, so a `bash -c` from any caller -- an
+# agent's shell tool, a build script, a git hook under `sh` -- arrives here and
+# nowhere else.
+#
+# Git Bash puts its own /usr/bin ahead of every Windows PATH entry and ships an
+# MSYS OpenSSH build there, so `ssh` resolves to a client that never finds the
+# keys: it looks for an agent on SSH_AUTH_SOCK, which nothing sets, rather than
+# the named pipe Bitwarden serves. Spelling it `ssh.exe` selects that same
+# build, since the MSYS binary is itself /usr/bin/ssh.exe. Prepending the native
+# client's directory is what makes a bare `ssh` the one holding the keys.
+#
+# The guard tests whether that directory is already first, not whether it is
+# present: Windows has it on PATH the whole time, roughly thirty entries behind
+# /usr/bin, so a presence test reads as satisfied and prepends nothing. Being
+# first is also what makes this idempotent, which BASH_ENV needs -- it is
+# inherited, so every nested non-interactive shell sources this file again.
+#
+# Nothing here may write to stdout. Every `$(...)` in every bash script on the
+# host captures this file's output ahead of the command's own.
+case "$PATH" in
+  "/c/Program Files/OpenSSH:"*) ;;
+  *) PATH="/c/Program Files/OpenSSH:$PATH" ;;
+esac

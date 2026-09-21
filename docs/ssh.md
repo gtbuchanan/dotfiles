@@ -251,6 +251,50 @@ because the OS defaults aren't quite right out of the box:
   preference for its bundled `ssh.exe`, so Git transports route
   through the same client and agent as everything else.
 
+### Git Bash and the MSYS Client
+
+`GIT_SSH` settles what Git does and nothing else. Git Bash still ships its
+own MSYS OpenSSH in `/usr/bin`, and puts that directory ahead of every
+Windows PATH entry, so a bare `ssh` there is the MSYS build. It looks for
+an agent on `SSH_AUTH_SOCK` rather than on the named pipe, nothing sets
+that variable, and key auth fails with "Could not open a connection to
+your authentication agent."
+
+Spelling it `ssh.exe` selects the same binary, since the MSYS one is
+itself `/usr/bin/ssh.exe`. Only an absolute path or a PATH change reaches
+the native client.
+
+[`.config/bash_env`](../home/dot_config/bash_env) makes that PATH change,
+prepending `C:\Program Files\OpenSSH`. `BASH_ENV` names it, which is the
+only hook a non-interactive shell has: it reads no profile, neither
+`/etc/profile` nor `~/.bashrc`. Git for Windows honours it under `sh` as
+well, so git hooks resolve the native client too.
+
+[`run_onchange_after_bash-env.ps1`](../home/.chezmoiscripts/windows/run_onchange_after_bash-env.ps1)
+sets the variable at user scope, since the file it names lives in one
+user's home. The winget manifest would be the obvious home for it, beside
+`GIT_SSH`, but the DSC `Environment` resource it uses takes a **Target**
+of `Machine` or `Process` and has no user scope. Setting it from a
+chezmoi script also lands the variable in the same apply that deploys the
+file it points at.
+
+The file's guard tests whether that directory is already first, rather
+than whether it appears at all. Windows carries it on PATH the whole
+time, roughly thirty entries behind `/usr/bin`, so a presence test reads
+as satisfied and prepends nothing — which is how the first version of
+this silently changed no behaviour. Being first is also what makes the
+file idempotent, which `BASH_ENV` needs: it is inherited, so every nested
+non-interactive shell sources it again. Nothing in it may write to
+stdout, which every `$(...)` in every bash script would capture ahead of
+its own command's output.
+
+Two things stay outside this. An **interactive** Git Bash reads
+`~/.bashrc` and ignores `BASH_ENV`, so `ssh` typed at that prompt is
+still the MSYS build; Windows deploys no `~/.bashrc`, so nothing
+currently changes that. And a process keeps the environment it started
+with, so shells and editors open across the apply that sets the variable
+need a restart.
+
 ### Windows Agent Ownership
 
 The named pipe is the contract; who serves it varies by host type.

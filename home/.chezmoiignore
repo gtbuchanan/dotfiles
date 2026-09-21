@@ -3,6 +3,7 @@
 AppData
 Documents
 **/*.bat*
+.config/bash_env
 .local/bin/coderabbit
 .local/bin/wt.exe
 .psmux
