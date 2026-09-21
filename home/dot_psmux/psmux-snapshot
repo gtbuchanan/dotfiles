@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+#
+# Captures every session, window and pane on the current multiplexer server --
+# name, layout, cwd -- so psmux-restore can rebuild it after a reboot. Knows
+# nothing about Claude Code or hooks: pane-session backgrounds a call to this
+# script on every successful --record/--forget, but that trigger lives there,
+# not here, because "enumerate the whole server" is a psmux concern and
+# "pair a pane with a Claude session" is not -- which is also why this script
+# and its output live under ~/.psmux, not ~/.claude.
+#
+# Each pane's own record ($root/<namespace>-<paneId>.json, kept by
+# pane-session under ~/.claude/panes) is cross-referenced here for the session
+# id it last recorded, so a restored pane carries that id straight through to
+# psmux-restore. That matters because a fresh server hands out pane ids from
+# %0, so a restored pane's own live-lookup (the one `ccr` does) can never
+# match anything -- it would always fall back to `--continue`, which is wrong
+# the moment two panes share a directory, the exact ambiguity pane-session
+# exists to avoid.
+#
+# Every failure is silent and exits 0, matching pane-session: this runs
+# backgrounded off a hook, so nothing here should ever surface as an error on
+# an otherwise-fine Claude session, and the cost of writing nothing is a
+# restore that recreates panes without resuming anything in them.
+
+root="$HOME/.claude/panes"
+layout="$HOME/.psmux/layout.json"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --root)
+    [ $# -ge 2 ] || exit 0
+    root="$2"
+    shift
+    ;;
+  --layout)
+    [ $# -ge 2 ] || exit 0
+    layout="$2"
+    shift
+    ;;
+  *) exit 0 ;;
+  esac
+  shift
+done
+
+# $TMUX is <socket>,<server pid>,<session id>. Its socket leaf names the
+# server for -L *only* when the server was actually started with a matching
+# -L; the ordinary, unnamed default server's own leaf happens to read
+# "default" too, but `-L default` is a different, unrelated address --
+# confirmed live, it reported "no server running" for a server `psmux ls`
+# (bare, no -L) had just listed, and a guessed -S path fell back to whatever
+# server bare invocation would have reached anyway rather than erring, which
+# only looked like it worked. Bare invocation is what a real client actually
+# uses to reach the unnamed default, verified live against it directly, so
+# that is what a "default" namespace here falls back to as well.
+[ -n "${TMUX:-}" ] || exit 0
+socket="${TMUX%%,*}"
+namespace="${socket##*/}"
+
+# psmux ships a `tmux` shim for other tools' benefit; this repo's own psmux
+# would otherwise never be reached ahead of it. tmux is tried last so this
+# script is real tmux's answer too when it's what's actually running.
+bin=''
+for n in psmux pmux tmux; do
+  bin=$(command -v "$n" 2>/dev/null) && break
+done
+[ -n "$bin" ] || exit 0
+
+if [ "$namespace" = 'default' ]; then
+  rows=$("$bin" list-panes -a -F \
+    '#{pane_id}	#{session_name}	#{window_index}	#{window_name}	#{window_active}	#{window_layout}	#{pane_index}	#{pane_current_path}' \
+    2>/dev/null) || exit 0
+else
+  rows=$("$bin" -L "$namespace" list-panes -a -F \
+    '#{pane_id}	#{session_name}	#{window_index}	#{window_name}	#{window_active}	#{window_layout}	#{pane_index}	#{pane_current_path}' \
+    2>/dev/null) || exit 0
+fi
+[ -n "$rows" ] || exit 0
+
+ndjson=''
+while IFS=$'\t' read -r p_id p_session p_windex p_wname p_wactive p_layout p_index p_cwd; do
+  [ -n "$p_id" ] || continue
+
+  pane_key=$(printf '%s-%s' "$namespace" "$p_id" | tr -c 'A-Za-z0-9._-' '_')
+  pane_file="$root/$pane_key.json"
+  pane_session_id=''
+  [ -f "$pane_file" ] && pane_session_id=$(jq -r '.sessionId // empty' "$pane_file" 2>/dev/null)
+
+  obj=$(jq -nc \
+    --arg session "$p_session" --arg windex "$p_windex" --arg wname "$p_wname" \
+    --arg wactive "$p_wactive" --arg layout "$p_layout" --arg pindex "$p_index" \
+    --arg cwd "$p_cwd" --arg sessionId "$pane_session_id" \
+    '{
+      session: $session,
+      windowIndex: ($windex | tonumber),
+      windowName: $wname,
+      windowActive: ($wactive == "1"),
+      windowLayout: $layout,
+      paneIndex: ($pindex | tonumber),
+      cwd: $cwd,
+      sessionId: (if $sessionId == "" then null else $sessionId end)
+    }') || continue
+  ndjson="$ndjson$obj"$'\n'
+done <<<"$rows"
+[ -n "$ndjson" ] || exit 0
+
+# Grouped in two passes -- by session, then by window index within each --
+# because jq's group_by only groups by one key at a time.
+grouped=$(printf '%s' "$ndjson" | jq -s '
+  group_by(.session) | map({
+    name: .[0].session,
+    windows: (group_by(.windowIndex) | map({
+      index: .[0].windowIndex,
+      name: .[0].windowName,
+      active: .[0].windowActive,
+      layout: .[0].windowLayout,
+      panes: (map({index: .paneIndex, cwd: .cwd, sessionId: .sessionId}) | sort_by(.index))
+    }) | sort_by(.index))
+  })') || exit 0
+
+mkdir -p "$(dirname "$layout")" || exit 0
+
+# Written aside and moved so a restore reading mid-write never sees a
+# half-written file.
+staging="$layout.$$"
+namespace="$namespace" saved="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  jq -n --argjson sessions "$grouped" \
+  '{namespace: $ENV.namespace, saved: $ENV.saved, sessions: $sessions}' \
+  >"$staging" 2>/dev/null &&
+  mv -f "$staging" "$layout" 2>/dev/null
+rm -f "$staging" 2>/dev/null
