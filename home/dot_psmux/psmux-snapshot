@@ -25,6 +25,7 @@
 root="$HOME/.claude/panes"
 layout="$HOME/.psmux/layout.json"
 readonly max_age_seconds=$((30 * 24 * 60 * 60))
+readonly min_kept=5
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -165,8 +166,34 @@ mkdir -p "$(dirname "$layout")" || exit 0
 # would lose one of the pair. Kept by age rather than by count: a busy boot
 # takes a dozen snapshots in an hour, which would push a pre-reboot layout
 # out of any list short enough to be worth keeping.
+#
+# What a restore actually reads, with keys sorted so two equal trees compare
+# equal. `saved` and `serverPid` are left out on purpose: they differ on
+# every save and between the periodic saver and a Claude session, so
+# comparing whole files would find a difference each time and defeat the
+# skip below.
+layout_content() {
+  jq -S -c '{namespace, sessions}' "$1" 2>/dev/null
+}
+
 keep_in_history() {
   mkdir -p "$history_dir" 2>/dev/null || return 0
+
+  # A save repeating the newest entry is dropped: with a snapshot every
+  # fifteen minutes, an idle machine would otherwise write ninety-odd
+  # identical copies a day. tmux-resurrect drops a save matching its `last`
+  # for the same reason. Names sort chronologically, so the newest entry is
+  # the last the glob yields. An unreadable comparison keeps the save, the
+  # cheaper way to be wrong.
+  local entries newest previous current
+  entries=("$history_dir"/layout-*.json)
+  newest="${entries[${#entries[@]} - 1]}"
+  if [ -e "$newest" ]; then
+    previous=$(layout_content "$newest")
+    current=$(layout_content "$layout")
+    [ -n "$current" ] && [ "$previous" = "$current" ] && return 0
+  fi
+
   cp -f "$layout" \
     "$history_dir/layout-$(date -u +%Y%m%d-%H%M%S)-$$.json" 2>/dev/null
   return 0
@@ -180,13 +207,22 @@ keep_in_history() {
 sweep_history() {
   [ -d "$history_dir" ] || return 0
 
-  local threshold f mtime
+  # Names lead with the timestamp, so the glob yields them oldest first and
+  # the newest are simply the tail of the list. Those are kept however old
+  # they are, tmux-resurrect's rule and for its reason: a machine left alone
+  # past the window would otherwise have its entire history swept on the
+  # next boot, which is the one moment the history is wanted.
+  local entries
+  entries=("$history_dir"/layout-*.json)
+  [ -e "${entries[0]}" ] || return 0
+
+  local threshold sweepable i mtime
   threshold=$(($(date +%s) - max_age_seconds))
-  for f in "$history_dir"/layout-*.json; do
-    [ -e "$f" ] || continue
-    mtime=$(stat -c %Y "$f" 2>/dev/null) || continue
+  sweepable=$((${#entries[@]} - min_kept))
+  for ((i = 0; i < sweepable; i++)); do
+    mtime=$(stat -c %Y "${entries[i]}" 2>/dev/null) || continue
     case "$mtime" in '' | *[!0-9]*) continue ;; esac
-    [ "$mtime" -lt "$threshold" ] && rm -f "$f" 2>/dev/null
+    [ "$mtime" -lt "$threshold" ] && rm -f "${entries[i]}" 2>/dev/null
   done
   return 0
 }

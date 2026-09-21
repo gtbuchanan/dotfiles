@@ -320,6 +320,31 @@ test_every_layout_is_also_kept_in_the_history() {
     "$(grep -l '"before"' "$HISTORY"/*.json 2>/dev/null | wc -l)"
 }
 
+test_a_layout_identical_to_the_last_adds_no_history_entry() {
+  # A save every fifteen minutes against an idle machine would otherwise
+  # write ninety-odd identical copies a day. tmux-resurrect discards a save
+  # matching its `last` for the same reason.
+  stub_psmux_naming 'before'
+  run_snapshot_from_server 1111
+  run_snapshot_from_server 1111
+  run_snapshot_from_server 1111
+
+  assertEquals 'one entry for three identical saves' 1 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+}
+
+test_a_save_differing_only_in_who_took_it_adds_no_entry() {
+  # The periodic saver records no server pid and a Claude session does, so
+  # comparing whole files would defeat the deduplication every other save.
+  # What the restore reads is the session tree, and that is what is compared.
+  stub_psmux
+  run_snapshot
+  run_snapshot_without_tmux --namespace default
+
+  assertEquals 'still one entry' 1 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+}
+
 test_the_history_keeps_saves_that_share_a_second() {
   # Two snapshots inside the same second are ordinary: a SessionEnd and the
   # SessionStart replacing it land together. A name carrying only a
@@ -333,17 +358,39 @@ test_the_history_keeps_saves_that_share_a_second() {
     "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
 }
 
+# Plants $1 layouts old enough to be past any retention window, named so
+# they sort oldest-first the way real ones do.
+plant_ancient_history() {
+  mkdir -p "$HISTORY"
+  local i
+  for ((i = 1; i <= $1; i++)); do
+    printf '%s\n' '{}' >"$HISTORY/layout-2000010$i-000000-0.json"
+    touch -d '2000-01-01' "$HISTORY/layout-2000010$i-000000-0.json" 2>/dev/null
+  done
+}
+
 test_a_layout_past_the_retention_window_is_swept() {
   stub_psmux
-  run_snapshot
-  mkdir -p "$HISTORY"
-  : >"$HISTORY/layout-20000101-000000-0.json"
-  touch -d '2000-01-01' "$HISTORY/layout-20000101-000000-0.json" 2>/dev/null
+  plant_ancient_history 6
   run_snapshot
 
-  assertFalse 'the ancient one is gone' \
+  assertFalse 'the oldest is gone' \
     "[ -e '$HISTORY/layout-20000101-000000-0.json' ]"
-  assertNotEquals 'recent ones are kept' 0 \
+  assertEquals 'pruned back to the floor plus the new one' 5 \
+    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+}
+
+test_the_newest_saves_survive_however_old_they_are() {
+  # A machine left alone for a month would otherwise have its whole history
+  # swept on the next boot, which is the one moment it is wanted. Upstream
+  # tmux-resurrect keeps five for the same reason.
+  stub_psmux
+  plant_ancient_history 3
+  run_snapshot
+
+  assertTrue 'the oldest is still there' \
+    "[ -e '$HISTORY/layout-20000101-000000-0.json' ]"
+  assertEquals 'nothing swept below the floor' 4 \
     "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
 }
 

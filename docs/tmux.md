@@ -74,12 +74,20 @@ per-pane records cannot stand in: a new server reissues pane ids from the
 start, so sessions opened after the reboot overwrite the records naming the
 panes that were open before it. Each layout also carries the server's pid,
 taken from `$TMUX`, which is what identifies the boot a given save belongs
-to. Saves are kept by age — the same thirty days `pane-session` keeps its
-records for — rather than by count, since a busy boot takes a dozen
-snapshots in an hour and would push a pre-reboot layout out of any list
-short enough to be worth keeping. psmux-resurrect kept a comparable history
-of timestamped saves plus a `last` pointer; the pointer is unnecessary here,
-because `layout.json` is always the current one.
+to.
+
+A save whose session tree matches the newest entry adds nothing: with a
+snapshot every fifteen minutes, an idle machine would otherwise write ninety
+copies of the same layout a day. The comparison ignores `saved` and
+`serverPid`, which differ on every save and between the periodic saver and a
+Claude session, so comparing whole files would find a difference every time.
+Entries are swept after thirty days — the window `pane-session` keeps its own
+records for — except that the five newest always survive, since a machine
+left alone past the window would otherwise have its whole history swept on
+the next boot, the one moment it is wanted. Both rules are upstream
+tmux-resurrect's, which drops a save matching its `last` and keeps five
+backups regardless of age; its `last` pointer is unnecessary here, because
+`layout.json` is always the current one.
 
 `psmux-restore` reads that file once, when the server itself boots — a
 `run-shell` line at the top level of `dot_tmux.conf.tmpl`, which psmux reads
