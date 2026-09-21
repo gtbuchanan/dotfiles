@@ -39,11 +39,15 @@ fi
 
 # Logs every call as one line of tab-joined argv, then answers each
 # subcommand psmux-restore depends on. has-session succeeds only for a name
-# listed in $EXISTING (space-separated), simulating a session that survived
-# the restart and should not be recreated. Every creation command's `-P -F`
-# prints a number distinct from anything the fixture below saves, so a test
-# asserting on that number can only pass if the script used what psmux
-# reported rather than the value it started from.
+# listed in $EXISTING (space-separated), simulating a session already on the
+# server when the restore runs. $EXISTING_PANES is what such a session reports
+# for a whole-session `list-panes -s`, one id per line: a single pane is the
+# placeholder psmux creates at boot, more than one is a session the user has
+# built up since. Every creation command's `-P -F` prints a number distinct
+# from anything the fixture below saves, so a test asserting on that number
+# can only pass if the script used what psmux reported rather than the value
+# it started from -- and `list-windows` answers 7 for the same reason, so an
+# adopted window can only be targeted correctly by asking psmux where it is.
 write_psmux_stub() {
   cat >"$BIN/psmux" <<STUB
 #!/usr/bin/env bash
@@ -60,6 +64,8 @@ case " \$* " in
   *' new-session '*) echo '30' ;;
   *' new-window '*) echo '31' ;;
   *' split-window '*) echo '32' ;;
+  *' list-panes -s '*) printf '%s\\n' $EXISTING_PANES ;;
+  *' list-windows '*) echo '7' ;;
   *' list-panes '*) echo '33' ;;
 esac
 exit 0
@@ -92,6 +98,7 @@ setUp() {
   LOG="$SANDBOX/argv.log"
   LAYOUT="$SANDBOX/layout.json"
   EXISTING=''
+  EXISTING_PANES='%1'
   mkdir -p "$BIN"
   : >"$LOG"
 }
@@ -138,15 +145,83 @@ test_is_a_noop_when_the_layout_file_is_missing() {
   assertEquals 'no psmux calls at all' 0 "$(calls_matching '.')"
 }
 
-test_skips_a_session_that_already_exists() {
-  write_layout 'already-there' '[{"name":"one","layout":"L","active":true,
-    "panes":[{"cwd":"/a","sessionId":null}]}]'
-  EXISTING='already-there'
+test_adopts_the_placeholder_session_psmux_creates_at_boot() {
+  # psmux names that session itself, from the same `last_session` the layout
+  # was saved under, and creates it before the backgrounded restore gets its
+  # first command in -- measured live at 1.3s ahead. Refusing to touch a
+  # session that already exists therefore refuses the only session there is
+  # to restore, every boot, for anyone whose layout holds one session.
+  write_layout 'main' '[{"name":"editor","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  EXISTING='main'
   write_psmux_stub
 
   run_restore
 
-  assertEquals 'no new-session for it' 0 "$(calls_matching 'new-session.*already-there')"
+  assertEquals 'no second session created' 0 "$(calls_matching 'new-session')"
+  assertEquals 'the placeholder window took the saved name' 1 \
+    "$(calls_matching 'rename-window.*main:7.*editor')"
+}
+
+test_moves_the_adopted_panes_shell_to_its_saved_directory() {
+  # Every other pane is born in its own directory (`split-window -c`), but
+  # the placeholder's shell started wherever psmux put it, and `claude
+  # --resume` finds a conversation only from the directory that recorded it.
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  EXISTING='main'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'cd sent to the pane psmux reported' 1 \
+    "$(calls_matching "send-keys.*main:7\.33.*cd '/repo'")"
+}
+
+test_resumes_the_adopted_windows_own_panes() {
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":"11111111-2222-3333-4444-555555555555"}]}]'
+  EXISTING='main'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'resumed in the adopted window, by id' 1 \
+    "$(calls_matching 'send-keys.*main:7\.33.*claude --resume 11111111-2222-3333-4444-555555555555')"
+}
+
+test_adds_the_remaining_saved_windows_to_the_adopted_session() {
+  write_layout 'main' '[
+    {"name":"one","layout":"L1","active":true,
+      "panes":[{"cwd":"/repo","sessionId":null}]},
+    {"name":"two","layout":"L2","active":false,
+      "panes":[{"cwd":"/repo/other","sessionId":null}]}
+  ]'
+  EXISTING='main'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'new-window for the second saved window' 1 \
+    "$(calls_matching 'new-window.*-n.*two.*-c./repo/other')"
+}
+
+test_leaves_a_session_that_holds_more_than_a_placeholder_alone() {
+  # Two panes mean someone has been working in it: either the user rebuilt
+  # the session by hand before the restore reached it, or this is a second
+  # run against a server the first one already restored. Writing into it
+  # would duplicate panes and send `cd` into a live shell.
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":"11111111-2222-3333-4444-555555555555"}]}]'
+  EXISTING='main'
+  EXISTING_PANES='%1 %2'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'nothing renamed' 0 "$(calls_matching 'rename-window')"
+  assertEquals 'nothing split' 0 "$(calls_matching 'split-window')"
+  assertEquals 'nothing sent to any shell' 0 "$(calls_matching 'send-keys')"
 }
 
 test_creates_a_missing_session_at_its_first_panes_directory() {

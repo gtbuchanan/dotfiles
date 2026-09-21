@@ -58,6 +58,18 @@ and resurrect removed (`924fc9b`). Piggybacking the save on an event that
 already fires, and restoring from a hook that only ever fires once, avoids
 that failure mode by construction rather than patching around it.
 
+The session psmux creates at boot is adopted rather than skipped. psmux names
+it from the same `last_session` the layout was saved under, and has it running
+before the backgrounded restore issues its first command — measured live at
+1.3s ahead — so a restore that refused to touch a session already on the
+server refused the only session a single-session layout holds, every boot. A
+session reporting a single pane is that placeholder: restore renames its
+window, splits the saved panes into it, and sends the saved directory as a
+`cd` first, because that shell started wherever psmux put it and
+`claude --resume` finds a conversation only from the directory that recorded
+it. A session holding more than one pane belongs to whoever built it and is
+still left alone.
+
 Restore recreates each pane with `-P -F`, psmux's flag for printing the
 index it just assigned, and uses only that for targeting — never a saved
 index field. Closing a tab doesn't reflow the ones after it, so a saved

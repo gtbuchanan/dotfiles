@@ -15,9 +15,13 @@
 # server generation can all make it stale, and psmux already hands back the
 # real one for free.
 #
-# A session already present is left alone -- most likely the one the user's
-# own `psmux` invocation just created, which this script has no business
-# touching. Run from `dot_tmux.conf.tmpl`, which psmux reads exactly once per
+# The session psmux creates at boot is adopted rather than skipped. psmux
+# names it from the same `last_session` the layout was saved under, and has it
+# running before this script issues its first command -- measured live at 1.3s
+# ahead -- so a guard that skipped every existing session skipped the only
+# session a single-session layout holds, every boot. A session holding more
+# than one pane is someone's work rather than that placeholder, and is still
+# left alone. Run from `dot_tmux.conf.tmpl`, which psmux reads exactly once per
 # server lifetime, so this never re-fires on a later attach; the caller
 # backgrounds it so a slow or many-paned restore never delays that attach.
 #
@@ -67,6 +71,14 @@ else
   p() { "$bin" -L "$namespace" "$@"; }
 fi
 
+# Panes psmux reports across a whole session, counted. One is the placeholder
+# psmux creates at boot: a single window holding a single idle shell. A
+# session that reports nothing -- no server, no such session -- counts 0 and
+# so is never mistaken for that placeholder.
+session_pane_count() {
+  p list-panes -s -t "$1" -F '#{pane_id}' 2>/dev/null | grep -c '.'
+}
+
 # Creates every pane of a window beyond the one that already exists (the sole
 # pane of a session's auto-created first window, or a new window's own).
 # $windowPanes is that window's panes array (JSON); echoes the actual pane
@@ -107,11 +119,21 @@ restore_session() {
   local session_json="$1" name windows_json window_count
   name=$(printf '%s' "$session_json" | jq -r '.name')
 
-  p has-session -t "$name" 2>/dev/null && return 0
-
   windows_json=$(printf '%s' "$session_json" | jq -c '.windows')
   window_count=$(printf '%s' "$windows_json" | jq 'length')
   [ "$window_count" -gt 0 ] || return 0
+
+  # $adopted holds the window index of psmux's boot placeholder when this
+  # session is already on the server and still looks like one. Anything
+  # larger belongs to whoever built it -- a session restored by an earlier
+  # run included -- and writing into it would duplicate every pane and send
+  # `cd` into a shell someone is using.
+  local adopted=''
+  if p has-session -t "$name" 2>/dev/null; then
+    [ "$(session_pane_count "$name")" = '1' ] || return 0
+    adopted=$(p list-windows -t "$name" -F '#{window_index}' 2>/dev/null)
+    [ -n "$adopted" ] || return 0
+  fi
 
   local window window_name window_layout window_panes first_pane_cwd
   local window_index first_pane_index actual_indices
@@ -122,13 +144,27 @@ restore_session() {
   window_panes=$(printf '%s' "$window" | jq -c '.panes')
   first_pane_cwd=$(printf '%s' "$window_panes" | jq -r '.[0].cwd')
 
-  window_index=$(p new-session -d -s "$name" -c "$first_pane_cwd" \
-    -P -F '#{window_index}')
-  sleep "$shell_ready_delay"
+  if [ -n "$adopted" ]; then
+    window_index="$adopted"
+  else
+    window_index=$(p new-session -d -s "$name" -c "$first_pane_cwd" \
+      -P -F '#{window_index}')
+    sleep "$shell_ready_delay"
+  fi
 
   p rename-window -t "$name:$window_index" "$window_name"
 
   first_pane_index=$(p list-panes -t "$name:$window_index" -F '#{pane_index}')
+
+  # Every other pane is born in its own directory (`split-window -c`), but an
+  # adopted pane's shell started wherever psmux put it, and `claude --resume`
+  # finds a conversation only from the directory that recorded it.
+  if [ -n "$adopted" ]; then
+    p send-keys -t "$name:$window_index.$first_pane_index" \
+      "cd '$first_pane_cwd'" Enter
+    sleep "$settle_delay"
+  fi
+
   actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
   p select-layout -t "$name:$window_index" "$window_layout"
   resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
