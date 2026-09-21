@@ -147,6 +147,13 @@ pane leaves behind.
 tree to a `#{pane_pid}`; reading `TMUX_PANE` would do the same job
 without the `Win32_Process` query.
 
+A successful `--record`/`--forget` also backgrounds a call to
+`psmux-snapshot`, a separate psmux-facing script with no Claude
+knowledge, so this file stays scoped to pairing a pane with a session
+rather than also knowing how to enumerate a whole server. See
+[Layout Snapshot and Restore](tmux.md#layout-snapshot-and-restore) for
+what that snapshot is for and how it comes back after a reboot.
+
 ## Android: claude-code-termux Package
 
 Anthropic ships Claude Code as a bun-compiled glibc ELF with no

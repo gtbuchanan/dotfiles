@@ -13,14 +13,16 @@ where the backends diverge.
 
 ## File Map
 
-| File                                                                                                                  | Role                                                                           |
-| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                               | Fetches TPM Redux (non-Windows plugin manager)                                 |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                       | Gates `dot_psmux` off non-Windows                                              |
-| [`home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf`](../home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf) | Windows-only psmux plugin: Vim-aware `C-h/j/k/l` binds                         |
-| [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl)                                                               | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations |
-| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)           | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms        |
-| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl)   | Windows-only Vim shell override so edge-forwarding runs `tmux`                 |
+| File                                                                                                                  | Role                                                                                                                  |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                               | Fetches TPM Redux (non-Windows plugin manager)                                                                        |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                       | Gates `dot_psmux` off non-Windows                                                                                     |
+| [`home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf`](../home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf) | Windows-only psmux plugin: Vim-aware `C-h/j/k/l` binds                                                                |
+| [`home/dot_psmux/psmux-snapshot`](../home/dot_psmux/psmux-snapshot)                                                   | Captures the whole layout to `~/.psmux/layout.json` — see [Layout Snapshot and Restore](#layout-snapshot-and-restore) |
+| [`home/dot_psmux/psmux-restore`](../home/dot_psmux/psmux-restore)                                                     | Rebuilds it at server boot, resuming each pane's own Claude session                                                   |
+| [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl)                                                               | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations                                        |
+| [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)           | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms                                               |
+| [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl)   | Windows-only Vim shell override so edge-forwarding runs `tmux`                                                        |
 
 ## Prefix and Splits
 
@@ -35,6 +37,42 @@ psmux-only options in the Windows branch disable warm panes so each pane gets a
 fresh shell ([psmux#120](https://github.com/psmux/psmux/issues/120)) and allow
 predictions to preserve the user's `PredictionSource`
 ([psmux#150](https://github.com/psmux/psmux/issues/150)).
+
+## Layout Snapshot and Restore
+
+Windows only. `psmux-snapshot` captures every session, window and pane on the
+server to `~/.psmux/layout.json` — name, layout string, cwd, and each pane's
+own Claude session id, cross-referenced from the per-pane records
+[`pane-session`](../home/dot_claude/pane-session) keeps (see
+[Pane Session Resume](claude-code.md#pane-session-resume)). `pane-session`
+backgrounds a call to it on every Claude session start and end, so the
+snapshot is never more than one of those stale; nothing here runs on a timer.
+
+`psmux-restore` reads that file once, when the server itself boots — a
+`run-shell` line at the top level of `dot_tmux.conf.tmpl`, which psmux reads
+exactly once per server lifetime, not on a later `psmux attach`. That's
+deliberate: psmux-continuum's old `client-attached` hook spawned a new,
+unbounded 15-minute save loop on every reattach, with no dedup or teardown of
+the previous one — a plausible cause of the instability that got continuum
+and resurrect removed (`924fc9b`). Piggybacking the save on an event that
+already fires, and restoring from a hook that only ever fires once, avoids
+that failure mode by construction rather than patching around it.
+
+Restore recreates each pane with `-P -F`, psmux's flag for printing the
+index it just assigned, and uses only that for targeting — never a saved
+index field. Closing a tab doesn't reflow the ones after it, so a saved
+layout can carry gaps, and a fresh server generation can assign completely
+different ones regardless; restore's own targeting never depends on either.
+It applies the saved layout string via `select-layout`, which the old
+psmux-resurrect computed and never called, so restored panes came back in a
+default tiled layout no matter what was saved.
+
+Each pane that recorded a Claude session id is resumed directly —
+`send-keys ... "claude --resume <id>"` — never `ccr`/`--continue`. A restored
+pane's own live pane-id lookup (what `ccr` does) can never match anything,
+since a new server hands out pane ids from `%0`; falling back to `--continue`
+there is wrong the instant two restored panes share a directory, the exact
+ambiguity the whole pane-session/psmux-snapshot chain exists to avoid.
 
 ## Pane Navigation
 
