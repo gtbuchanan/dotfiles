@@ -36,6 +36,17 @@ set -g status-right '#[fg=#282828,bg=terminal]'
 {{- end }}
 
 {{- if eq .chezmoi.os "windows" }}
+# Rebuilds the layout psmux-snapshot last captured, resuming each pane's own
+# Claude conversation directly rather than leaving bare shells behind. This
+# line is evaluated once, when the server itself boots -- not on a later
+# `psmux attach` to an already-running server -- so it can never fire twice
+# in one server's lifetime, unlike psmux-continuum's old client-attached
+# hook, which spawned a new unbounded save loop on every reattach. Started
+# via Start-Process rather than psmux's own run-shell blocking semantics, so
+# a many-paned restore never delays the session this invocation is itself
+# about to create.
+run-shell 'Start-Process -FilePath bash -ArgumentList "$HOME/.psmux/psmux-restore" -WindowStyle Hidden'
+
 # Disable warm panes — fresh shell every time
 # https://github.com/psmux/psmux/issues/120
 set -g warm off
