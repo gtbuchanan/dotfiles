@@ -15,7 +15,7 @@ chain that lets desktop toasts switch focus into the right psmux pane.
 | [`home/dot_claude/executable_statusline`](../home/dot_claude/executable_statusline)                                                                             | Powerline-style status bar (model, dir, worktree, git state, context %, session cost) — see [Claude Code Statusline Cost Segment](#claude-code-statusline-cost-segment)                                                       |
 | [`home/dot_claude/focus-pane.ps1.tmpl`](../home/dot_claude/focus-pane.ps1.tmpl)                                                                                 | `claude-pane://` URL handler — switches psmux pane and brings WezTerm to front                                                                                                                                                |
 | [`home/dot_claude/notify-input.ps1.tmpl`](../home/dot_claude/notify-input.ps1.tmpl)                                                                             | Notification hook handler — emits a BurntToast with a `Focus` button                                                                                                                                                          |
-| [`home/dot_claude/pane-session`](../home/dot_claude/pane-session)                                                                                               | SessionStart hook and `ccr` lookup — pairs a pane with the session started in it — see [Pane Session Resume](#pane-session-resume)                                                                                            |
+| [`home/dot_claude/pane-session`](../home/dot_claude/pane-session)                                                                                               | SessionStart/SessionEnd hooks and `ccr` lookup — pairs a pane with the session started in it — see [Pane Session Resume](#pane-session-resume)                                                                                |
 | [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                   | Claude config (auto-allow MCP tools, plugin enablement, hooks, env, statusLine)                                                                                                                                               |
 | [`home/dot_claude/symlink_skills`](../home/dot_claude/symlink_skills)                                                                                           | `~/.claude/skills` → `~/.agents/skills` (see [`agent-config.md`](agent-config.md))                                                                                                                                            |
 
@@ -120,6 +120,10 @@ settings.json (SessionStart hook)
 ccr (bash_aliases, 10-functions.ps1)
   → pane-session --resolve  (prints the id recorded for this pane)
   → claude --resume <id>    (or --continue where nothing resolved)
+
+settings.json (SessionEnd hook)
+  → pane-session --forget   (deletes the record, if it still names the
+                             session that just ended)
 ```
 
 One bash hook serves every platform because tmux and psmux both export
@@ -131,6 +135,10 @@ outlives the pane it describes and that id can later belong to an
 unrelated pane. Each record stores the pane's directory and `--resolve`
 rejects one that no longer matches, which costs a stale pane a fallback
 to `--continue` rather than resuming a conversation from somewhere else.
+
+`--forget` only removes a record that still names the ending session,
+because a pane can start a second session before the first one's
+SessionEnd hook runs.
 
 `notify-input.ps1` resolves its pane the older way, walking the process
 tree to a `#{pane_pid}`; reading `TMUX_PANE` would do the same job

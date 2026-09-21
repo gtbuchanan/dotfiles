@@ -7,9 +7,14 @@
 # directory: ~/.claude/projects/<slugified-cwd>/ holds one .jsonl per session
 # and records nothing about which pane produced it. Two panes in one repo
 # therefore resume the same conversation, and whichever resumes first becomes
-# the "most recent" that the other then picks up. --record writes the pane's
-# session id here and --resolve reads it back, which is what lets `ccr` pass
-# `--resume <id>`.
+# the "most recent" that the other then picks up. SessionStart calls --record
+# to write the pane's session id here, --resolve reads it back for `ccr`, and
+# SessionEnd calls --forget to delete it once that session ends -- so a closed
+# pane leaves nothing for an unrelated later one to inherit.
+#
+# --forget only deletes a record that still names the session it was told
+# ended: a pane can start a second session before the first one's SessionEnd
+# hook runs, and the record by then belongs to that newer session.
 #
 # tmux and psmux both export TMUX_PANE into the pane and child processes
 # inherit it, so the pane id arrives in the environment on every platform.
@@ -40,6 +45,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
   --record) mode='record' ;;
   --resolve) mode='resolve' ;;
+  --forget) mode='forget' ;;
   --root)
     [ $# -ge 2 ] || exit 0
     root="$2"
@@ -93,6 +99,21 @@ if [ "$mode" = 'record' ]; then
     }' >"$staging" 2>/dev/null &&
     mv -f "$staging" "$record" 2>/dev/null
   rm -f "$staging" 2>/dev/null
+  exit 0
+fi
+
+if [ "$mode" = 'forget' ]; then
+  payload=$(cat)
+  [ -n "$payload" ] || exit 0
+
+  session_id=$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)
+  [ -n "$session_id" ] || exit 0
+
+  [ -f "$record" ] || exit 0
+  recorded_session=$(jq -r '.sessionId // empty' "$record" 2>/dev/null)
+  [ "$recorded_session" = "$session_id" ] || exit 0
+
+  rm -f "$record" 2>/dev/null
   exit 0
 fi
 

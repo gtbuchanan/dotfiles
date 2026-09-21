@@ -69,6 +69,17 @@ resolve() {
   )
 }
 
+# Tells pane $1 that session $2 (from directory $3) has ended.
+forget() {
+  local pane="$1" session_id="$2" dir="$3" namespace="${4:-default}"
+  (
+    cd "$dir" || exit 1
+    printf '{"session_id":"%s"}' "$session_id" |
+      TMUX_PANE="$pane" TMUX="$(socket "$namespace")" \
+        bash "$HOOK" --forget --root "$RECORDS"
+  )
+}
+
 setUp() {
   SANDBOX=$(mktemp -d)
   RECORDS="$SANDBOX/panes"
@@ -162,6 +173,65 @@ test_the_second_session_in_a_pane_replaces_the_first() {
   assertEquals 'one record' 1 "$(find "$RECORDS" -name '*.json' | grep -c .)"
   assertEquals 'the newer session' 'bbbbbbbb-0000-0000-0000-000000000000' \
     "$(resolve '%3' "$PANE_CWD")"
+}
+
+# --- forgetting --------------------------------------------------------------
+
+test_forget_removes_the_session_it_names() {
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+  forget '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertEquals 'no records left' 0 "$(find "$RECORDS" -type f | grep -c .)"
+  assertEquals '' "$(resolve '%3' "$PANE_CWD")"
+}
+
+test_forget_leaves_a_record_from_a_newer_session() {
+  # A SessionEnd hook call can arrive after the same pane has already started
+  # a different session; the slot now belongs to that newer session and
+  # forgetting the old one must not take it down too.
+  record '%3' 'aaaaaaaa-0000-0000-0000-000000000000' "$PANE_CWD"
+  record '%3' 'bbbbbbbb-0000-0000-0000-000000000000' "$PANE_CWD"
+  forget '%3' 'aaaaaaaa-0000-0000-0000-000000000000' "$PANE_CWD"
+
+  assertEquals 'the newer session survives' 'bbbbbbbb-0000-0000-0000-000000000000' \
+    "$(resolve '%3' "$PANE_CWD")"
+}
+
+test_forget_with_no_record_is_a_noop() {
+  forget '%9' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertEquals 'no records' 0 "$(find "$RECORDS" -type f | grep -c .)"
+}
+
+test_forget_without_a_session_id_leaves_the_record() {
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+  (
+    cd "$PANE_CWD" || exit 1
+    printf '{}' |
+      TMUX_PANE='%3' TMUX="$(socket)" bash "$HOOK" --forget --root "$RECORDS"
+  )
+
+  assertEquals '11111111-2222-3333-4444-555555555555' \
+    "$(resolve '%3' "$PANE_CWD")"
+}
+
+test_forget_without_a_session_id_does_not_clear_a_corrupt_record() {
+  # An empty payload's session_id and a record's missing sessionId field both
+  # read back as '' from jq, so the two guards can look interchangeable. This
+  # pins the one that would otherwise be dead: a hand-edited or truncated
+  # record with no sessionId must not match an equally empty request.
+  local key file
+  key=$(printf 'default-%s' '%3' | tr -c 'A-Za-z0-9._-' '_')
+  file="$RECORDS/$key.json"
+  printf '{"cwd":"%s","paneId":"%%3"}' "$PANE_CWD" >"$file"
+
+  (
+    cd "$PANE_CWD" || exit 1
+    printf '{}' |
+      TMUX_PANE='%3' TMUX="$(socket)" bash "$HOOK" --forget --root "$RECORDS"
+  )
+
+  assertTrue 'the corrupt record is untouched' "[ -f '$file' ]"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints

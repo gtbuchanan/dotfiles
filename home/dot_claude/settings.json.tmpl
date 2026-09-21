@@ -101,7 +101,9 @@
     ],
 {{- /*
   Pairs the pane with the session started in it, so `ccr` can resume that
-  conversation by id rather than the newest one in the directory.
+  conversation by id rather than the newest one in the directory. SessionEnd
+  deletes the record when the session it names ends, so a closed pane leaves
+  nothing for an unrelated later one to inherit.
 
   Unconditional, and bash rather than PowerShell, because tmux and psmux both
   export TMUX_PANE: one hook covers the tmux hosts and the Windows ones alike.
@@ -109,6 +111,16 @@
   supplies it on Windows -- which also keeps pwsh's second of startup off the
   front of every session.
 */}}
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "command": "bash ~/.claude/pane-session --forget",
+            "type": "command"
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [
