@@ -20,6 +20,7 @@ where the backends diverge.
 | [`home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf`](../home/dot_psmux/plugins/psmux-vim-navigator/plugin.conf) | Windows-only psmux plugin: Vim-aware `C-h/j/k/l` binds                                                                |
 | [`home/dot_psmux/psmux-snapshot`](../home/dot_psmux/psmux-snapshot)                                                   | Captures the whole layout to `~/.psmux/layout.json` — see [Layout Snapshot and Restore](#layout-snapshot-and-restore) |
 | [`home/dot_psmux/psmux-restore`](../home/dot_psmux/psmux-restore)                                                     | Rebuilds it at server boot, resuming each pane's own Claude session                                                   |
+| [`home/dot_psmux/psmux-autosave`](../home/dot_psmux/psmux-autosave)                                                   | One snapshot loop per server, catching what the Claude session hooks miss                                             |
 | [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl)                                                               | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations                                        |
 | [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)           | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms                                               |
 | [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl)   | Windows-only Vim shell override so edge-forwarding runs `tmux`                                                        |
@@ -45,8 +46,25 @@ server to `~/.psmux/layout.json` — name, layout string, cwd, and each pane's
 own Claude session id, cross-referenced from the per-pane records
 [`pane-session`](../home/dot_claude/pane-session) keeps (see
 [Pane Session Resume](claude-code.md#pane-session-resume)). `pane-session`
-backgrounds a call to it on every Claude session start and end, so the
-snapshot is never more than one of those stale; nothing here runs on a timer.
+backgrounds a call to it on every Claude session start and end.
+
+`psmux-autosave` takes one every fifteen minutes on top of that, because
+those two events miss everything that happens between them — a pane opened,
+closed, or moved to another directory — and psmux has no hook that would
+catch it: `pane-exited` fires when a shell exits, but `kill-pane` and
+`kill-window`, which prefix-`x` and prefix-`&` are bound to, fire nothing at
+all. A clock is the only thing that sees every change.
+
+That is the mechanism psmux-continuum was removed for, so it is worth being
+precise about what continuum actually did. Its `client-attached` hook started
+`auto_save.ps1` — an unbounded `while ($true)` pwsh loop — once **per
+attach**, deduplicated by nothing and reaped by nothing; its own
+`plugin.conf` waves this through as "harmless since saves are idempotent",
+which is true of the saves and false of the processes. Periodic saving was
+never the hazard. `psmux-autosave` starts from the top level of
+`dot_tmux.conf.tmpl`, which psmux reads once per server lifetime rather than
+once per attach, claims a pidfile so a second instance stands down without
+disturbing the first, and exits when `psmux ls` shows the server has gone.
 
 Every layout written is also copied into `~/.psmux/layouts/`, named for the
 second it was taken and the pid that wrote it, and that history is what a

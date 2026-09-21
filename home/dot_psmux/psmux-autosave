@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+#
+# Takes a layout snapshot every few minutes for as long as the server lives.
+# Claude's SessionStart and SessionEnd are the only other triggers, so a pane
+# opened, closed or moved between two of them is absent from the layout until
+# the next one fires, and psmux offers no hook that would close the gap:
+# `pane-exited` fires when a shell exits, but `kill-pane` and `kill-window` --
+# what prefix-x and prefix-& are bound to -- fire nothing at all, measured
+# against a live server. A clock is the only thing that sees every change.
+#
+# This is the mechanism psmux-continuum was removed for, so it is worth being
+# exact about what continuum did wrong. Its `client-attached` hook started
+# `auto_save.ps1`, an unbounded `while ($true)` pwsh loop, once per attach,
+# deduped by nothing and reaped by nothing; its own plugin.conf waves this
+# through as "harmless since saves are idempotent", which is true of the
+# saves and false of the processes, and reattaching all day left a pile of
+# them. Periodic saving was never the hazard. So: started from the top level
+# of `dot_tmux.conf.tmpl`, which psmux reads exactly once per server lifetime
+# rather than once per attach, guarded by a pidfile in case it is ever
+# sourced twice, and ended by the server it was started for going away.
+#
+# The pidfile is claimed before the loop and released by a trap, and a second
+# instance that finds a live one exits without touching it -- deleting
+# another loop's pidfile would leave nothing holding the lock and let a third
+# instance start beside it.
+#
+# Failures are silent and exit 0, matching the rest of this chain: this runs
+# unattended with no terminal to report to, and a missed save costs the next
+# restore some freshness rather than correctness.
+
+interval=900
+namespace='default'
+pidfile="$HOME/.psmux/autosave.pid"
+snapshot_bin="$HOME/.psmux/psmux-snapshot"
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+  --interval)
+    [ $# -ge 2 ] || exit 0
+    interval="$2"
+    shift
+    ;;
+  --namespace)
+    [ $# -ge 2 ] || exit 0
+    namespace="$2"
+    shift
+    ;;
+  --pidfile)
+    [ $# -ge 2 ] || exit 0
+    pidfile="$2"
+    shift
+    ;;
+  --snapshot-bin)
+    [ $# -ge 2 ] || exit 0
+    snapshot_bin="$2"
+    shift
+    ;;
+  *) exit 0 ;;
+  esac
+  shift
+done
+
+# psmux ships a `tmux` shim for other tools' benefit; this repo's own psmux
+# would otherwise never be reached ahead of it. tmux is tried last so this
+# script is real tmux's answer too when it's what's actually running.
+bin=''
+for n in psmux pmux tmux; do
+  bin=$(command -v "$n" 2>/dev/null) && break
+done
+[ -n "$bin" ] || exit 0
+
+# `-L default` addresses a different socket than the ordinary unnamed default
+# server, which bare invocation is what reaches -- the same distinction
+# psmux-snapshot and psmux-restore both make.
+if [ "$namespace" = 'default' ]; then
+  p() { "$bin" "$@"; }
+else
+  p() { "$bin" -L "$namespace" "$@"; }
+fi
+
+# A pidfile naming a process that is still running means a loop is already
+# on duty. One naming a process that is not is what power loss leaves
+# behind, and refusing to start on that would mean no periodic save again
+# until someone deleted a file by hand.
+if [ -f "$pidfile" ]; then
+  running=$(cat "$pidfile" 2>/dev/null)
+  case "$running" in '' | *[!0-9]*) running='' ;; esac
+  if [ -n "$running" ] && kill -0 "$running" 2>/dev/null; then
+    exit 0
+  fi
+fi
+
+case "$pidfile" in
+*/*) mkdir -p "${pidfile%/*}" 2>/dev/null || exit 0 ;;
+esac
+printf '%s\n' "$$" >"$pidfile" 2>/dev/null || exit 0
+
+# Signals are trapped separately from EXIT, and their handler exits rather
+# than cleaning up: bash resumes the script after running a signal trap, so
+# a handler that only removed the pidfile would leave this looping on with
+# nothing holding its lock, which is the pile of processes continuum left.
+# Exiting from the handler is what runs the EXIT trap below.
+trap 'rm -f "$pidfile" 2>/dev/null' EXIT
+trap 'exit 0' TERM INT
+
+# Sleeping first because the boot that starts this has just taken a snapshot
+# of its own, or is about to when the first Claude session starts.
+while true; do
+  sleep "$interval"
+  p ls >/dev/null 2>&1 || break
+  "$snapshot_bin" --namespace "$namespace" >/dev/null 2>&1
+done
+
+exit 0

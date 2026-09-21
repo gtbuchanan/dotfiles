@@ -47,6 +47,15 @@ set -g status-right '#[fg=#282828,bg=terminal]'
 # about to create.
 run-shell 'Start-Process -FilePath bash -ArgumentList "$HOME/.psmux/psmux-restore" -WindowStyle Hidden'
 
+# Keeps the saved layout current between Claude sessions, which are otherwise
+# the only thing that triggers a snapshot -- psmux fires no hook at all for
+# `kill-pane` or `kill-window`, the two this would most want. Started here,
+# from a line psmux reads once per server lifetime, rather than from
+# `client-attached` as psmux-continuum did: that fired on every reattach and
+# left an unbounded save loop behind each time, with nothing deduplicating or
+# reaping them. This one holds a pidfile and ends when the server does.
+run-shell 'Start-Process -FilePath bash -ArgumentList "$HOME/.psmux/psmux-autosave" -WindowStyle Hidden'
+
 # Disable warm panes — fresh shell every time
 # https://github.com/psmux/psmux/issues/120
 set -g warm off
