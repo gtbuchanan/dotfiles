@@ -1,0 +1,10 @@
+# Windows only. Every other platform takes mise from a native package manager
+# that tracks upstream closely (mise.run, Homebrew, Termux `pkg`), so only this
+# one is pinned. winget's jdx.mise manifest is the outlier: it sat six releases
+# and eight days behind upstream, which put newly shipped settings out of reach
+# on the platform that needed them. Installed by
+# .chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl.
+#
+---
+# renovate: datasource=github-releases depName=jdx/mise
+mise_version: '2026.9.11'

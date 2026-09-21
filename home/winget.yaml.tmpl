@@ -496,15 +496,22 @@ properties:
         id: FlorianHeidenreich.Mp3tag
         source: winget
 {{- end }}
+    # mise comes from its own release now, pinned in .chezmoidata/mise.yaml and
+    # installed by run_onchange_before_install-mise.ps1 -- the winget manifest
+    # trailed upstream by six releases. Removing the package keeps a stale copy
+    # from shadowing the pinned one on PATH; hosts provisioned before the switch
+    # converge on the next apply.
     - resource: Microsoft.WinGet.DSC/WinGetPackage
       directives:
-        description: Install mise
-      id: mise
+        description: Remove the winget mise package
+      id: miseWinGetAbsent
       settings:
         id: jdx.mise
         source: winget
+        Ensure: Absent
+    # No dependsOn: the shims directory is mise's own data path, so adding it to
+    # PATH holds whatever installed mise and whether it is installed yet.
     - resource: xPSDesiredStateConfiguration/xScript
-      dependsOn: [mise]
       directives:
         allowPrerelease: true
         description: Add mise shims to user PATH

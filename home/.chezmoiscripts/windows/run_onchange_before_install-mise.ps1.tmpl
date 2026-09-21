@@ -1,0 +1,112 @@
+$ErrorActionPreference = 'Stop'
+
+# mise install for Windows, pinned in home/.chezmoidata/mise.yaml
+# (Renovate-tracked). The winget manifest no longer carries jdx.mise: its
+# version is whatever the winget repo has merged, which trailed upstream far
+# enough that a setting shipped upstream stayed unreachable here for over a
+# week. A pin also makes `min_version` in a project mise.toml enforceable
+# rather than aspirational.
+#
+# `before`, so mise exists by the time run_after_mise-install.ps1 materializes
+# the tools pinned in the global conf.d fragments. Ordered ahead of
+# run_onchange_before_winget.ps1 by name, which is also the pass that removes
+# any leftover winget copy.
+#
+# jdx/mise publishes a SHA256 per asset in SHASUMS256.txt, so the download is
+# verified against the release rather than trusted outright (cf. the Termux
+# actionlint install, which does the same; hk publishes no per-asset checksum
+# and is pinned by version alone).
+
+$Version = '{{ .mise_version }}'
+
+# Resolve the install targets before anything else -- they double as the
+# already-installed check, and a matching version makes the whole pass a no-op.
+#
+# mise-shim.exe ships beside mise.exe and backs the default `exe` shim mode.
+# Without it mise warns and silently falls back to `file` mode, writing batch
+# shims instead, so it is as much a required artifact as mise itself.
+$InstallDir = Join-Path $HOME '.local\bin'
+$Binary = Join-Path $InstallDir 'mise.exe'
+$ShimBinary = Join-Path $InstallDir 'mise-shim.exe'
+
+if ((Test-Path $Binary) -and (Test-Path $ShimBinary)) {
+  # `mise --version` prints "<version> <platform> (<date>)"; take the first
+  # field. A binary too broken to report a version reinstalls rather than
+  # throwing, so a corrupt copy self-heals on the next apply.
+  $installed = $null
+  try { $installed = (& $Binary --version 2>$null).Split(' ')[0] } catch { $installed = $null }
+  if ($installed -eq $Version) {
+    Write-Output "mise $Version already installed"
+    return
+  }
+}
+
+# Windows on ARM runs the arm64 build natively; mise publishes both. Read the
+# native architecture rather than PROCESSOR_ARCHITECTURE, which reports x86 to
+# a 32-bit host process.
+$arch = switch ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture) {
+  'Arm64' { 'arm64' }
+  default { 'x64' }
+}
+# The zip, not the bare .exe asset: only the archive carries mise-shim.exe
+# beside mise.exe, and the shim decides which mode the generated shims use.
+$asset = "mise-v$Version-windows-$arch.zip"
+$base = "https://github.com/jdx/mise/releases/download/v$Version"
+
+Write-Output "Installing mise $Version ($arch)..."
+
+$temp = Join-Path ([IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+New-Item -ItemType Directory -Path $temp | Out-Null
+try {
+  # Both downloads land on disk rather than in memory: Invoke-WebRequest hands
+  # back .Content as a Byte[] for these, so reading the sums as a string means
+  # decoding it by hand. A file and Get-Content sidestep the question.
+  $sumsFile = Join-Path $temp 'SHASUMS256.txt'
+  Invoke-WebRequest -Uri "$base/SHASUMS256.txt" -OutFile $sumsFile -UseBasicParsing
+
+  # Entries read "<sha256>  ./<asset>". Anchor both ends so no other asset
+  # whose name contains this one's can match.
+  $pattern = "^([0-9a-fA-F]{64})\s+\./$([regex]::Escape($asset))$"
+  $expected = Get-Content -Path $sumsFile |
+    Where-Object { $_ -match $pattern } |
+    ForEach-Object { $Matches[1] } |
+    Select-Object -First 1
+  if (-not $expected) {
+    throw "No SHA256 published for $asset in the mise $Version release."
+  }
+
+  $download = Join-Path $temp $asset
+  Invoke-WebRequest -Uri "$base/$asset" -OutFile $download -UseBasicParsing
+
+  $actual = (Get-FileHash -Path $download -Algorithm SHA256).Hash
+  if ($actual -ne $expected) {
+    throw "Checksum mismatch for ${asset}: expected $expected, got $actual."
+  }
+
+  # Archive layout is mise/bin/{mise,mise-shim}.exe plus LICENSE and README;
+  # take only the two binaries, and fail loudly if the layout ever moves rather
+  # than leaving a half-installed pair behind.
+  $extract = Join-Path $temp 'x'
+  Expand-Archive -Path $download -DestinationPath $extract -Force
+
+  New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+  foreach ($pair in @(@('mise.exe', $Binary), @('mise-shim.exe', $ShimBinary))) {
+    $found = Get-ChildItem -Path $extract -Recurse -Filter $pair[0] | Select-Object -First 1
+    if (-not $found) {
+      throw "$($pair[0]) not found in $asset."
+    }
+    Move-Item -Path $found.FullName -Destination $pair[1] -Force
+  }
+}
+finally {
+  Remove-Item -Path $temp -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+# The winget manifest persists ~/.local/bin on the user PATH (localBinPath),
+# but that runs later in this same apply and never touches an already-running
+# process. Patch this one so the after-script can resolve the binary on the
+# first apply of a fresh host.
+$entries = $env:Path -split ';' | Where-Object { $_ }
+if ($entries -notcontains $InstallDir) {
+  $env:Path = (@($entries) + $InstallDir) -join ';'
+}

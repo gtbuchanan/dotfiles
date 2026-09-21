@@ -20,6 +20,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | [`home/.chezmoidata/actionlint.yaml`](../home/.chezmoidata/actionlint.yaml)                                                                                   | Pinned `actionlint` version for the Termux install (Renovate-tracked)  |
 | [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                   | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked) |
+| [`home/.chezmoidata/mise.yaml`](../home/.chezmoidata/mise.yaml)                                                                                               | Pinned mise version for the Windows install (Renovate-tracked)         |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                       | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`            |
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                               | Gates the android scripts to Termux only                               |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl) | Termux out-of-band `actionlint` install                                |
@@ -27,25 +28,45 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                     | Termux mise + native-bionic linters (`pkg`)                            |
 | [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                       | macOS mise install (Homebrew formula)                                  |
 | [`home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before.sh.tmpl)                                         | Linux mise install (`mise.run`)                                        |
+| [`home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl)         | Windows pinned mise install (download + SHA256 verify)                 |
 | [`home/.chezmoitemplates/mise-install`](../home/.chezmoitemplates/mise-install)                                                                               | Shared body of the per-platform global-tool install script             |
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                     |
 | [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                              | Global mise config fragments, gated per-platform by their own ignore   |
 | [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                     | `mise activate pwsh`                                                   |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                           | Shims dir on PATH (non-interactive)                                    |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Windows mise install + shims-dir PATH entry                            |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Shims-dir PATH entry; removes the superseded winget mise package       |
 
 ## mise Installation Per Platform
 
-| Platform         | Source                        | mise binary         | Resolution path                      |
-| ---------------- | ----------------------------- | ------------------- | ------------------------------------ |
-| Windows          | winget `jdx.mise`             | WinGet packages dir | shims at `%LOCALAPPDATA%\mise\shims` |
-| Linux            | `curl https://mise.run \| sh` | `~/.local/bin`      | `mise activate` / shims              |
-| macOS            | Homebrew formula `mise`       | Homebrew prefix     | `mise activate` / shims              |
-| Android (Termux) | `pkg install mise`            | Termux prefix       | `mise activate` / shims              |
+| Platform         | Source                        | mise binary     | Resolution path                      |
+| ---------------- | ----------------------------- | --------------- | ------------------------------------ |
+| Windows          | pinned release `.zip`         | `~/.local/bin`  | shims at `%LOCALAPPDATA%\mise\shims` |
+| Linux            | `curl https://mise.run \| sh` | `~/.local/bin`  | `mise activate` / shims              |
+| macOS            | Homebrew formula `mise`       | Homebrew prefix | `mise activate` / shims              |
+| Android (Termux) | `pkg install mise`            | Termux prefix   | `mise activate` / shims              |
 
 On Windows the winget config also appends `%LOCALAPPDATA%\mise\shims` to the
 **user** PATH (the `miseShimsPath` xScript resource), so mise-managed tools
 resolve even in non-interactive contexts that never run `mise activate`.
+
+Windows is the only platform where mise itself is pinned. The other three take
+whatever their package manager currently has, which tracks upstream closely
+enough to need no pin; winget does not — its `jdx.mise` manifest sat six
+releases and eight days behind, which is long enough for a setting to ship
+upstream and stay unreachable on the platform that wanted it. So the version
+lives in [`.chezmoidata/mise.yaml`](../home/.chezmoidata/mise.yaml) with a
+`renovate:` annotation, and
+[`run_onchange_before_install-mise.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl)
+fetches that release and verifies it against the SHA256 the release publishes
+per asset. It takes the `.zip` rather than the bare `.exe`, because only the
+archive carries `mise-shim.exe`: absent that, mise warns and drops from the
+default `exe` shim mode to writing batch shims instead. The winget manifest
+carries an `Ensure: Absent` entry for `jdx.mise` so a host provisioned before
+the switch drops its old copy rather than leaving two on PATH.
+
+The pin is what makes `min_version` in a project `mise.toml` enforceable: with
+winget supplying the binary, a floor the repo declared could sit above
+anything installable.
 
 ## mise Shell Activation
 
@@ -262,8 +283,8 @@ list, so closing them shortens that list without emptying it:
 
 - **winget** became a `[bootstrap.packages]` manager in 2026.9.3 — exact
   package IDs, version pins, source refresh, automatic source-agreement
-  acceptance. Scoop, Chocolatey, and package removal remain future work
-  upstream.
+  acceptance. Package removal remains future work upstream; Scoop followed in
+  2026.9.12, Chocolatey has not.
 - **`variants`** landed on `[dotfiles]` entries in 2026.9.5, selecting a
   destination by `os` (optionally with architecture) or mise profile.
 
@@ -314,10 +335,12 @@ Maturity weighs in too, for a repo that has to work on every platform above:
 bootstrap is moving fast enough that the published JSON schema still lags its
 own CLI — `mise bootstrap compose` and `mise bootstrap accounts` manage
 `[bootstrap.compose]` and `[bootstrap.users]`/`[bootstrap.groups]`, none of
-which `mise.json` declares. The delivery channel lags as well. winget ships
-the mise this repo installs on its primary platform, and it sat at 2026.9.5
-while upstream was six releases ahead at 2026.9.11, so `min_version` in a
-project `mise.toml` is what any newly adopted bootstrap feature would collide
+which `mise.json` declares. The delivery channel lagged too, which is why
+Windows now installs a pinned release instead of the winget package (see
+[mise Installation Per Platform](#mise-installation-per-platform)) — but that
+only moves the constraint. A bootstrap feature still has to clear the 3-day
+release-age window before this repo can pin the version carrying it, so
+`min_version` in a project `mise.toml` is what a newly adopted one collides
 with first.
 
 Re-evaluate if either of these lands:
