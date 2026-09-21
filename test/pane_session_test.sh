@@ -24,6 +24,12 @@
 # is a plain file rather than a template, so the rendered output would be
 # byte-identical, and reading it directly lets this suite run on every leg.
 #
+# A successful --record/--forget also fires psmux-snapshot in the background
+# (PANE_SESSION_SNAPSHOT_BIN overrides where it looks). That script's own
+# behavior belongs to test/psmux_snapshot_test.sh; here it's stubbed to a
+# no-op by default so these tests never depend on psmux, real or fake, and the
+# two invocation tests below substitute a marker-writing stub instead.
+#
 #   mise run test:shunit2 [-- shUnit2 args, e.g. a test_* name filter]
 #
 # Built on the vendored shUnit2 (vendor/shunit2): each behavior is a `test_*`
@@ -54,8 +60,8 @@ record() {
   (
     cd "$dir" || exit 1
     printf '{"session_id":"%s"}' "$session_id" |
-      TMUX_PANE="$pane" TMUX="$(socket "$namespace")" \
-        bash "$HOOK" --record --root "$RECORDS"
+      PANE_SESSION_SNAPSHOT_BIN="$SNAPSHOT_STUB" TMUX_PANE="$pane" \
+        TMUX="$(socket "$namespace")" bash "$HOOK" --record --root "$RECORDS"
   )
 }
 
@@ -75,8 +81,8 @@ forget() {
   (
     cd "$dir" || exit 1
     printf '{"session_id":"%s"}' "$session_id" |
-      TMUX_PANE="$pane" TMUX="$(socket "$namespace")" \
-        bash "$HOOK" --forget --root "$RECORDS"
+      PANE_SESSION_SNAPSHOT_BIN="$SNAPSHOT_STUB" TMUX_PANE="$pane" \
+        TMUX="$(socket "$namespace")" bash "$HOOK" --forget --root "$RECORDS"
   )
 }
 
@@ -86,6 +92,19 @@ setUp() {
   PANE_CWD="$SANDBOX/repo"
   ELSEWHERE="$SANDBOX/other"
   mkdir -p "$RECORDS" "$PANE_CWD" "$ELSEWHERE"
+
+  # Touches its own marker so a test that later overwrites $SNAPSHOT_STUB can
+  # first wait for this default run to actually happen. trigger_snapshot
+  # backgrounds the call, so without that wait a still-pending job can read
+  # the NEW stub content once it finally executes, crediting the overwritten
+  # version with a run that was really queued against the old one.
+  NOOP_RAN="$SANDBOX/noop-ran"
+  SNAPSHOT_STUB="$SANDBOX/snapshot-noop"
+  cat >"$SNAPSHOT_STUB" <<STUB
+#!/usr/bin/env bash
+touch "$NOOP_RAN"
+STUB
+  chmod +x "$SNAPSHOT_STUB"
 }
 
 tearDown() {
@@ -267,6 +286,69 @@ test_a_record_within_the_retention_window_survives_a_sweep() {
 
   assertEquals '11111111-2222-3333-4444-555555555555' \
     "$(resolve '%3' "$PANE_CWD")"
+}
+
+# --- triggering the layout snapshot -------------------------------------------
+
+# Waits up to a second for $1 to exist: trigger_snapshot backgrounds the call,
+# so the marker a stub writes can land a moment after record()/forget() return.
+wait_for() {
+  local path="$1" _
+  for _ in $(seq 1 20); do
+    [ -e "$path" ] && return 0
+    sleep 0.05
+  done
+  return 1
+}
+
+test_record_invokes_the_configured_snapshot_script() {
+  local marker="$SANDBOX/invoked"
+  printf '#!/usr/bin/env bash\ntouch "%s"\n' "$marker" >"$SNAPSHOT_STUB"
+
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertTrue 'snapshot script ran' "wait_for '$marker'"
+}
+
+test_forget_invokes_the_configured_snapshot_script() {
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+  wait_for "$NOOP_RAN"
+
+  local marker="$SANDBOX/invoked"
+  printf '#!/usr/bin/env bash\ntouch "%s"\n' "$marker" >"$SNAPSHOT_STUB"
+
+  forget '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertTrue 'snapshot script ran' "wait_for '$marker'"
+}
+
+test_record_passes_its_own_root_to_the_snapshot_script() {
+  local argv="$SANDBOX/argv"
+  cat >"$SNAPSHOT_STUB" <<STUB
+#!/usr/bin/env bash
+printf '%s\\n' "\$@" >"$argv"
+STUB
+
+  record '%3' '11111111-2222-3333-4444-555555555555' "$PANE_CWD"
+
+  assertTrue 'snapshot script ran' "wait_for '$argv'"
+  assertEquals "$(printf '%s\n%s' '--root' "$RECORDS")" "$(cat "$argv")"
+}
+
+test_a_record_that_declines_to_write_does_not_invoke_the_snapshot_script() {
+  local marker="$SANDBOX/invoked"
+  printf '#!/usr/bin/env bash\ntouch "%s"\n' "$marker" >"$SNAPSHOT_STUB"
+
+  (
+    cd "$PANE_CWD" || exit 1
+    printf '{"cwd":"/somewhere"}' |
+      PANE_SESSION_SNAPSHOT_BIN="$SNAPSHOT_STUB" TMUX_PANE='%3' \
+        TMUX="$(socket)" bash "$HOOK" --record --root "$RECORDS"
+  )
+
+  # No background job to race against here: the script never reaches
+  # trigger_snapshot on this path, so there's nothing to wait for.
+  assertFalse 'snapshot script never ran' "[ -e '$marker' ]"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints

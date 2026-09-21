@@ -42,10 +42,24 @@
 # the session that owns it, which a crash, a `kill -9`, or a power loss skips
 # outright. --record therefore prunes anything past the retention window on
 # every call, so an unreaped record is bounded in age rather than permanent.
+#
+# A successful --record or --forget also fires psmux-snapshot (~/.psmux,
+# alongside psmux's other files, not here) in the background, so
+# psmux-restore has a fresh copy of the whole layout to work from after a
+# reboot -- see that script for what it captures and why. This script stays
+# deliberately ignorant of psmux itself: it only knows that script exists and
+# where the per-pane records it reads live.
 
 mode=''
 root="$HOME/.claude/panes"
 readonly max_age_seconds=$((30 * 24 * 60 * 60))
+
+# psmux-snapshot lives under ~/.psmux, not alongside this script -- it is a
+# psmux concern, not a Claude one, so it deploys with the rest of psmux's own
+# files rather than Claude's. Overridable so tests can substitute a stub
+# without psmux-snapshot's own dependencies (a real or fake psmux) ever
+# entering this script's tests.
+snapshot_bin="${PANE_SESSION_SNAPSHOT_BIN:-$HOME/.psmux/psmux-snapshot}"
 
 # Deletes every record older than max_age_seconds. A corrupt or pre-pruning
 # record with no recordedEpoch field reads back as 0 -- older than anything --
@@ -61,6 +75,12 @@ prune_stale() {
     case "$age" in '' | *[!0-9]*) age=0 ;; esac
     [ "$age" -lt "$threshold" ] && rm -f "$f" 2>/dev/null
   done
+}
+
+# Backgrounded so a slow or missing psmux-snapshot never delays the
+# SessionStart/SessionEnd hook this script is actually running as.
+trigger_snapshot() {
+  "$snapshot_bin" --root "$root" >/dev/null 2>&1 &
 }
 
 while [ $# -gt 0 ]; do
@@ -124,6 +144,8 @@ if [ "$mode" = 'record' ]; then
     }' >"$staging" 2>/dev/null &&
     mv -f "$staging" "$record" 2>/dev/null
   rm -f "$staging" 2>/dev/null
+
+  trigger_snapshot
   exit 0
 fi
 
@@ -139,6 +161,8 @@ if [ "$mode" = 'forget' ]; then
   [ "$recorded_session" = "$session_id" ] || exit 0
 
   rm -f "$record" 2>/dev/null
+
+  trigger_snapshot
   exit 0
 fi
 
