@@ -30,6 +30,18 @@
   url: https://github.com/pnp/cli-microsoft365/archive/refs/tags/v11.10.0.tar.gz
 {{- end }}
 
+{{- /* The top-level `aspire` skill routes work to the workflow skills below,
+   so upstream installs them as a set rather than individually. */}}
+{{- $aspireSkills := list "aspire" "aspire-deployment" "aspire-init"
+      "aspire-monitoring" "aspire-orchestration" "aspireify" }}
+{{- range $aspireSkills }}
+'.agents/skills/{{ . }}':
+  exact: true
+  type: archive
+  stripComponents: 3
+  include: ["*/skills/{{ . }}/**"]
+  url: https://github.com/microsoft/aspire-skills/archive/refs/tags/v0.0.2.tar.gz
+{{ end }}
 '.agents/skills/cloudflare':
   exact: true
   type: archive
