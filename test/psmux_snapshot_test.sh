@@ -113,6 +113,20 @@ run_snapshot_from_server() {
     bash "$SNAPSHOT" --root "$RECORDS" --layout "$LAYOUT"
 }
 
+# How many layouts the history holds.
+#
+# The count goes through `tr` because BSD `wc` pads it with leading spaces
+# where GNU's does not, so a bare `wc -l` compares "       2" against 2 and
+# fails on macOS alone.
+history_entries() {
+  find "$HISTORY" -name '*.json' 2>/dev/null | wc -l | tr -d '[:space:]'
+}
+
+# How many of them hold $1, for asking which of two layouts survived.
+history_entries_holding() {
+  grep -l "$1" "$HISTORY"/*.json 2>/dev/null | wc -l | tr -d '[:space:]'
+}
+
 setUp() {
   SANDBOX=$(mktemp -d)
   RECORDS="$SANDBOX/panes"
@@ -314,10 +328,8 @@ test_every_layout_is_also_kept_in_the_history() {
 
   assertEquals 'the running server wrote the layout' 'after' \
     "$(jq -r '.sessions[0].name' "$LAYOUT")"
-  assertEquals 'both layouts are in the history' 2 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
-  assertEquals 'the pre-reboot one among them' 1 \
-    "$(grep -l '"before"' "$HISTORY"/*.json 2>/dev/null | wc -l)"
+  assertEquals 'both layouts are in the history' 2 "$(history_entries)"
+  assertEquals 'the pre-reboot one among them' 1 "$(history_entries_holding '"before"')"
 }
 
 test_a_layout_identical_to_the_last_adds_no_history_entry() {
@@ -329,8 +341,7 @@ test_a_layout_identical_to_the_last_adds_no_history_entry() {
   run_snapshot_from_server 1111
   run_snapshot_from_server 1111
 
-  assertEquals 'one entry for three identical saves' 1 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'one entry for three identical saves' 1 "$(history_entries)"
 }
 
 test_a_save_differing_only_in_who_took_it_adds_no_entry() {
@@ -341,8 +352,7 @@ test_a_save_differing_only_in_who_took_it_adds_no_entry() {
   run_snapshot
   run_snapshot_without_tmux --namespace default
 
-  assertEquals 'still one entry' 1 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'still one entry' 1 "$(history_entries)"
 }
 
 test_the_history_keeps_saves_that_share_a_second() {
@@ -354,8 +364,7 @@ test_the_history_keeps_saves_that_share_a_second() {
   stub_psmux_naming 'after'
   run_snapshot_from_server 1111
 
-  assertEquals 'both survived' 2 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'both survived' 2 "$(history_entries)"
 }
 
 # Plants $1 layouts old enough to be past any retention window, named so
@@ -376,8 +385,7 @@ test_a_layout_past_the_retention_window_is_swept() {
 
   assertFalse 'the oldest is gone' \
     "[ -e '$HISTORY/layout-20000101-000000-0.json' ]"
-  assertEquals 'pruned back to the floor plus the new one' 5 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'pruned back to the floor plus the new one' 5 "$(history_entries)"
 }
 
 test_the_newest_saves_survive_however_old_they_are() {
@@ -390,8 +398,7 @@ test_the_newest_saves_survive_however_old_they_are() {
 
   assertTrue 'the oldest is still there' \
     "[ -e '$HISTORY/layout-20000101-000000-0.json' ]"
-  assertEquals 'nothing swept below the floor' 4 \
-    "$(find "$HISTORY" -name '*.json' 2>/dev/null | wc -l)"
+  assertEquals 'nothing swept below the floor' 4 "$(history_entries)"
 }
 
 test_a_file_that_is_not_a_layout_is_left_in_place() {
