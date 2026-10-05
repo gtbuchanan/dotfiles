@@ -116,8 +116,11 @@ version = "0.7.1"
 backend = "npm:@gtbuchanan/cli"
 
 [[tools."npm:renovate"]]
-version = "43.231.2"
+version = "44.137.0"
 backend = "npm:renovate"
+
+[tools."npm:renovate".options]
+trust_policy_excludes = '["@yarnpkg/libzip@3.2.2"]'
 
 [[tools.pkl]]
 version = "0.32.1"
