@@ -5,7 +5,7 @@ allowBuilds:
 catalog:
   '@gtbuchanan/eslint-config': 0.5.2
   '@gtbuchanan/tsconfig': 0.2.0
-  '@pnpm/types': 1102.1.0
+  '@pnpm/types': 1102.1.1
   '@types/node': 26.6.4
   eslint: 10.11.0
   typescript: 6.0.3
