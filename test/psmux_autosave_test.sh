@@ -53,11 +53,30 @@ STUB
 }
 
 # Bounded, so a loop that fails to notice a dead server fails the test rather
-# than hanging the suite. 124 is what timeout reports when it has to step in.
+# than hanging the suite.
+#
+# The bound is a watchdog rather than `timeout`, which is GNU coreutils and
+# so absent on macOS, where it took the exit status to 127 and failed these
+# tests for a reason that had nothing to do with the loop. A killed loop
+# reports 143 rather than timeout's 124; either way it is not the 0 the
+# callers assert, which is all the bound is here to guarantee.
 run_autosave_until_it_exits() {
-  PATH="$BIN:$PATH" timeout 10 \
-    bash "$AUTOSAVE" --interval 0.2 --pidfile "$PIDFILE" \
-    --snapshot-bin "$BIN/snapshot"
+  PATH="$BIN:$PATH" bash "$AUTOSAVE" --interval 0.2 --pidfile "$PIDFILE" \
+    --snapshot-bin "$BIN/snapshot" &
+  local loop=$!
+
+  (
+    sleep 10
+    kill "$loop" 2>/dev/null
+  ) >/dev/null 2>&1 &
+  local watchdog=$!
+
+  wait "$loop"
+  local rc=$?
+
+  kill "$watchdog" 2>/dev/null
+  wait "$watchdog" 2>/dev/null
+  return "$rc"
 }
 
 start_autosave() {
