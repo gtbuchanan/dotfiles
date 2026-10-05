@@ -199,6 +199,16 @@ keep_in_history() {
   return 0
 }
 
+# A file's mtime as a Unix timestamp, on either flavor of `stat`. GNU spells
+# it `-c %Y` and BSD `-f %m`, and the two reject each other's flag, so the
+# second is tried only once the first has failed. Without this the whole
+# sweep below was a no-op on macOS: `stat -c` failed on every entry and the
+# `|| continue` guarding an unreadable age swallowed it, so a history there
+# grew without bound.
+mtime_of() {
+  stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null
+}
+
 # Drops history past the retention window, matching the one pane-session
 # keeps its own records for. Only files this script names are considered,
 # and a file whose age cannot be read is kept: this runs unattended against
@@ -220,7 +230,7 @@ sweep_history() {
   threshold=$(($(date +%s) - max_age_seconds))
   sweepable=$((${#entries[@]} - min_kept))
   for ((i = 0; i < sweepable; i++)); do
-    mtime=$(stat -c %Y "${entries[i]}" 2>/dev/null) || continue
+    mtime=$(mtime_of "${entries[i]}") || continue
     case "$mtime" in '' | *[!0-9]*) continue ;; esac
     [ "$mtime" -lt "$threshold" ] && rm -f "${entries[i]}" 2>/dev/null
   done

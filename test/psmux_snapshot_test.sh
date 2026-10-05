@@ -369,12 +369,18 @@ test_the_history_keeps_saves_that_share_a_second() {
 
 # Plants $1 layouts old enough to be past any retention window, named so
 # they sort oldest-first the way real ones do.
+#
+# The age is set with POSIX `-t`, which both GNU and BSD `touch` accept;
+# `-d '2000-01-01'` is GNU-only, and its failure used to be swallowed, so on
+# macOS the files kept today's mtime and the sweep tests below asked whether
+# a brand-new file was old. Nothing is silenced here for that reason: a
+# platform that cannot age a file should fail the test, not pass a weaker one.
 plant_ancient_history() {
   mkdir -p "$HISTORY"
   local i
   for ((i = 1; i <= $1; i++)); do
     printf '%s\n' '{}' >"$HISTORY/layout-2000010$i-000000-0.json"
-    touch -d '2000-01-01' "$HISTORY/layout-2000010$i-000000-0.json" 2>/dev/null
+    touch -t 200001010000 "$HISTORY/layout-2000010$i-000000-0.json"
   done
 }
 
@@ -406,7 +412,7 @@ test_a_file_that_is_not_a_layout_is_left_in_place() {
   stub_psmux
   mkdir -p "$HISTORY"
   : >"$HISTORY/notes.txt"
-  touch -d '2000-01-01' "$HISTORY/notes.txt" 2>/dev/null
+  touch -t 200001010000 "$HISTORY/notes.txt"
   run_snapshot
 
   assertTrue 'an unrelated old file is untouched' "[ -e '$HISTORY/notes.txt' ]"
