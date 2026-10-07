@@ -1,4 +1,15 @@
 # The GitHub CLI. Backs the readonly MCP server's `gh` tool and the PR
 # workflows in AGENTS.md, both of which assume it on any host.
+#
+# It also authenticates mise's own GitHub API calls. gh keeps its login in the
+# system keyring where one exists, and mise's built-in gh integration reads
+# only `hosts.yml`, so without this mise resolves no token and installs fall to
+# the 60-request unauthenticated limit. mise runs the command only when it needs
+# a token, and the setting lives beside the pin because it fails wherever this
+# `gh` is absent. `mise token github` shows the source with the token masked;
+# `--unmask` and `--raw` print it in full.
+[settings.github]
+credential_command = "gh auth token"
+
 [tools]
 gh = "2.100.0"
