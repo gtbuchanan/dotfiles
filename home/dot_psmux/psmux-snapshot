@@ -26,6 +26,7 @@ root="$HOME/.claude/panes"
 layout="$HOME/.psmux/layout.json"
 readonly max_age_minutes=$((30 * 24 * 60))
 readonly min_kept=5
+original_args=("$@")
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -44,6 +45,7 @@ while [ $# -gt 0 ]; do
     namespace_override="$2"
     shift
     ;;
+  --holding-lock) holding_lock=1 ;;
   *) exit 0 ;;
   esac
   shift
@@ -57,6 +59,80 @@ case "$layout" in
 */*) history_dir="${layout%/*}/layouts" ;;
 *) history_dir='layouts' ;;
 esac
+
+# One snapshot at a time per layout. Every SessionStart, SessionEnd and
+# autosave tick starts one, and on Windows under endpoint protection those
+# that overlapped ran side by side for minutes, slowing every other process
+# on the machine while they did. A caller that finds the lock held does not
+# wait for it. It leaves a request behind and exits, and the holder takes
+# one more snapshot before letting go, since a request arriving mid-run may
+# name a pane record the run has already read past. However many callers
+# pile up, that is at most two snapshots back to back.
+#
+# Every caller files a request before reaching for the lock, and the holder
+# checks for one after releasing it. Whichever order a racing caller and a
+# finishing holder interleave in, one of them sees the request and takes the
+# lock for it.
+#
+# The lock is a file created with noclobber, which is atomic, and holds the
+# holder's pid. A pid that is not running -- a crash, a power cut -- or one
+# that cannot be read is treated as no holder: wrongly stealing a lock costs
+# one overlapping snapshot, while wrongly honoring a dead one would end
+# every snapshot until someone deleted the file. The work itself runs in a
+# child, so its many `exit 0` failure paths end that one snapshot rather
+# than skipping the release. The child is told it holds the lock by an
+# argument rather than the environment, which a snapshot requested from
+# anything the child starts would inherit and so skip the lock.
+if [ -z "${holding_lock:-}" ]; then
+  lock="$layout.lock"
+  pending="$layout.pending"
+
+  case "$layout" in
+  */*) [ -d "${layout%/*}" ] || mkdir -p "${layout%/*}" 2>/dev/null || exit 0 ;;
+  esac
+
+  try_lock() {
+    local created holder
+    set -C
+    { printf '%s\n' "$$" >"$lock"; } 2>/dev/null
+    created=$?
+    set +C
+    [ "$created" -eq 0 ] && return 0
+
+    read -r holder <"$lock" 2>/dev/null
+    case "$holder" in
+    '' | *[!0-9]*) ;;
+    *) kill -0 "$holder" 2>/dev/null && return 1 ;;
+    esac
+
+    # Moved aside before removal, so of two callers finding the same dead
+    # holder only one gets to clear it, and neither removes a lock the
+    # other has just taken.
+    mv -f "$lock" "$lock.stale.$$" 2>/dev/null || return 1
+    rm -f "$lock.stale.$$" 2>/dev/null
+    set -C
+    { printf '%s\n' "$$" >"$lock"; } 2>/dev/null
+    created=$?
+    set +C
+    return "$created"
+  }
+
+  # A request is a line appended to $pending and taking them all is
+  # truncating it, both shell builtins, so the bookkeeping starts no process
+  # of its own.
+  printf '1\n' >>"$pending" 2>/dev/null || exit 0
+  while [ -s "$pending" ] && try_lock; do
+    trap 'rm -f "$lock" 2>/dev/null' EXIT
+    trap 'exit 0' TERM INT
+    while [ -s "$pending" ]; do
+      : >"$pending" 2>/dev/null || exit 0
+      "$BASH" "$0" --holding-lock "${original_args[@]}"
+    done
+    rm -f "$lock" 2>/dev/null
+    trap - EXIT TERM INT
+  done
+  exit 0
+fi
 
 # $TMUX is <socket>,<server pid>,<session id>. Its socket leaf names the
 # server for -L *only* when the server was actually started with a matching

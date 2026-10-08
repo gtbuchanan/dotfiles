@@ -283,6 +283,73 @@ test_a_corrupt_pane_record_leaves_its_pane_without_a_session_id() {
       select(.index==1) | .sessionId' "$LAYOUT")"
 }
 
+test_a_snapshot_already_running_leaves_the_layout_to_it() {
+  # Every SessionStart, SessionEnd and autosave tick starts a snapshot, and
+  # ones that overlapped used to run side by side and slow each other down.
+  # This test's own shell stands in for the running one: it is alive for as
+  # long as the assertion needs.
+  stub_psmux
+  printf '%s\n' "$$" >"$LAYOUT.lock"
+
+  run_snapshot
+
+  assertFalse 'wrote nothing while another snapshot ran' "[ -e '$LAYOUT' ]"
+}
+
+test_a_lock_left_by_a_dead_snapshot_does_not_block_the_next() {
+  # A crash or a power cut leaves the lock behind, and honoring it would end
+  # every later snapshot, the periodic one included, until someone deleted
+  # the file by hand.
+  stub_psmux
+  bash -c 'exit 0' &
+  local dead=$!
+  wait "$dead"
+  printf '%s\n' "$dead" >"$LAYOUT.lock"
+
+  run_snapshot
+
+  assertEquals 'wrote the layout' 'main' \
+    "$(jq -r '.sessions[0].name' "$LAYOUT" 2>/dev/null)"
+}
+
+test_a_finished_snapshot_releases_its_lock() {
+  stub_psmux
+  run_snapshot
+
+  assertFalse 'no lock left behind' "[ -e '$LAYOUT.lock' ]"
+}
+
+test_a_snapshot_requested_during_a_run_follows_it() {
+  # A SessionEnd and the SessionStart replacing it land together, so the
+  # second request often arrives while the first is reading the server. A
+  # request dropped then would leave the layout without the new session
+  # until the next periodic save. The stub makes that request from inside
+  # the first run's list-panes, then reports a different session to every
+  # later call, so only a rerun can leave "second" in the layout.
+  cat >"$BIN/psmux" <<STUB
+#!/usr/bin/env bash
+case "\$*" in
+  *'-L'*) exit 1 ;;
+  *'list-panes'*)
+    if [ ! -e "$SANDBOX/asked" ]; then
+      : >"$SANDBOX/asked"
+      bash "$SNAPSHOT" --root "$RECORDS" --layout "$LAYOUT"
+      printf '%s\\n' '%3	first	0	shell	1	L	0	$PANE_CWD'
+    else
+      printf '%s\\n' '%3	second	0	shell	1	L	0	$PANE_CWD'
+    fi
+    ;;
+  *) exit 1 ;;
+esac
+STUB
+  chmod +x "$BIN/psmux"
+
+  run_snapshot
+
+  assertEquals 'the request made mid-run was honored' 'second' \
+    "$(jq -r '.sessions[0].name' "$LAYOUT" 2>/dev/null)"
+}
+
 test_is_a_noop_when_psmux_is_unavailable() {
   # Exclusive PATH, not run_snapshot's prepend: the default case now runs a
   # bare call, so on a dev machine with a real psmux installed, prepending
