@@ -7,7 +7,7 @@ catalog:
   '@gtbuchanan/tsconfig': 0.2.0
   '@pnpm/types': 1102.1.1
   '@types/node': 26.6.4
-  eslint: 10.11.0
+  eslint: 10.12.0
   typescript: 6.0.3
 
 catalogs:
