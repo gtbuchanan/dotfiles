@@ -301,6 +301,58 @@ test_a_directory_outside_git_has_no_git_segment() {
   assertNotContains 'no detached HEAD' "$line" 'HEAD'
 }
 
+# --- what a render costs ----------------------------------------------------
+
+# A PATH holding a logging shim for every external command the statusline has
+# ever used, each handing off to the real one. Prints the directory; calls are
+# logged one line each to $1/calls.
+shim_commands() {
+  local dir="$1" cmd real
+  mkdir -p "$dir"
+  for cmd in cat cut date git jq md5sum stat tr wc; do
+    real=$(command -v "$cmd") || continue
+    cat >"$dir/$cmd" <<STUB
+#!/usr/bin/env bash
+printf '%s\\n' '$cmd' >>"$dir/calls"
+exec "$real" "\$@"
+STUB
+    chmod +x "$dir/$cmd"
+  done
+}
+
+calls_in() {
+  local n
+  n=$(wc -l <"$1/calls" 2>/dev/null | tr -d '[:space:]')
+  : >"$1/calls"
+  printf '%s' "${n:-0}"
+}
+
+test_a_render_starts_a_fixed_handful_of_processes() {
+  # Claude Code renders the bar on every update of every open session, and on
+  # Windows under endpoint protection each new process costs up to a second.
+  # A render that started a few dozen took long enough for the next to begin
+  # behind it, and the backlog stalled the whole machine. A cold render needs
+  # jq for the payload and git twice for the repository; a warm one, inside
+  # the cache window, needs jq alone.
+  local repo="$TMPDIR/cost" shims="$TMPDIR/shims"
+  make_repo "$repo"
+  printf 'b\n' >"$repo/tracked"
+  shim_commands "$shims"
+  local json
+  json=$(payload 0 |
+    jq -c --arg dir "$repo" '.cwd = $dir | .workspace.project_dir = $dir')
+
+  (cd "$repo" && PATH="$shims:$PATH" bash "$STATUSLINE" --cost <<<"$json") >/dev/null
+  local cold
+  cold=$(calls_in "$shims")
+  (cd "$repo" && PATH="$shims:$PATH" bash "$STATUSLINE" --cost <<<"$json") >/dev/null
+  local warm
+  warm=$(calls_in "$shims")
+
+  assertTrue "a cold render started $cold" "[ $cold -le 3 ]"
+  assertTrue "a warm render started $warm" "[ $warm -le 1 ]"
+}
+
 # shUnit2 takes over here: it discovers the test_* functions above and prints
 # the run summary.
 # shellcheck source=/dev/null
