@@ -24,7 +24,7 @@
 
 root="$HOME/.claude/panes"
 layout="$HOME/.psmux/layout.json"
-readonly max_age_seconds=$((30 * 24 * 60 * 60))
+readonly max_age_minutes=$((30 * 24 * 60))
 readonly min_kept=5
 
 while [ $# -gt 0 ]; do
@@ -199,21 +199,17 @@ keep_in_history() {
   return 0
 }
 
-# A file's mtime as a Unix timestamp, on either flavor of `stat`. GNU spells
-# it `-c %Y` and BSD `-f %m`, and the two reject each other's flag, so the
-# second is tried only once the first has failed. Without this the whole
-# sweep below was a no-op on macOS: `stat -c` failed on every entry and the
-# `|| continue` guarding an unreadable age swallowed it, so a history there
-# grew without bound.
-mtime_of() {
-  stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null
-}
-
 # Drops history past the retention window, matching the one pane-session
 # keeps its own records for. Only files this script names are considered,
 # and a file whose age cannot be read is kept: this runs unattended against
 # a directory under the user's home, where deleting on a failed read is the
 # more expensive way to be wrong.
+#
+# Ages come from a single `find` rather than a `stat` per entry. Starting a
+# process costs about half a second on a Windows machine under endpoint
+# protection, and with a month of history a per-entry `stat` made each
+# snapshot take minutes. `-mmin` and `-maxdepth` are the same on GNU and BSD
+# `find`, where `stat` needed a different flag on each.
 sweep_history() {
   [ -d "$history_dir" ] || return 0
 
@@ -226,14 +222,22 @@ sweep_history() {
   entries=("$history_dir"/layout-*.json)
   [ -e "${entries[0]}" ] || return 0
 
-  local threshold sweepable i mtime
-  threshold=$(($(date +%s) - max_age_seconds))
+  local sweepable
   sweepable=$((${#entries[@]} - min_kept))
+  [ "$sweepable" -gt 0 ] || return 0
+
+  # Newline-delimited and wrapped in newlines, so each entry below is matched
+  # as a whole line rather than as a substring of a longer name.
+  local stale
+  stale=$(find "$history_dir" -maxdepth 1 -name 'layout-*.json' \
+    -mmin +"$max_age_minutes" 2>/dev/null) || return 0
+  stale=$'\n'"$stale"$'\n'
+
+  local doomed=() i
   for ((i = 0; i < sweepable; i++)); do
-    mtime=$(mtime_of "${entries[i]}") || continue
-    case "$mtime" in '' | *[!0-9]*) continue ;; esac
-    [ "$mtime" -lt "$threshold" ] && rm -f "${entries[i]}" 2>/dev/null
+    case "$stale" in *$'\n'"${entries[i]}"$'\n'*) doomed+=("${entries[i]}") ;; esac
   done
+  [ "${#doomed[@]}" -gt 0 ] && rm -f "${doomed[@]}" 2>/dev/null
   return 0
 }
 

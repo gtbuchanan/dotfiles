@@ -407,6 +407,48 @@ test_the_newest_saves_survive_however_old_they_are() {
   assertEquals 'nothing swept below the floor' 4 "$(history_entries)"
 }
 
+test_saves_inside_the_retention_window_are_kept_past_the_floor() {
+  stub_psmux
+  mkdir -p "$HISTORY"
+  local i
+  for ((i = 1; i <= 7; i++)); do
+    printf '%s\n' '{}' >"$HISTORY/layout-2000010$i-000000-0.json"
+  done
+  run_snapshot
+
+  assertEquals 'all seven recent saves plus the new one' 8 "$(history_entries)"
+}
+
+test_the_sweep_does_not_start_a_process_per_history_entry() {
+  # Starting a process costs about half a second on a Windows machine under
+  # endpoint protection, which checks every new one. The history grows by a
+  # dozen or so entries a day, and a `stat` for each of them made every
+  # snapshot take minutes; with several running at once, every other process
+  # on the machine waited behind them.
+  local real_stat
+  real_stat=$(command -v stat)
+  cat >"$BIN/stat" <<STUB
+#!/usr/bin/env bash
+printf '%s\\n' "\$*" >>"$SANDBOX/stat.calls"
+exec "$real_stat" "\$@"
+STUB
+  chmod +x "$BIN/stat"
+
+  stub_psmux
+  plant_ancient_history 9
+  mkdir -p "$HISTORY"
+  local i
+  for ((i = 10; i <= 30; i++)); do
+    printf '%s\n' '{}' >"$HISTORY/layout-200001$i-000000-0.json"
+    touch -t 200001010000 "$HISTORY/layout-200001$i-000000-0.json"
+  done
+  run_snapshot
+
+  assertEquals 'swept to the floor plus the new one' 5 "$(history_entries)"
+  assertEquals 'no stat call for any entry' 0 \
+    "$(cat "$SANDBOX/stat.calls" 2>/dev/null | wc -l | tr -d '[:space:]')"
+}
+
 test_a_file_that_is_not_a_layout_is_left_in_place() {
   # The sweep runs unattended against a directory under the user's home.
   stub_psmux
