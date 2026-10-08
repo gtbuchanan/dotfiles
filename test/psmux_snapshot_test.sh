@@ -223,6 +223,66 @@ test_cross_references_each_panes_recorded_session_id() {
       select(.index==1) | .sessionId' "$LAYOUT")"
 }
 
+# Puts a shim for each command named on PATH that logs one line per call to
+# $SANDBOX/calls before handing off to the real command.
+count_calls_to() {
+  local cmd real
+  for cmd in "$@"; do
+    real=$(command -v "$cmd")
+    cat >"$BIN/$cmd" <<STUB
+#!/usr/bin/env bash
+printf '%s\\n' '$cmd' >>"$SANDBOX/calls"
+exec "$real" "\$@"
+STUB
+    chmod +x "$BIN/$cmd"
+  done
+}
+
+calls_logged() {
+  local n
+  n=$(wc -l <"$SANDBOX/calls" 2>/dev/null | tr -d '[:space:]')
+  : >"$SANDBOX/calls"
+  printf '%s' "${n:-0}"
+}
+
+test_the_number_of_processes_does_not_grow_with_the_panes() {
+  # Starting a process costs about half a second on a Windows machine under
+  # endpoint protection, so a snapshot that starts a few per pane takes
+  # tens of seconds on a busy server, and several running at once stall
+  # everything else on the machine.
+  count_calls_to jq tr
+  plant_record '%3' '11111111-2222-3333-4444-555555555555'
+  plant_record '%4' '66666666-7777-8888-9999-000000000000'
+
+  stub_psmux_naming 'one'
+  LAYOUT="$SANDBOX/one/layout.json" run_snapshot
+  local one
+  one=$(calls_logged)
+
+  stub_psmux
+  LAYOUT="$SANDBOX/three/layout.json" run_snapshot
+  local three
+  three=$(calls_logged)
+
+  assertEquals 'three panes start as many processes as one' "$one" "$three"
+}
+
+test_a_corrupt_pane_record_leaves_its_pane_without_a_session_id() {
+  plant_record '%3' '11111111-2222-3333-4444-555555555555'
+  printf '%s' '{not json' >"$RECORDS/default-_4.json"
+  stub_psmux
+
+  run_snapshot
+
+  assertEquals 'the readable record still carries through' \
+    '11111111-2222-3333-4444-555555555555' \
+    "$(jq -r '.sessions[] | select(.name=="main") | .windows[0].panes[] |
+      select(.index==0) | .sessionId' "$LAYOUT")"
+  assertEquals 'the corrupt one reads as null' 'null' \
+    "$(jq -r '.sessions[] | select(.name=="main") | .windows[0].panes[] |
+      select(.index==1) | .sessionId' "$LAYOUT")"
+}
+
 test_is_a_noop_when_psmux_is_unavailable() {
   # Exclusive PATH, not run_snapshot's prepend: the default case now runs a
   # bare call, so on a dev machine with a real psmux installed, prepending

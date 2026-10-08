@@ -112,37 +112,40 @@ else
 fi
 [ -n "$rows" ] || exit 0
 
-ndjson=''
-while IFS=$'\t' read -r p_id p_session p_windex p_wname p_wactive p_layout p_index p_cwd; do
-  [ -n "$p_id" ] || continue
+# Every pane record goes to one jq along with the rows, rather than a jq or
+# two per pane: starting a process costs about half a second on a Windows
+# machine under endpoint protection, and a per-pane loop made a snapshot of
+# a busy server take tens of seconds. The records are read as raw lines and
+# parsed per file, so a corrupt one costs its pane the session id, as it
+# always did, rather than failing the whole read.
+records=()
+for f in "$root"/*.json; do
+  [ -f "$f" ] && records+=("$f")
+done
 
-  pane_key=$(printf '%s-%s' "$namespace" "$p_id" | tr -c 'A-Za-z0-9._-' '_')
-  pane_file="$root/$pane_key.json"
-  pane_session_id=''
-  [ -f "$pane_file" ] && pane_session_id=$(jq -r '.sessionId // empty' "$pane_file" 2>/dev/null)
-
-  obj=$(jq -nc \
-    --arg session "$p_session" --arg windex "$p_windex" --arg wname "$p_wname" \
-    --arg wactive "$p_wactive" --arg layout "$p_layout" --arg pindex "$p_index" \
-    --arg cwd "$p_cwd" --arg sessionId "$pane_session_id" \
-    '{
-      session: $session,
-      windowIndex: ($windex | tonumber),
-      windowName: $wname,
-      windowActive: ($wactive == "1"),
-      windowLayout: $layout,
-      paneIndex: ($pindex | tonumber),
-      cwd: $cwd,
-      sessionId: (if $sessionId == "" then null else $sessionId end)
-    }') || continue
-  ndjson="$ndjson$obj"$'\n'
-done <<<"$rows"
-[ -n "$ndjson" ] || exit 0
-
-# Grouped in two passes -- by session, then by window index within each --
-# because jq's group_by only groups by one key at a time.
-grouped=$(printf '%s' "$ndjson" | jq -s '
-  group_by(.session) | map({
+# A row that is malformed -- too few fields, a non-numeric index -- is
+# dropped on its own rather than failing the snapshot. Grouping takes two
+# passes, by session and then by window index within each, because jq's
+# group_by only groups by one key at a time.
+grouped=$(jq -n -R --arg rows "$rows" --arg namespace "$namespace" \
+  --arg root "$root" '
+  (reduce inputs as $line ({}; .[input_filename] += $line + "\n")
+    | map_values(try (fromjson | .sessionId // null
+        | if . == "" then null else . end) catch null)) as $ids
+  | [$rows | split("\n")[] | split("\t") | select(.[0] // "" | length > 0)
+    | try {
+        session: .[1],
+        windowIndex: (.[2] | tonumber),
+        windowName: .[3],
+        windowActive: (.[4] == "1"),
+        windowLayout: .[5],
+        paneIndex: (.[6] | tonumber),
+        cwd: (.[7:] | join("\t")),
+        sessionId: $ids[$root + "/"
+          + ("\($namespace)-\(.[0])" | gsub("[^A-Za-z0-9._-]"; "_"))
+          + ".json"]
+      }]
+  | group_by(.session) | map({
     name: .[0].session,
     windows: (group_by(.windowIndex) | map({
       index: .[0].windowIndex,
@@ -151,7 +154,8 @@ grouped=$(printf '%s' "$ndjson" | jq -s '
       layout: .[0].windowLayout,
       panes: (map({index: .paneIndex, cwd: .cwd, sessionId: .sessionId}) | sort_by(.index))
     }) | sort_by(.index))
-  })') || exit 0
+  })' "${records[@]}" </dev/null 2>/dev/null) || exit 0
+[ "$grouped" != '[]' ] || exit 0
 
 mkdir -p "$(dirname "$layout")" || exit 0
 
