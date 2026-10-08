@@ -1,4 +1,4 @@
 # git-delta, the pager configured in dot_gitconfig. Its completion generator
 # runs during shell startup, after activation.
 [tools]
-delta = "0.19.2"
+delta = "0.20.1"
