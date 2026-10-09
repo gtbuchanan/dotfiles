@@ -50,7 +50,12 @@ done
 if [ -n "$missing" ]; then
   pkg update -y >/dev/null # seed the apt mirror on a fresh image
   # `node` is the binary; `nodejs` is the package that provides it.
-  pkg install -y chezmoi git jq mise nodejs >/dev/null
+  #
+  # Without recommends because git recommends openssh, which nothing here
+  # needs, and a package pulled in that way can fail the whole install: the
+  # index once listed an openssh build that two mirrors in a row answered
+  # with a 404.
+  pkg install -y --no-install-recommends chezmoi git jq mise nodejs >/dev/null
 fi
 
 export LD_PRELOAD="${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}"
