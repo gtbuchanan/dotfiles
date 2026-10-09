@@ -12,4 +12,4 @@
 credential_command = "gh auth token"
 
 [tools]
-gh = "2.100.0"
+gh = "2.102.0"
