@@ -31,22 +31,26 @@
 # never notices, having installed those once long ago; a container is always
 # fresh. Nothing under test needs them.
 #
-# The run is git-free -- the read-only bind mount's .git may be an unmounted
-# host path -- so nothing here reaches for it.
+# Nothing here runs git against the repository -- the read-only bind mount's
+# .git may be an unmounted host path. git itself is installed all the same:
+# the statusline suite builds throwaway repositories under $TMPDIR to check
+# the git segment, which renders on a device too.
 set -euo pipefail
 
 root=$(cd "$(dirname "$0")/.." && pwd)
 
 # chezmoi renders the sources under test; jq and node back the shell suites'
-# resolver. All are disable_tools entries on a device, resolved from PATH.
+# resolver. Those are disable_tools entries on a device, resolved from PATH.
+# git is a plain Termux package that mise never manages, here for the
+# statusline suite's throwaway repositories.
 missing=
-for tool in chezmoi jq mise node; do
+for tool in chezmoi git jq mise node; do
   command -v "$tool" >/dev/null || missing="$missing $tool"
 done
 if [ -n "$missing" ]; then
   pkg update -y >/dev/null # seed the apt mirror on a fresh image
   # `node` is the binary; `nodejs` is the package that provides it.
-  pkg install -y chezmoi jq mise nodejs >/dev/null
+  pkg install -y chezmoi git jq mise nodejs >/dev/null
 fi
 
 export LD_PRELOAD="${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}"
