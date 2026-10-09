@@ -349,8 +349,13 @@ test_a_render_starts_a_fixed_handful_of_processes() {
   local warm
   warm=$(calls_in "$shims")
 
-  assertTrue "a cold render started $cold" "[ $cold -le 3 ]"
-  assertTrue "a warm render started $warm" "[ $warm -le 1 ]"
+  # Bash before 5 has no $EPOCHSECONDS, so there the statusline asks `date`
+  # for the time instead: one more process on every render. macOS ships 3.2.
+  local clock=0
+  [ -z "$(bash -c 'printf %s "${EPOCHSECONDS:-}"')" ] && clock=1
+
+  assertTrue "a cold render started $cold" "[ $cold -le $((3 + clock)) ]"
+  assertTrue "a warm render started $warm" "[ $warm -le $((1 + clock)) ]"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints
