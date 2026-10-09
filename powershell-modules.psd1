@@ -9,5 +9,5 @@
   # bump lands like any other dependency PR. Keep the mapping alphabetical to
   # reduce merge conflicts.
   Pester           = '5.9.1'
-  PSScriptAnalyzer = '1.24.0'
+  PSScriptAnalyzer = '1.25.0'
 }
