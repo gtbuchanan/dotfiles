@@ -2,4 +2,4 @@
 # Termux pin in .chezmoidata/wt.yaml, the one platform that installs it out of
 # band.
 [tools]
-worktrunk = "0.75.0"
+worktrunk = "0.80.0"
