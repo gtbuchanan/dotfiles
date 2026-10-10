@@ -7,4 +7,4 @@
 #
 ---
 # renovate: datasource=github-releases depName=jdx/mise
-mise_version: '2026.9.11'
+mise_version: '2026.10.3'
