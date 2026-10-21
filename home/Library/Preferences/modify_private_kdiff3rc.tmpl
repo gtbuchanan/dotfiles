@@ -6,5 +6,5 @@ set "KDiff3 Options" "EncodingForB" "UTF-8" separator="="
 set "KDiff3 Options" "EncodingForC" "UTF-8" separator="="
 set "KDiff3 Options" "EncodingForOutput" "UTF-8" separator="="
 set "KDiff3 Options" "EncodingForPP" "UTF-8" separator="="
-# MS Shell Dlg 2 is a Windows UI font; leave macOS on the system default
-remove "KDiff3 Options" "ApplicationFont"
+# MS Shell Dlg 2 is a Windows UI font; KDiff3 writes the macOS system font
+ignore "KDiff3 Options" "ApplicationFont"

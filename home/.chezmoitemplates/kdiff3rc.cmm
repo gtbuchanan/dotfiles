@@ -1,6 +1,12 @@
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/kdiff3rc.src.ini"
 
-{{/* Qt sizes points at 72 DPI on macOS and 96 on Windows */ -}}
-set "KDiff3 Options" "Font" "{{ .font }},{{ if eq .chezmoi.os "darwin" }}13{{ else }}10{{ end }},-1,5,400,0,0,0,0,0,0,0,0,0,0,1" separator="="
+{{/* Written as KDiff3 writes it, or every save reads as drift. Qt sizes
+     points at 72 DPI on macOS and 96 on Windows, and the macOS build's Qt
+     appends three fields to the font string. */ -}}
+{{ if eq .chezmoi.os "darwin" -}}
+set "KDiff3 Options" "Font" "{{ .font }},13,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,,0,0" separator="="
+{{ else -}}
+set "KDiff3 Options" "Font" "{{ .font }},10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1" separator="="
+{{ end -}}
 ignore regex "KDiff3 Options" "(Recent[ABC]Files|mainWindow-*|shell-*)"
 ignore section "MainWindow"
