@@ -115,6 +115,7 @@ the plain config file free for anything hand-written on a host.
 | [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine                      |
 | [`ripgrep.toml`](../home/dot_config/mise/conf.d/ripgrep.toml)               | every host     | The `ripgrep` pin (Termux uses `pkg`)                     |
 | [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)                    |
+| [`mobilecli.toml`](../home/dot_config/mise/conf.d/mobilecli.toml)           | not android    | The `mobilecli` pin (no Android build to install)         |
 | [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | The `disable_tools` workarounds                           |
 | [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via        |
 | [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)         |
