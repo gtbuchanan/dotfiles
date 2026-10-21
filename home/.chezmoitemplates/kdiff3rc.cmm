@@ -1,5 +1,6 @@
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/kdiff3rc.src.ini"
 
-set "KDiff3 Options" "Font" "{{ .font }},10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1" separator="="
+{{/* Qt sizes points at 72 DPI on macOS and 96 on Windows */ -}}
+set "KDiff3 Options" "Font" "{{ .font }},{{ if eq .chezmoi.os "darwin" }}13{{ else }}10{{ end }},-1,5,400,0,0,0,0,0,0,0,0,0,0,1" separator="="
 ignore regex "KDiff3 Options" "(Recent[ABC]Files|mainWindow-*|shell-*)"
 ignore section "MainWindow"
