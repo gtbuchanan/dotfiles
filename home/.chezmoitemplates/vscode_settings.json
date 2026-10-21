@@ -43,6 +43,6 @@
 {{- if eq .chezmoi.os "windows" }} "{{ .chezmoi.homeDir }}/AppData/Local/mise/shims/rg.exe",
 {{- else }} "{{ .chezmoi.homeDir }}/.local/share/mise/shims/rg",
 {{- end }}
-  "workbench.colorTheme": "Default Dark+",
+  "workbench.colorTheme": "Dark+",
   "workbench.startupEditor": "none"
 }
