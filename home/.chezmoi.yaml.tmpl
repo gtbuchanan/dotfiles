@@ -6,10 +6,11 @@
    service straight from the Dashlane vault. Dashlane having no agent of its own
    was never the obstacle it looked like -- the service is the agent, and it only
    needs handing the key once, because it persists keys across reboots. Android
-   seeds the personal key the same way via start_agent.sh. macOS, Linux, and WSL
-   still sign with GPG, having no agent this repo provisions; widen per platform
-   as each is migrated. */ -}}
-{{- $sshSigning := or (eq .chezmoi.os "windows") (and (eq $hostType "personal") (eq .chezmoi.os "android")) -}}
+   seeds the personal key the same way via start_agent.sh. On work Macs the
+   launchd agent holds the key once the keychain has its passphrase; see
+   docs/ssh.md. Personal Macs, Linux, and WSL still sign with GPG, having no
+   agent this repo provisions; widen per platform as each is migrated. */ -}}
+{{- $sshSigning := or (eq .chezmoi.os "windows") (and (eq $hostType "personal") (eq .chezmoi.os "android")) (and (eq $hostType "ewn") (eq .chezmoi.os "darwin")) -}}
 {{- $osid := .chezmoi.os -}}
 {{- if hasKey .chezmoi.osRelease "id" -}}
 {{-   $osid = printf "%s-%s" .chezmoi.os .chezmoi.osRelease.id -}}

@@ -52,7 +52,10 @@ seeded once from Dashlane by [`bootstrap.ps1`](../bootstrap.ps1)
 (both in [`ssh.md`](ssh.md#windows-agent-ownership));
 Android from the agent `start_agent.sh` seeds
 (see [`ssh.md`](ssh.md#bitwarden-backed-keys-on-android)).
-macOS, Linux, and WSL sign with GPG (see [`gpg.md`](gpg.md)).
+Work macOS signs with its on-disk key through the launchd agent,
+which the keychain reloads at login
+(see [`ssh.md`](ssh.md#linux-and-macos)).
+Personal macOS, Linux, and WSL sign with GPG (see [`gpg.md`](gpg.md)).
 
 The choice is derived once in
 [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) as `sshsigning`,
