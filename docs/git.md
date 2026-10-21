@@ -100,9 +100,10 @@ navigation, and hyperlinks enabled. `interactive.diffFilter` routes
 
 [KDiff3](https://kdiff3.sourceforge.net/) is wired in as the diff and
 merge GUI on every platform (`diff.guitool` and `merge.tool` are
-unconditional), but only Windows installs it (via winget) and
-configures the binary path. On Linux/macOS you'd need to install
-KDiff3 yourself for `git mergetool` / `git difftool --gui` to work.
+unconditional). Windows installs it with winget and sets the binary path,
+since it lands outside `PATH`. macOS installs the Homebrew cask, which links
+`kdiff3` onto `PATH`. On Linux you'd need to install KDiff3 yourself for
+`git mergetool` / `git difftool --gui` to work.
 
 ## Helper Scripts
 
