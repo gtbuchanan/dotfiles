@@ -54,7 +54,7 @@ node = "24.21.0"
 "npm:renovate" = { trust_policy_excludes = [
   "@yarnpkg/libzip@3.2.2",
 ], version = "44.137.0" }
-pkl = "0.32.1"
+pkl = "0.32.2"
 pnpm = "11.28.5"
 # Backs the hk psscriptanalyzer step (and lint-powershell.ps1) so pwsh is pinned
 # and reproducible on dev machines and CI rather than relying on an ambient one.
