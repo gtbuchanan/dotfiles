@@ -27,6 +27,9 @@ BREW_CASKS=(
 )
 
 brew update
+# Install what's missing without upgrading what's present: replacing an app
+# in /Applications can need sudo, which --no-tty applies cannot answer.
+export HOMEBREW_NO_INSTALL_UPGRADE=1
 brew install $(printf "%s " "${BREW_FORMULAS[@]}")
 brew install --cask $(printf "%s " "${BREW_CASKS[@]}")
 
