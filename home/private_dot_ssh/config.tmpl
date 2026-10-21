@@ -88,7 +88,10 @@ Host github.com gist.github.com
 
 {{- if eq .chezmoi.os "darwin" }}
 Host *
-  # Persist keys across restarts
+  # The first passphrase prompt stores the passphrase in the keychain and the
+  # key in the agent; at later logins the local.ssh-add LaunchAgent reloads it
+  # from the keychain. Git signs from the agent, so it needs the key there.
   # https://unix.stackexchange.com/a/140077
+  AddKeysToAgent yes
   UseKeychain yes
 {{- end }}

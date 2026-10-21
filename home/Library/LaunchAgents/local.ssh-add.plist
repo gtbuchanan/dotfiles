@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Loads every key whose passphrase the keychain holds into the launchd
+  ssh-agent at login. macOS stopped doing this itself in Sierra, and Git's
+  SSH signing reads keys from the agent alone, so without it the first commit
+  after a reboot fails until something else has used ssh. See docs/ssh.md.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>local.ssh-add</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/usr/bin/ssh-add</string>
+    <string>--apple-load-keychain</string>
+    <string>-q</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>

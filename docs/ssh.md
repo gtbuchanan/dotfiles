@@ -15,6 +15,7 @@ checked in.
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                     | Gates `ssh-askpass-termux` and the agent hook to Android, the `*.pub` halves to personal                               |
 | [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh)           | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)           | Installs `openssh` from Termux's pkg repo                                                                              |
+| [`home/Library/LaunchAgents/local.ssh-add.plist`](../home/Library/LaunchAgents/local.ssh-add.plist)                                 | macOS: reloads keychain-held keys into the agent at login, for commit signing                                          |
 | [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                                       | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | Points `SSH_ASKPASS` at the Bitwarden helper on personal Windows                                                       |
 | [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                           | Disables WezTerm's built-in agent mux so the native agent stays in charge                                              |
@@ -206,10 +207,25 @@ entry described under [Shared ssh_config](#shared-ssh_config) in its own
 
 ## Linux and macOS
 
-Nothing in this repo intervenes in SSH startup on native Linux or
-macOS — whatever the OS ships handles agent and key flow. The only
-SSH-related touch is `UseKeychain yes` on macOS so the system keychain
-persists keys across restarts.
+Nothing in this repo intervenes in SSH startup on native Linux. On
+macOS the launchd-managed agent stays in charge, but Git's SSH signing
+reads keys from the agent alone, and that agent starts empty at every
+login. Two pieces keep the key in it:
+
+- `AddKeysToAgent yes` and `UseKeychain yes` in `~/.ssh/config`. The
+  first passphrase prompt, from any `ssh` connection, stores the
+  passphrase in the login keychain and adds the key to the agent.
+- The `local.ssh-add` LaunchAgent runs `ssh-add --apple-load-keychain`
+  at login, reloading every key whose passphrase the keychain holds.
+  macOS stopped doing this itself in Sierra.
+
+`ssh-keygen -Y sign` never reads `~/.ssh/config`, so a signature
+attempted before the key reaches the agent fails rather than prompting.
+Seed a new Mac once, before its first signed commit:
+
+```sh
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
+```
 
 ## WSL → Windows Agent Bridge
 
