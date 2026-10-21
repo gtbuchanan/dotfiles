@@ -1119,16 +1119,6 @@ properties:
       settings:
         name: fstarlang.fstar-vscode-assistant
         exist: true
-{{- end }}
-    - resource: Microsoft.VSCode.Dsc/VSCodeExtension
-      dependsOn: [vsCode]
-      directives:
-        description: Install VS Code Extension - GitHub Copilot Chat
-        allowPrerelease: true
-      settings:
-        name: github.copilot-chat
-        exist: true
-{{- if eq .hosttype "personal" }}
     - resource: Microsoft.VSCode.Dsc/VSCodeExtension
       dependsOn: [vsCode]
       directives:
