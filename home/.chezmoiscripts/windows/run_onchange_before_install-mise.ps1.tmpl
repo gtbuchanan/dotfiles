@@ -90,12 +90,27 @@ try {
   Expand-Archive -Path $download -DestinationPath $extract -Force
 
   New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+
+  # Windows refuses to delete a running executable, and something usually is
+  # running one of these: an MCP server launched through `mise x`, or any
+  # shim. `Move-Item -Force` then fails with "Cannot create a file when that
+  # file already exists". Renaming a running image is allowed, so the old
+  # binary moves aside under a unique name and is deleted once nothing holds
+  # it, which may only be on a later install. Sweep what earlier ones left.
+  Get-ChildItem -Path $InstallDir -Filter 'mise*.old' |
+    Remove-Item -Force -ErrorAction SilentlyContinue
+
   foreach ($pair in @(@('mise.exe', $Binary), @('mise-shim.exe', $ShimBinary))) {
     $found = Get-ChildItem -Path $extract -Recurse -Filter $pair[0] | Select-Object -First 1
     if (-not $found) {
       throw "$($pair[0]) not found in $asset."
     }
-    Move-Item -Path $found.FullName -Destination $pair[1] -Force
+    if (Test-Path $pair[1]) {
+      $aside = "$($pair[1]).$([Guid]::NewGuid()).old"
+      Move-Item -Path $pair[1] -Destination $aside
+      Remove-Item -Path $aside -Force -ErrorAction SilentlyContinue
+    }
+    Move-Item -Path $found.FullName -Destination $pair[1]
   }
 }
 finally {
