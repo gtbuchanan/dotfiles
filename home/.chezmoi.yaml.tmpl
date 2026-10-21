@@ -25,7 +25,9 @@ data:
 {{- else if eq $hostType "ewn" }}
   email: "taylor.buchanan@ewn.com"
 {{- end }}
-  font: CaskaydiaCove NF
+  # The family name as the OS reports it. macOS reports the typographic name;
+  # Windows GDI, which the winget install check reads, the legacy short one.
+  font: {{ if eq .chezmoi.os "darwin" }}"CaskaydiaCove Nerd Font"{{ else }}"CaskaydiaCove NF"{{ end }}
   fontpack: CascadiaCode
   hosttype: {{ $hostType | quote }}
   # https://www.chezmoi.io/user-guide/machines/linux/

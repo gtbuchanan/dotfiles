@@ -26,9 +26,14 @@ config files.
 The font name a consumer sees and the name an installer takes aren't
 the same string, so [`.chezmoi.yaml.tmpl`](../home/.chezmoi.yaml.tmpl) defines both:
 
-- **`.font`** — the **font family** name as the OS reports it
-  (`CaskaydiaCove NF`). Every app config interpolates this into its
-  font-family setting.
+- **`.font`** — the **font family** name as the OS reports it. Every app
+  config interpolates this into its font-family setting. A Nerd Font carries
+  two family names, and the platforms disagree on which one they report: macOS
+  reports the typographic name (`CaskaydiaCove Nerd Font`), while Windows GDI
+  reports the legacy short one (`CaskaydiaCove NF`), which is also the default
+  elsewhere. Most apps resolve either, but Qt on macOS (KDiff3) and the
+  `System.Drawing` lookup in the winget install check each accept only the
+  name their platform reports.
 - **`.fontpack`** — the **Nerd Fonts pack** identifier
   (`CascadiaCode`). Used only by the installers.
 
