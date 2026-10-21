@@ -33,4 +33,5 @@ brew install --cask $(printf "%s " "${BREW_CASKS[@]}")
 # Replace ZSH with newer Bash
 BASH_PATH=/opt/homebrew/bin/bash
 grep -Fxq "$BASH_PATH" /etc/shells || echo "$BASH_PATH" | sudo tee -a /etc/shells
-chsh -s "$BASH_PATH"
+LOGIN_SHELL=$(dscl . -read "/Users/$USER" UserShell | awk '{print $2}')
+[ "$LOGIN_SHELL" = "$BASH_PATH" ] || chsh -s "$BASH_PATH"
