@@ -1,5 +1,1 @@
-source auto
-
-set "KDiff3 Options" "Font" "{{ .font }},10,-1,5,400,0,0,0,0,0,0,0,0,0,0,1" separator="="
-ignore regex "KDiff3 Options" "(Recent[ABC]Files|mainWindow-*|shell-*)"
-ignore section "MainWindow"
+{{ template "kdiff3rc.cmm" . -}}
