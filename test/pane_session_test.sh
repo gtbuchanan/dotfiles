@@ -107,8 +107,19 @@ STUB
   chmod +x "$SNAPSHOT_STUB"
 }
 
+# Retried because the hook backgrounds every snapshot call, as a grandchild
+# this suite cannot `wait` on, and most tests return without waiting for it. A
+# stub still writing its marker can land a file between rm emptying the sandbox
+# and removing it, which fails the removal with "Directory not empty". A stub
+# finishes within milliseconds, so a second pass finds nothing left writing.
 tearDown() {
-  [ -n "$SANDBOX" ] && rm -rf "$SANDBOX"
+  [ -n "$SANDBOX" ] || return 0
+  local _
+  for _ in $(seq 1 20); do
+    rm -rf "$SANDBOX" 2>/dev/null && return 0
+    sleep 0.05
+  done
+  rm -rf "$SANDBOX"
 }
 
 # --- recording --------------------------------------------------------------
