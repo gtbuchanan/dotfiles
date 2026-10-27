@@ -41,6 +41,9 @@ Describe 'provision psmodules' {
     Mock Save-PSResource {
       $gallery.Saves++
       $folder = Join-Path $Path "$Name/1.2.3"
+      # A retry must start clean. Reusing the last attempt's folder would let a
+      # module that never finished saving pass for one that did.
+      if ($gallery.Saves -gt 1) { $folder | Should -Not -Exist }
       New-Item -ItemType Directory -Path $folder -Force | Out-Null
       if ($gallery.Saves -le $gallery.Failures) {
         throw "Response status code does not indicate success: 404 (Not Found)."
