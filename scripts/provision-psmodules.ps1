@@ -8,7 +8,7 @@
 # Generic and data-driven: the module -> version map lives in
 # powershell-modules.psd1 at the repo root. Idempotent -- a module already
 # present at its pinned version is skipped, so re-running the postinstall hook
-# is cheap.
+# is cheap. Transient gallery failures are retried with backoff.
 [CmdletBinding()]
 param()
 
@@ -41,6 +41,27 @@ foreach ($name in $modules.Keys) {
   #
   # The version is a bracketed NuGet range, which is how PSResourceGet spells
   # "exactly this one" -- a bare version is a minimum.
-  Save-PSResource -Name $name -Version "[$version]" -Repository PSGallery `
-    -TrustRepository -Path $dest
+  #
+  # Retried because the gallery intermittently answers 404 for packages it does
+  # publish, and a single miss fails every CI leg that provisions. A failed
+  # attempt's version folder is removed before the next, and for good after the
+  # last: left behind, it satisfies the idempotency check above and the next run
+  # skips a module that was never saved.
+  $attempts = 3
+  for ($attempt = 1; ; $attempt++) {
+    try {
+      Save-PSResource -Name $name -Version "[$version]" -Repository PSGallery `
+        -TrustRepository -Path $dest
+      break
+    }
+    catch {
+      Remove-Item -LiteralPath (Join-Path $dest "$name/$version") -Recurse -Force `
+        -ErrorAction SilentlyContinue
+      if ($attempt -ge $attempts) { throw }
+      $delay = [Math]::Pow(2, $attempt)
+      [Console]::Error.WriteLine(
+        "Attempt $attempt of $attempts failed: $($_.Exception.Message) Retrying in ${delay}s")
+      Start-Sleep -Seconds $delay
+    }
+  }
 }
