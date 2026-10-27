@@ -13,8 +13,8 @@ catalogs:
       specifier: 0.2.0
       version: 0.2.0
     '@pnpm/types':
-      specifier: 1102.1.1
-      version: 1102.1.1
+      specifier: 1102.1.2
+      version: 1102.1.2
     '@types/node':
       specifier: 26.6.5
       version: 26.6.5
@@ -37,7 +37,7 @@ importers:
         version: 0.2.0(typescript@6.0.3)
       '@pnpm/types':
         specifier: 'catalog:'
-        version: 1102.1.1
+        version: 1102.1.2
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.5
@@ -370,8 +370,8 @@ packages:
     resolution: {integrity: sha512-SEeaJLb3qBNF/OaXnaR1NmmBbFYk1zC0ZH/52fATcRPLFg/p791YrcyFFy44Bo9sLaGuSuLp5Q6axbb/O+v/RA==}
     engines: {node: ^14.18.0 || >=16.0.0}
 
-  '@pnpm/types@1102.1.1':
-    resolution: {integrity: sha512-rPauWzpgjzxE/l5OS8gGdeW0K1oF3PPjraGzNg4CA4bbaTDdE2BwmUWJHaADbSF0/EqI0WufrZkSavVTzKFBEg==}
+  '@pnpm/types@1102.1.2':
+    resolution: {integrity: sha512-B2Dt1fBR2DLX2ipme0F3Wzwj2S60rJ7Y8LpuIBNApT2nkShfk43ROeuxKcW+1JSs0YIBS8BnOpPswOwcDdf8Vg==}
     engines: {node: '>=22.13'}
 
   '@prettier/plugin-xml@3.4.2':
@@ -2038,7 +2038,7 @@ snapshots:
 
   '@pkgr/core@0.3.6': {}
 
-  '@pnpm/types@1102.1.1': {}
+  '@pnpm/types@1102.1.2': {}
 
   '@prettier/plugin-xml@3.4.2(prettier@3.9.3)':
     dependencies:
