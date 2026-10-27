@@ -87,4 +87,16 @@ Describe 'provision psmodules' {
     { & $script:provision 2>$null } | Should -Throw
     $script:installed | Should -Not -Exist
   }
+
+  It 'stops rather than retrying when the partial folder cannot be removed' {
+    # A folder that survives cleanup -- a locked file, a permissions fault --
+    # is the stale state the cleanup exists to prevent, so it must fail loudly.
+    # Write-Error rather than throw: Remove-Item reports these non-terminating.
+    $gallery.Failures = 100
+    Mock Remove-Item { Write-Error 'Access to the path is denied.' } `
+      -ParameterFilter { $LiteralPath -like '*.psmodules*' }
+
+    { & $script:provision 2>$null } | Should -Throw '*denied*'
+    $gallery.Saves | Should -Be 1
+  }
 }

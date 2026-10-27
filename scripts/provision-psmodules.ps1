@@ -46,7 +46,9 @@ foreach ($name in $modules.Keys) {
   # publish, and a single miss fails every CI leg that provisions. A failed
   # attempt's version folder is removed before the next, and for good after the
   # last: left behind, it satisfies the idempotency check above and the next run
-  # skips a module that was never saved.
+  # skips a module that was never saved. For the same reason a folder that
+  # cannot be removed stops the run instead of being retried over.
+  $partial = Join-Path $dest "$name/$version"
   $attempts = 3
   for ($attempt = 1; ; $attempt++) {
     try {
@@ -55,8 +57,9 @@ foreach ($name in $modules.Keys) {
       break
     }
     catch {
-      Remove-Item -LiteralPath (Join-Path $dest "$name/$version") -Recurse -Force `
-        -ErrorAction SilentlyContinue
+      if (Test-Path -LiteralPath $partial) {
+        Remove-Item -LiteralPath $partial -Recurse -Force -ErrorAction Stop
+      }
       if ($attempt -ge $attempts) { throw }
       $delay = [Math]::Pow(2, $attempt)
       [Console]::Error.WriteLine(
