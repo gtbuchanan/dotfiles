@@ -62,7 +62,7 @@ foreach ($name in $modules.Keys) {
       }
       if ($attempt -ge $attempts) { throw }
       $delay = [Math]::Pow(2, $attempt)
-      [Console]::Error.WriteLine(
+      Write-Warning (
         "Attempt $attempt of $attempts failed: $($_.Exception.Message) Retrying in ${delay}s")
       Start-Sleep -Seconds $delay
     }

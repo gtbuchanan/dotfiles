@@ -57,7 +57,7 @@ Describe 'provision psmodules' {
   }
 
   It 'saves a module on the first attempt when the gallery answers' {
-    & $script:provision 2>$null
+    & $script:provision 2>$null 3>$null
 
     $gallery.Saves | Should -Be 1
     Join-Path $script:installed 'Fake.psd1' | Should -Exist
@@ -66,16 +66,28 @@ Describe 'provision psmodules' {
   It 'retries a save the gallery fails transiently' {
     $gallery.Failures = 2
 
-    & $script:provision 2>$null
+    & $script:provision 2>$null 3>$null
 
     $gallery.Saves | Should -Be 3
     Join-Path $script:installed 'Fake.psd1' | Should -Exist
   }
 
+  It 'reports each failed attempt as a warning' {
+    # On the warning stream a caller can redirect or silence them, which a
+    # direct write to the process's stderr does not allow.
+    $gallery.Failures = 2
+
+    $warnings = & $script:provision 3>&1 2>$null |
+      Where-Object { $_ -is [Management.Automation.WarningRecord] }
+
+    $warnings | Should -HaveCount 2
+    $warnings[0].Message | Should -BeLike 'Attempt 1 of 3 failed:*404*'
+  }
+
   It 'gives up after the last attempt and reports the gallery error' {
     $gallery.Failures = 100
 
-    { & $script:provision 2>$null } | Should -Throw '*404*'
+    { & $script:provision 2>$null 3>$null } | Should -Throw '*404*'
     $gallery.Saves | Should -Be 3
   }
 
@@ -84,7 +96,7 @@ Describe 'provision psmodules' {
     # folder and skip a module that was never saved.
     $gallery.Failures = 100
 
-    { & $script:provision 2>$null } | Should -Throw
+    { & $script:provision 2>$null 3>$null } | Should -Throw
     $script:installed | Should -Not -Exist
   }
 
@@ -96,7 +108,7 @@ Describe 'provision psmodules' {
     Mock Remove-Item { Write-Error 'Access to the path is denied.' } `
       -ParameterFilter { $LiteralPath -like '*.psmodules*' }
 
-    { & $script:provision 2>$null } | Should -Throw '*denied*'
+    { & $script:provision 2>$null 3>$null } | Should -Throw '*denied*'
     $gallery.Saves | Should -Be 1
   }
 }
