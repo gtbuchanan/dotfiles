@@ -1,0 +1,71 @@
+#!/bin/bash
+#
+# mise install for Linux, pinned in home/.chezmoidata/mise.yaml
+# (Renovate-tracked), the counterpart of the Windows
+# run_onchange_before_install-mise.ps1.tmpl. mise.run installs whatever is
+# latest on the day it runs and nothing upgrades it afterwards, so a host set
+# up months ago kept that build -- one old enough that its completion needed
+# the separate `usage` CLI the current one has built in.
+#
+# `before`, so mise exists by the time run_after_mise-install.sh materializes
+# the tools pinned in the global conf.d fragments.
+#
+# jdx/mise publishes a SHA256 per asset in SHASUMS256.txt, so the download is
+# verified against the release rather than trusted outright.
+set -euo pipefail
+
+version='{{ .mise_version }}'
+install_dir="$HOME/.local/bin"
+binary="$install_dir/mise"
+
+# `mise --version` prints "<version> <platform> (<date>)". A binary too broken
+# to report one reinstalls, so a corrupt copy self-heals on the next apply.
+if installed=$("$binary" --version 2>/dev/null) &&
+  [ "${installed%% *}" = "$version" ]; then
+  echo "mise $version already installed"
+  exit 0
+fi
+
+case "$(uname -m)" in
+  x86_64) arch=x64 ;;
+  aarch64 | arm64) arch=arm64 ;;
+  armv7l) arch=armv7 ;;
+  *)
+    echo "No mise build for $(uname -m)." >&2
+    exit 1
+    ;;
+esac
+# The bare binary rather than an archive: it is the only file wanted, and it
+# carries its own entry in SHASUMS256.txt.
+asset="mise-v$version-linux-$arch"
+base="https://github.com/jdx/mise/releases/download/v$version"
+
+echo "Installing mise $version ($arch)..."
+
+# Staged beside the target, so the final step is a rename within one
+# filesystem: a shell resolving mise mid-install sees the old binary or the
+# new one, never a partial write. Renaming over a running binary is fine on
+# Linux, which keeps the old inode alive for whatever holds it.
+mkdir -p "$install_dir"
+staging=$(mktemp -d "$install_dir/.mise-install.XXXXXX")
+trap 'rm -rf "$staging"' EXIT
+
+curl -fsSL "$base/SHASUMS256.txt" -o "$staging/SHASUMS256.txt"
+# Entries read "<sha256>  ./<asset>"; match the name whole so no asset whose
+# name extends this one's (the -musl builds) can stand in for it.
+expected=$(awk -v name="./$asset" '$2 == name { print $1; exit }' \
+  "$staging/SHASUMS256.txt")
+if [ -z "$expected" ]; then
+  echo "No SHA256 published for $asset in the mise $version release." >&2
+  exit 1
+fi
+
+curl -fsSL "$base/$asset" -o "$staging/mise"
+actual=$(sha256sum "$staging/mise" | cut -d' ' -f1)
+if [ "$actual" != "$expected" ]; then
+  echo "Checksum mismatch for $asset: expected $expected, got $actual." >&2
+  exit 1
+fi
+
+chmod +x "$staging/mise"
+mv -f "$staging/mise" "$binary"

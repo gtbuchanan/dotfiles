@@ -39,6 +39,3 @@ for SNAP_PACKAGE in "${SNAP_PACKAGES_CLASSIC[@]}"; do
     sudo snap install --classic "$SNAP_PACKAGE"
 done
 {{ end }}
-
-# Install mise (tool version + env + task manager) to ~/.local/bin
-curl -fsSL https://mise.run | sh
