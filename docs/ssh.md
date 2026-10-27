@@ -121,8 +121,11 @@ block deliberately is not, since transfers must authenticate too. Each
 block's comment in [`config.tmpl`](../home/private_dot_ssh/config.tmpl)
 carries the mechanics.
 
-`Tag`, `Match tagged`, and the `command` criterion all require OpenSSH
-9.4 or newer on the client; the remote's version is irrelevant.
+The client needs OpenSSH 10.0 or newer for the `command` criterion;
+`Tag` and `Match tagged` arrived earlier, in 9.4. The remote's version
+is irrelevant. An older client rejects the `command ""` line and refuses
+the whole config, so every connection fails, not only `:shell:` hosts.
+Ubuntu 24.04 ships 9.6 and 26.04 ships 10.2.
 
 To add a host, commit a `*.conf` to the private repo with its
 `HostName`, `User`, and flags. Nothing in this repo changes unless the
