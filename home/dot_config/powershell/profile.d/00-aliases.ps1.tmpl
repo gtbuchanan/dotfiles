@@ -5,6 +5,7 @@ Set-Alias -Name cm -Value chezmoi
 Set-Alias -Name cmm -value chezmoi_modify_manager
 Set-Alias -Name g -Value git
 Set-Alias -Name htop -Value ntop
+Set-Alias -Name m -Value mise
 {{- if eq .chezmoi.os "windows" }}
 # `ls` is a default alias only on Windows; drop it so the eza `ls` function
 # (10-functions) wins. On Unix `ls` is the native binary, nothing to remove.

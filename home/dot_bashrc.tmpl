@@ -47,6 +47,16 @@ BASH_COMP_PATH="/usr/share/bash-completion/bash_completion"
 # take over for later interactive calls.
 command -v mise >/dev/null && eval "$(mise activate bash)"
 
+# Enable mise completion under both its own name and the `m` alias
+# (.bash_aliases). Completion is looked up by the name typed, so the spec mise
+# registers never fires for `m`; reuse that spec rather than hard-coding the
+# generated function's name.
+if mise_completion=$(mise completion bash 2>/dev/null); then
+  eval "$mise_completion"
+  mise_spec=$(complete -p mise 2>/dev/null) && eval "${mise_spec% *} m"
+fi
+unset mise_completion mise_spec
+
 # Enable Starship
 eval "$(starship init bash)"
 

@@ -46,12 +46,13 @@ param([string] $Root)
 
     # Emits a comment: the part Invoke-Expression's whatever comes back, so the
     # payload has to be valid PowerShell, and a comment activates nothing. Each
-    # call is logged, which is how a cache hit shows up as an absent spawn
-    # rather than merely as equal output.
+    # call is logged by subcommand, which is how a cache hit shows up as an
+    # absent spawn rather than merely as equal output. The part also spawns mise
+    # for its completion script, which these cases leave out of the count.
     if ($IsWindows) {
       Set-Content -LiteralPath (Join-Path $bin 'mise.cmd') -Encoding ascii -Value @'
 @echo off
-echo call>>"%MISE_STUB_LOG%"
+echo %1>>"%MISE_STUB_LOG%"
 echo # stub mise init
 '@
     }
@@ -63,7 +64,7 @@ echo # stub mise init
       # the stub the profile spawns would fail to start with ENOENT.
       $bash = @(Get-Command bash -CommandType Application)[0].Source
       $body = @'
-echo call >>"$MISE_STUB_LOG"
+echo "$1" >>"$MISE_STUB_LOG"
 echo '# stub mise init'
 '@
       Set-Content -LiteralPath $stub -Encoding ascii -Value @("#!$bash", $body)
@@ -99,7 +100,7 @@ echo '# stub mise init'
 
     function script:Get-StubCallCount {
       if (-not (Test-Path -LiteralPath $script:stubLog)) { return 0 }
-      @(Get-Content -LiteralPath $script:stubLog).Count
+      @(Get-Content -LiteralPath $script:stubLog | Where-Object { $_ -eq 'activate' }).Count
     }
   }
 

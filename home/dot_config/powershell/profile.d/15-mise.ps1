@@ -6,7 +6,7 @@
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
   'PSAvoidUsingInvokeExpression', '',
-  Justification = 'mise activate emits a script string to Invoke-Expression'
+  Justification = 'mise activate and completion emit script strings to Invoke-Expression'
 )]
 param()
 
@@ -45,5 +45,15 @@ if ($mise) {
   # Invoke-Expression rejects outright rather than treating as a no-op.
   if ($miseInit) {
     $miseInit | Invoke-Expression
+  }
+
+  # A native completer is looked up by the name typed, not the command it
+  # resolves to, so the one mise registers never fires for the `m` alias
+  # (00-aliases). Name both in the generated registration instead.
+  $miseCompletion = Get-CachedInitScript -Name 'mise-completion' `
+    -BinaryPath $mise.Source -Generate { & $mise completion powershell 2>$null | Out-String }
+  if ($miseCompletion) {
+    $miseCompletion -replace "-CommandName 'mise'", "-CommandName 'mise', 'm'" |
+      Invoke-Expression
   }
 }
