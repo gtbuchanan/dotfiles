@@ -173,7 +173,11 @@
 
 - Follow TDD by default. For each behavior: write the test first, run it and
   confirm it fails for the right reason (red), then write the minimum code to
-  pass (green), then refactor. Don't write implementation before its test, and
+  pass (green), then refactor. Red is an assertion reporting expected vs.
+  actual. A missing symbol, unresolved import, or compile error halts the run
+  before any assertion executes, so it proves nothing yet: stub the unit with
+  its real signature and placeholder behavior, rerun, and the assertion
+  failure that follows is red. Don't write implementation before its test, and
   don't write a batch of tests against code that already exists and passes —
   that skips the red step, which is what proves the test can fail. Watching a
   test fail first is the primary defense against the tautological tests below.
