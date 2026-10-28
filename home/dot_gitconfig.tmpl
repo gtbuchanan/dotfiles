@@ -173,6 +173,11 @@
 	autoSetupRemote = true
 	forceIfIncludes = true
 
+[tag]
+	# Also turns a bare `git tag <name>` into a signed annotated tag, so it asks
+	# for a message; `--no-sign` gets the lightweight tag back.
+	gpgsign = true
+
 [user]
 	name = Taylor Buchanan
 	email = {{ .email | quote }}
