@@ -1,6 +1,12 @@
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
-{{ template "pnpm-globals" dict "root" "$CHEZMOI_WORKING_TREE" "include" (list "@readonly-mcp/core") }}
+# The package was published to npm as @readonly-mcp/server after shipping as
+# a GitHub-spec @readonly-mcp/core; both provide the readonly-mcp bin, so the
+# old one goes first. Drop this once every machine has applied it.
+if pnpm list -g --depth 0 --parseable @readonly-mcp/core | grep -q '@readonly-mcp/core$'; then
+  pnpm remove -g @readonly-mcp/core
+fi
+{{ template "pnpm-globals" dict "root" "$CHEZMOI_WORKING_TREE" "include" (list "@readonly-mcp/server") }}
 # `claude mcp` signals its own process group on exit (Android-only bug),
 # killing the calling script. `setsid` runs each call in a fresh session
 # so the signal stays contained.

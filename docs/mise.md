@@ -190,10 +190,13 @@ floor for any project on the host that doesn't set its own value.
 It only governs how mise **resolves** a spec, which makes it the backstop rather
 than the primary control — a fuzzy or `latest` spec waits the window out, while
 an exact pin installs immediately, because the pin has already been through
-Renovate's own quarantine. The equivalents for the other supply chains are
-`minimumReleaseAge` in [`pnpm-workspace.yaml`](../pnpm-workspace.yaml) for
-global npm packages and the `# renovate:` annotations in
-[`.chezmoidata`](../home/.chezmoidata) for the out-of-band installs.
+Renovate's own quarantine. Global npm packages rely on that quarantine alone:
+`pnpm add -g` runs outside this repo's workspace, so `minimumReleaseAge` in
+[`pnpm-workspace.yaml`](../pnpm-workspace.yaml) governs only the repo's own
+dev dependencies, and pnpm records an exact-version exclusion in its global
+workspace when a catalog pin is still inside pnpm's window. The out-of-band
+installs rely on the `# renovate:` annotations in
+[`.chezmoidata`](../home/.chezmoidata).
 
 ## Global mise Config Termux Fragment
 

@@ -14,7 +14,7 @@ when an unrelated package bumps.
 | [`home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-pnpm-globals.sh.tmpl)   | Termux installer                                                                             |
 | [`home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_claude-configure.ps1.tmpl)         | Installs `tweakcc` + Claude plugin setup                                                     |
 | [`home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_install-pnpm-globals.ps1.tmpl) | Installs global npm packages                                                                 |
-| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/core` + Claude registration                                          |
+| [`home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_after_mcp-readonly-install.ps1.tmpl) | Installs `@readonly-mcp/server` + Claude registration                                        |
 | [`home/.chezmoitemplates/pnpm-globals`](../home/.chezmoitemplates/pnpm-globals)                                                                                     | Shared template that renders `pnpm add -g <name@version> …`                                  |
 | [`pnpm-workspace.yaml`](../pnpm-workspace.yaml)                                                                                                                     | Pinned versions (`globals` catalog); Renovate-managed                                        |
 
@@ -32,8 +32,7 @@ passing the root [`global-pnpmfile.cjs`](../global-pnpmfile.cjs) via
 
 - `github:<owner>/<repo>#<sha>` → passed verbatim (pnpm understands the
   spec); `name@version` would error because there is no published
-  version. `@readonly-mcp/core` uses this — it's installed from a pinned
-  commit on the upstream repo.
+  version.
 - Everything else → `name@version` form.
 
 So a script declaring `include "@openai/codex"` renders to roughly:
@@ -54,7 +53,7 @@ content only changes for scripts that actually use the bumped package.
 
 The trade-off: each package must belong to exactly one script. Scripts
 that need a package for post-install steps (e.g., the MCP install
-script needs `@readonly-mcp/core` before registering it with Claude)
+script needs `@readonly-mcp/server` before registering it with Claude)
 install that package themselves via the same template — making them
 self-contained, no ordering dependencies.
 

@@ -19,13 +19,13 @@ Android only — Linux and macOS would need install scripts added.
 | [`home/dot_claude/settings.json.tmpl`](../home/dot_claude/settings.json.tmpl)                                                                                       | Claude permissions `allow` list — explicitly enumerates every MCP tool  |
 | [`home/dot_config/powershell/profile.d/10-functions.ps1.tmpl`](../home/dot_config/powershell/profile.d/10-functions.ps1.tmpl)                                       | `copilot` wrapper re-passing each server as `--allow-tool` (Windows)    |
 | [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json)                                                                                           | Copilot CLI `mcpServers` config (shared across OSes)                    |
-| [`package.json`](../package.json)                                                                                                                                   | `@readonly-mcp/core` pin (GitHub-spec)                                  |
+| [`pnpm-workspace.yaml`](../pnpm-workspace.yaml)                                                                                                                     | `@readonly-mcp/server` pin (`globals` catalog)                          |
 
 ## Servers
 
 ### `readonly` (stdio)
 
-The [readonly-mcp/core](https://github.com/readonly-mcp/core) server
+The [readonly-mcp](https://github.com/readonly-mcp/readonly-mcp) server
 exposes allowlisted read-only access to common CLI tools so agents can
 inspect state without `Bash` permission prompts. See the upstream repo
 for the current tool allowlist.
@@ -41,9 +41,10 @@ Installed via the pnpm-globals template, then registered per client:
   [`home/dot_copilot/mcp-config.json`](../home/dot_copilot/mcp-config.json), deployed to
   `~/.copilot/mcp-config.json` on every OS.
 
-The package is pinned in [`package.json`](../package.json) as a GitHub-spec dep. See
-[`pnpm-globals.md`](pnpm-globals.md) for how GitHub-spec pins flow
-through the install template.
+The npm package `@readonly-mcp/server` is pinned in the `globals` catalog
+of [`pnpm-workspace.yaml`](../pnpm-workspace.yaml). See
+[`pnpm-globals.md`](pnpm-globals.md) for how catalog pins flow through the
+install template.
 
 ### `microsoft-learn` (HTTP)
 

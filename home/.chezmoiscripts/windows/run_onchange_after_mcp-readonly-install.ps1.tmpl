@@ -1,4 +1,10 @@
 $ErrorActionPreference = 'Stop'
-{{ template "pnpm-globals" dict "root" "$env:CHEZMOI_WORKING_TREE" "include" (list "@readonly-mcp/core") }}
+<# The package was published to npm as @readonly-mcp/server after shipping as
+   a GitHub-spec @readonly-mcp/core; both provide the readonly-mcp bin, so the
+   old one goes first. Drop this once every machine has applied it. #>
+if ((pnpm list -g --depth 0 --parseable @readonly-mcp/core) -match '@readonly-mcp[\\/]core$') {
+  pnpm remove -g @readonly-mcp/core
+}
+{{ template "pnpm-globals" dict "root" "$env:CHEZMOI_WORKING_TREE" "include" (list "@readonly-mcp/server") }}
 claude mcp remove readonly --scope user 2>$null
 claude mcp add --scope user readonly -- readonly-mcp
