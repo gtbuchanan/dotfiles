@@ -41,7 +41,7 @@ actionlint = "1.7.12"
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
 chezmoi = "2.73.3"
-hk = "2.5.0"
+hk = "2.9.0"
 node = "24.21.0"
 "npm:@gtbuchanan/cli" = "1.0.0"
 # Exempt transitive `@yarnpkg/libzip@3.2.2` from aube's no-downgrade policy.
