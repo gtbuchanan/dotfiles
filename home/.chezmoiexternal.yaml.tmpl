@@ -56,6 +56,19 @@
   include: ["*/mise-guide/**"]
   url: https://github.com/kinoward/agent-skills/archive/98fd4ad7e39d7eba170ed1ef4787e16bc88cef05.tar.gz
 
+{{- /* Gated like the tool it teaches (mise/conf.d/mobilecli.toml). Pinned to
+   the commit the binary's release tag names, since upstream tags are not
+   immutable; keep the two on the same release so the instructions match the
+   binary. */}}
+{{- if ne .chezmoi.os "android" }}
+'.agents/skills/mobilecli':
+  exact: true
+  type: archive
+  stripComponents: 3
+  include: ["*/skills/mobilecli/**"]
+  url: https://github.com/mobile-next/mobilecli/archive/8d1203d5dd5049665c22e9bc4cfed43e9024c600.tar.gz
+{{- end }}
+
 '.agents/skills/playwright-cli':
   exact: true
   type: archive
