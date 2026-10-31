@@ -8,7 +8,7 @@ catalog:
   '@pnpm/types': 1102.1.2
   '@types/node': 26.6.5
   eslint: 10.13.0
-  typescript: 6.0.3
+  typescript: 7.0.2
 
 catalogs:
   globals:
