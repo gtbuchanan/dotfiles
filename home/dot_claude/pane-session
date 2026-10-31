@@ -114,8 +114,11 @@ if [ -n "${TMUX:-}" ]; then
 fi
 
 # Pane ids carry a '%' and session names are free text, so both are reduced to
-# what a filename can hold.
-key=$(printf '%s-%s' "$namespace" "$pane" | tr -c 'A-Za-z0-9._-' '_')
+# what a filename can hold. Expanded in place rather than piped through tr:
+# under Git Bash every command substitution is an emulated fork, and the
+# SessionEnd hook has to finish inside a budget of about a second and a half.
+key="$namespace-$pane"
+key="${key//[!A-Za-z0-9._-]/_}"
 record="$root/$key.json"
 
 if [ "$mode" = 'record' ]; then
@@ -150,15 +153,16 @@ if [ "$mode" = 'record' ]; then
 fi
 
 if [ "$mode" = 'forget' ]; then
-  payload=$(cat)
-  [ -n "$payload" ] || exit 0
-
-  session_id=$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)
-  [ -n "$session_id" ] || exit 0
-
   [ -f "$record" ] || exit 0
-  recorded_session=$(jq -r '.sessionId // empty' "$record" 2>/dev/null)
-  [ "$recorded_session" = "$session_id" ] || exit 0
+
+  # One jq reads the payload off stdin and the record together, since this runs
+  # under SessionEnd's tight timeout. An empty payload, a missing session_id,
+  # and a record with no sessionId all fail the match rather than comparing two
+  # empty strings equal.
+  jq -en --slurpfile r "$record" '
+    (input.session_id // "") as $ended
+    | $ended != "" and $ended == ($r[0].sessionId // "")
+  ' >/dev/null 2>&1 || exit 0
 
   rm -f "$record" 2>/dev/null
 
