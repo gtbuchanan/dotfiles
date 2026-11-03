@@ -5,6 +5,9 @@
 {{- if eq .chezmoi.os "windows" }}
 - Prefer the PowerShell tool over Bash, regardless of what the environment
   block reports.
+- Git Bash rewrites a `/`-leading argument to a native command into a Windows
+  path, quoted or not (`"/azp run"` → `C:/Program Files/Git/azp run`). Run
+  those in PowerShell, or prefix with `MSYS_NO_PATHCONV=1`.
 {{- end }}
 - For long-running commands, pass `run_in_background: true` to whichever shell
   tool you'd otherwise run the command in — backgrounding is a property of the
