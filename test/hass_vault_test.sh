@@ -201,12 +201,16 @@ test_credential_is_the_default_command() {
     "$(hass-vault 2>/dev/null)" "$ITEM_TOKEN"
 }
 
-test_check_resolves_and_caches() {
+test_check_reports_the_shape_of_what_it_resolved() {
   local out
   out=$(env STUB_ITEMS="$(items_ok)" hass-vault check 2>&1)
   assertContains 'reports the shape' "$out" 'credentials resolved'
   assertContains 'including the token length' "$out" "token ${#ITEM_TOKEN} chars"
-  assertTrue 'and writes the sealed cache' "[ -s '$CACHE_FILE' ]"
+}
+
+test_check_fills_the_cache() {
+  env STUB_ITEMS="$(items_ok)" hass-vault check >/dev/null 2>&1
+  assertTrue 'wrote the sealed cache' "[ -s '$CACHE_FILE' ]"
 }
 
 test_check_never_emits_the_credential() {

@@ -204,11 +204,15 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
 
   Context 'resolution' {
 
-    It 'resolves on a miss and caches the result' {
+    It 'resolves the pair from the vault on a miss' {
       $result = Invoke-Vault -Arguments 'credential'
       $result.ExitCode | Should -Be 0
       $result.Out | Should -Match ([regex]::Escape($script:Uri))
       $result.Out | Should -Match ([regex]::Escape($script:Token))
+    }
+
+    It 'caches the pair it resolves on a miss' {
+      Invoke-Vault -Arguments 'credential' | Out-Null
       Test-Path $script:CachePath | Should -BeTrue
     }
 
@@ -303,8 +307,15 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
 
     # Typed into a vault UI by hand, where a stray space or capital is a typo
     # rather than a different instance.
-    It 'matches the id trimmed and case-insensitively' {
-      Write-VaultFixture @((Get-VaultItem -Id '  Other  ' -Uri $script:OtherUri))
+    It 'matches the id ignoring surrounding whitespace' {
+      Write-VaultFixture @((Get-VaultItem -Id '  other  ' -Uri $script:OtherUri))
+      (Invoke-Vault -Arguments 'credential' `
+        -Environment @{ HASS_VAULT_INSTANCE = 'other' }).Out |
+        Should -Match ([regex]::Escape($script:OtherUri))
+    }
+
+    It 'matches the id ignoring case' {
+      Write-VaultFixture @((Get-VaultItem -Id 'Other' -Uri $script:OtherUri))
       (Invoke-Vault -Arguments 'credential' `
         -Environment @{ HASS_VAULT_INSTANCE = 'OTHER' }).Out |
         Should -Match ([regex]::Escape($script:OtherUri))
@@ -500,12 +511,20 @@ if not exist "%STUB_ITEMS_FILE%" (echo []) else (type "%STUB_ITEMS_FILE%")
 
   Context 'refresh' {
 
-    It 'drops the cached pair and resolves again' {
+    It 'replaces the cached pair with the one the vault holds now' {
+      Initialize-Cache
+      Write-VaultFixture @((Get-VaultItem -Token 'rotated-token'))
+      Invoke-Vault -Arguments 'refresh' | Out-Null
+
+      (Invoke-Vault -Arguments 'credential' -Environment @{ STUB_VAULT_LOCKED = '1' }).Out |
+        Should -Match 'rotated-token'
+    }
+
+    It 'reports the shape of what it resolved' {
       Initialize-Cache
       $result = Invoke-Vault -Arguments 'refresh'
       $result.ExitCode | Should -Be 0
       $result.Out | Should -Match 'credentials resolved'
-      Test-Path $script:CachePath | Should -BeTrue
     }
 
     # The epoch moves before the cache is removed. A resolve already in flight
