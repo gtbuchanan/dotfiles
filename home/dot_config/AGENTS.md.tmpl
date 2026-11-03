@@ -189,6 +189,10 @@
   to return, re-deriving the expected value with the implementation's own
   logic, and assertions true for any input (`toBeDefined`, `expect.anything`).
   Assert observable behavior against independently-known values.
+- One behavior per test, and the name states it. A name that needs "and" to
+  join two outcomes ("resolves and caches") is two tests: split them, so a
+  failure names the behavior that broke. "And" joining the nouns of a single
+  outcome ("drops the cache and the key") is fine.
 - Always use Playwright CLI to verify website changes
 - Avoid logic in test lifecycle hooks — it encourages shared mutable state.
   Prefer fixture factory functions or types, instantiated per test. Make
