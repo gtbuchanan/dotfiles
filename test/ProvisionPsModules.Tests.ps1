@@ -84,11 +84,17 @@ Describe 'provision psmodules' {
     $warnings[0].Message | Should -BeLike 'Attempt 1 of 3 failed:*404*'
   }
 
-  It 'gives up after the last attempt and reports the gallery error' {
+  It 'gives up after the last attempt' {
+    $gallery.Failures = 100
+
+    { & $script:provision 2>$null 3>$null } | Should -Throw
+    $gallery.Saves | Should -Be 3
+  }
+
+  It 'reports the gallery error when it gives up' {
     $gallery.Failures = 100
 
     { & $script:provision 2>$null 3>$null } | Should -Throw '*404*'
-    $gallery.Saves | Should -Be 3
   }
 
   It 'removes the partial module folder when every attempt fails' {
