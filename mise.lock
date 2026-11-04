@@ -157,31 +157,31 @@ url = "https://github.com/apple/pkl/releases/download/0.32.2/pkl-windows-amd64.e
 url_api = "https://api.github.com/repos/apple/pkl/releases/assets/663854370"
 
 [[tools.pnpm]]
-version = "11.28.8"
+version = "11.28.10"
 backend = "aqua:pnpm/pnpm"
 
 [tools.pnpm."platforms.linux-arm64"]
-checksum = "sha256:539f748383e206d5ad33dded451ae7c69132ac7c435feb34a866a43073f162e4"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.28.8/pnpm-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/667216934"
+checksum = "sha256:f9bbee75230b321bc55bbc834a1d5eaf9d18869fab7ccccdf27c4be1e3ddb047"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.28.10/pnpm-linux-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692550289"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.linux-x64"]
-checksum = "sha256:15e1a7159d323418021877c5a3fd91080059613355c3cd5ac9a648415b942712"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.28.8/pnpm-linux-x64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/667216939"
+checksum = "sha256:9eb5631ddcb9ce221de77e1ec5c81572e2fca0916f020aded00ebdbbf48db155"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.28.10/pnpm-linux-x64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692550287"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.macos-arm64"]
-checksum = "sha256:a2c05d2b7269ca19bd7b87e0cfae6ad58d17597b474ef304efeb1d0320cb35ea"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.28.8/pnpm-darwin-arm64.tar.gz"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/667216937"
+checksum = "sha256:1332215765672e88dd5e291b1fe2b69f9c62c371838666d1c355ba68271c70ab"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.28.10/pnpm-darwin-arm64.tar.gz"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692550284"
 provenance = "github-attestations"
 
 [tools.pnpm."platforms.windows-x64"]
-checksum = "sha256:f950e3df10a2504f419c0a13bcacf3aa6a26b124ee0b553a6e42d33a27df44b5"
-url = "https://github.com/pnpm/pnpm/releases/download/v11.28.8/pnpm-win32-x64.zip"
-url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/667216936"
+checksum = "sha256:29a42e82f415deaaba0c85a4f05cec84071852a57574e0b1e3118f05ebf43c5d"
+url = "https://github.com/pnpm/pnpm/releases/download/v11.28.10/pnpm-win32-x64.zip"
+url_api = "https://api.github.com/repos/pnpm/pnpm/releases/assets/692550251"
 provenance = "github-attestations"
 
 [[tools.powershell]]
