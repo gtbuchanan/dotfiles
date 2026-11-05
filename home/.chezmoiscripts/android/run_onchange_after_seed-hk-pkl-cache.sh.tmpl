@@ -104,7 +104,8 @@ for _ in $(seq 20); do
   fi
   echo "Seeding pklr cache: https://$path"
   mkdir -p "$(dirname "$mirror/$path")"
-  curl -fsSL -o "$mirror/$path" "https://$path"
+  # Bounded so a stalled transfer fails the apply instead of hanging it.
+  curl -fsSL --connect-timeout 30 --speed-time 60 -o "$mirror/$path" "https://$path"
 done
 
 echo "pklr cache seed: gave up after 20 packages" >&2
