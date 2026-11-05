@@ -210,12 +210,12 @@ test_fails_when_a_package_cannot_be_downloaded() {
   assertNotEquals "exit status$(said)" 0 "$rc"
 }
 
-test_exits_zero_when_hk_pkl_fails_for_another_reason() {
+test_fails_when_hk_pkl_fails_for_another_reason() {
   precache "$CONFIG_URL"
 
   REQUIRES="$CONFIG_URL" BROKEN=1 run_seeder
   rc=$?
-  assertEquals "exit status$(said)" 0 "$rc"
+  assertNotEquals "exit status$(said)" 0 "$rc"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints

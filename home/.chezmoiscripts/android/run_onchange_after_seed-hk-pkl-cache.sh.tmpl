@@ -87,11 +87,14 @@ for _ in $(seq 20); do
   fi
   url=$(grep -oE "$local_base/[^ :)]+" <<<"$out" | head -n 1 || true)
   if [ -z "$url" ]; then
-    # Not a missing package: hk.pkl fails for its own reasons, which hk
-    # reports wherever it runs. Seeding has nothing left to do.
+    # Not a missing package: hk.pkl fails for its own reasons, and the
+    # seed can't tell whether its imports were all reached. Fail so chezmoi
+    # retries on the next apply; exiting 0 would record this run_onchange
+    # script as done, and fixing hk.pkl without touching its imports would
+    # never re-fire it.
     echo "pklr cache seed: hk.pkl fails to validate for a reason other than a missing package:" >&2
     echo "$out" >&2
-    exit 0
+    exit 1
   fi
   path=${url#"$local_base/"}
   if [ -e "$mirror/$path" ]; then
