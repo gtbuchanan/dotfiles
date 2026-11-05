@@ -14,6 +14,14 @@ export SSH_ASKPASS_REQUIRE=force
 # https://github.com/astral-sh/uv/issues/18285
 # https://github.com/gtbuchanan/tooling/issues/51
 export UV_LIBC=none
+
+# Packages whose `os` allowlist omits android (libsql and onnxruntime-node in
+# promptfoo's tree) fail pnpm's platform check, a hard error in projects with
+# engineStrict. Accepting linux lets them install. Set here rather than in a
+# project's pnpm-workspace.yaml, where every other host would fetch linux
+# optional binaries it never loads; pnpm ignores this setting in its global
+# config.yaml.
+export pnpm_config_supported_architectures='{"os":["current","linux"]}'
 {{ end -}}
 
 # Add user's private bin to PATH
