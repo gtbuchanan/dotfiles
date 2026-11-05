@@ -1,0 +1,58 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  jactionlint install for Termux/Android.
+
+  jactionlint, the maintained actionlint fork, is github-backed in
+  gtbuchanan/tooling's mise.toml (hk runs it as a workflow-lint step), but
+  Termux-native mise resolves android/arm64, for which it publishes no asset
+  (see dot_config/mise/conf.d/termux.toml). jactionlint is a static Go
+  binary, so the prebuilt linux_arm64 release runs unmodified on bionic — no
+  loader shim, unlike hk and pkl.
+
+  It's a standalone linter that hk merely orchestrates, so it's installed
+  on its own and version-pinned separately in
+  `home/.chezmoidata/jactionlint.yaml` (Renovate-tracked), kept in sync with
+  tooling's mise.toml.
+*/}}
+set -euo pipefail
+
+VERSION='{{ .jactionlint_version }}'
+ARCHIVE="jactionlint_${VERSION}_linux_arm64.tar.gz"
+DL_BASE="https://github.com/jdx/jactionlint/releases/download/v${VERSION}"
+
+INSTALL_DIR="$HOME/.local/share/jactionlint"
+BINARY="$INSTALL_DIR/jactionlint-$VERSION"
+WRAPPER="$HOME/.local/bin/jactionlint"
+
+mkdir -p "$INSTALL_DIR" "$(dirname "$WRAPPER")"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Installing jactionlint $VERSION..."
+  checksum=$(curl -fsSL "$DL_BASE/jactionlint_${VERSION}_checksums.txt" \
+    | awk -v f="$ARCHIVE" '$2 == f { print $1 }')
+  if [ -z "$checksum" ]; then
+    echo "Could not find checksum for $ARCHIVE" >&2
+    exit 1
+  fi
+
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$DL_BASE/$ARCHIVE" -o "$tmp/$ARCHIVE"
+
+  actual=$(sha256sum "$tmp/$ARCHIVE" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $ARCHIVE: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  # Tarball bundles docs/man/LICENSE alongside the `jactionlint` binary.
+  tar -xzf "$tmp/$ARCHIVE" -C "$tmp" jactionlint
+  chmod +x "$tmp/jactionlint"
+  mv "$tmp/jactionlint" "$BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+
+ln -sf "$BINARY" "$WRAPPER"
+
+find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'jactionlint-*' ! -name "jactionlint-$VERSION" -delete

@@ -18,12 +18,6 @@ DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1"
 # entry carries the backend that fails and where the replacement comes from;
 # keep the rationale next to the entry so the two can't drift apart.
 disable_tools = [
-  # `aqua:rhysd/actionlint` has no android asset (only linux_arm64 exists).
-  # It's a static Go binary that runs unmodified on bionic, so the prebuilt
-  # linux_arm64 release is installed directly (in
-  # run_onchange_after_install-actionlint.sh). hk orchestrates it as a
-  # workflow-lint step.
-  "actionlint",
   # `aqua` keys off android/arm64, for which neither age nor sops publishes an
   # asset. Termux packages both natively (run_onchange_before.sh), so let hk and
   # anything else resolve them from PATH. A repo that pins them -- any repo
@@ -58,6 +52,12 @@ disable_tools = [
   # static musl aarch64 binary that runs unmodified on bionic, so install the
   # release tarball directly (in run_onchange_after_install-hk.sh).
   "hk",
+  # `github:jdx/jactionlint` has no android asset (only linux_arm64 exists).
+  # It's a static Go binary that runs unmodified on bionic, so the prebuilt
+  # linux_arm64 release is installed directly (in
+  # run_onchange_after_install-jactionlint.sh). hk orchestrates it as a
+  # workflow-lint step.
+  "jactionlint",
   # `aqua:jqlang/jq` publishes linux-arm64 but nothing for android. Termux
   # packages jq natively (run_onchange_before.sh), so resolve it from PATH.
   "jq",

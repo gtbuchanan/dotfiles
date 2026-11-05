@@ -37,11 +37,11 @@ minimum_release_age_excludes = ["npm:@gtbuchanan/*"]
 includes = ["mise-tasks", "mise.tasks.toml"]
 
 [tools]
-actionlint = "1.7.12"
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
 chezmoi = "2.74.0"
-hk = "2.11.0"
+hk = "2.11.1"
+jactionlint = "v2.4.0"
 node = "26.13.0"
 "npm:@gtbuchanan/cli" = "2.0.0"
 # Exempt transitive `@yarnpkg/libzip@3.2.2` from aube's no-downgrade policy.
