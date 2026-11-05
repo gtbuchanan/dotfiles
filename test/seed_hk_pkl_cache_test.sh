@@ -143,7 +143,12 @@ run_seeder() {
     STUB_CACHE="$CACHE" \
     STUB_REQUIRES="${REQUIRES:-}" \
     STUB_BROKEN="${BROKEN:-}" \
-    bash "$RENDERED" >/dev/null 2>&1
+    bash "$RENDERED" >"$SANDBOX/seeder.out" 2>&1
+}
+
+# What the seeder printed, for an assertion message to carry when it fails.
+said() {
+  printf '; seeder said:\n%s' "$(cat "$SANDBOX/seeder.out" 2>/dev/null)"
 }
 
 # --- behavior ---------------------------------------------------------------
@@ -162,7 +167,7 @@ test_caches_an_uncached_package_as_published_upstream() {
   publish "$CONFIG_URL" 'config-package'
 
   REQUIRES="$CONFIG_URL" run_seeder
-  assertEquals 'cached content' 'config-package' "$(cat "$(cache_file "$CONFIG_URL")" 2>/dev/null)"
+  assertEquals "cached content$(said)" 'config-package' "$(cat "$(cache_file "$CONFIG_URL")" 2>/dev/null)"
 }
 
 test_caches_a_package_only_reported_after_another_is_seeded() {
@@ -170,34 +175,38 @@ test_caches_a_package_only_reported_after_another_is_seeded() {
   publish "$DEP_URL" 'dep-package'
 
   REQUIRES="$CONFIG_URL $DEP_URL" run_seeder
-  assertEquals 'cached content' 'dep-package' "$(cat "$(cache_file "$DEP_URL")" 2>/dev/null)"
+  assertEquals "cached content$(said)" 'dep-package' "$(cat "$(cache_file "$DEP_URL")" 2>/dev/null)"
 }
 
 test_exits_zero_once_every_package_is_cached() {
   publish "$CONFIG_URL" 'config-package'
 
   REQUIRES="$CONFIG_URL" run_seeder
-  assertEquals 'exit status' 0 $?
+  rc=$?
+  assertEquals "exit status$(said)" 0 "$rc"
 }
 
 test_downloads_nothing_when_the_cache_is_warm() {
   precache "$CONFIG_URL"
 
   REQUIRES="$CONFIG_URL" run_seeder
-  assertEquals 'exit status' 0 $?
+  rc=$?
+  assertEquals "exit status$(said)" 0 "$rc"
   assertFalse 'nothing fetched' "[ -s '$CURL_LOG' ]"
 }
 
 test_fails_when_a_package_cannot_be_downloaded() {
   REQUIRES="$CONFIG_URL" run_seeder
-  assertNotEquals 'exit status' 0 $?
+  rc=$?
+  assertNotEquals "exit status$(said)" 0 "$rc"
 }
 
 test_exits_zero_when_hk_pkl_fails_for_another_reason() {
   precache "$CONFIG_URL"
 
   REQUIRES="$CONFIG_URL" BROKEN=1 run_seeder
-  assertEquals 'exit status' 0 $?
+  rc=$?
+  assertEquals "exit status$(said)" 0 "$rc"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints
