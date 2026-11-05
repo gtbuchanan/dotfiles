@@ -6,7 +6,7 @@ jobs:
 
   pre-commit:
     name: Pre-Commit
-    uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@main
+    uses: gtbuchanan/tooling/.github/workflows/pre-commit.yml@v1.0.0
     with:
       use-pnpm: true
 
