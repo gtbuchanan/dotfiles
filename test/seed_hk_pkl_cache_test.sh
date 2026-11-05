@@ -83,7 +83,7 @@ STUB
   cat >"$SANDBOX/.local/bin/hk" <<'STUB'
 #!/usr/bin/env bash
 for url in $STUB_REQUIRES; do
-  key=$(printf '%s' "$url" | sha1sum | cut -c1-16)
+  key=${url//[^A-Za-z0-9]/_}
   [ -f "$STUB_CACHE/$key" ] && continue
   fetch=$url
   if [ -n "${HK_PKL_HTTP_REWRITE:-}" ]; then
@@ -125,8 +125,9 @@ publish() {
   printf '%s' "$2" >"$path"
 }
 
+# Where the hk stub caches package URL $1: the URL flattened to one filename.
 cache_file() {
-  echo "$CACHE/$(printf '%s' "$1" | sha1sum | cut -c1-16)"
+  echo "$CACHE/${1//[^A-Za-z0-9]/_}"
 }
 
 # Puts package URL $1 in hk's cache, as an earlier evaluation would have.
