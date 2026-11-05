@@ -82,6 +82,7 @@ STUB
 
   cat >"$SANDBOX/.local/bin/hk" <<'STUB'
 #!/usr/bin/env bash
+printf '%s\n' "$*" >>"$HOME/hk.args"
 for url in $STUB_REQUIRES; do
   key=${url//[^A-Za-z0-9]/_}
   [ -f "$STUB_CACHE/$key" ] && continue
@@ -194,6 +195,13 @@ test_downloads_nothing_when_the_cache_is_warm() {
   rc=$?
   assertEquals "exit status$(said)" 0 "$rc"
   assertFalse 'nothing fetched' "[ -s '$CURL_LOG' ]"
+}
+
+test_validates_the_working_tree_hk_pkl() {
+  precache "$CONFIG_URL"
+
+  REQUIRES="$CONFIG_URL" run_seeder
+  assertEquals "hk arguments$(said)" "--cd $TREE validate" "$(cat "$SANDBOX/hk.args" 2>/dev/null)"
 }
 
 test_fails_when_a_package_cannot_be_downloaded() {
