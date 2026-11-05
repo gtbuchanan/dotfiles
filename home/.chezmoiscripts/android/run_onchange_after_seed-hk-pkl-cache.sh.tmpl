@@ -42,10 +42,13 @@ port_file="$work/port"
 mkdir -p "$mirror"
 
 # Port 0 lets the OS pick a free port; the server reports it through
-# $port_file once it is listening.
+# $port_file once it is listening. TCPServer rather than http.server's
+# HTTPServer, whose bind reverse-resolves the address with getfqdn() and
+# can stall for seconds where that lookup is slow.
 python3 - "$mirror" "$port_file" <<'PY' &
 import http.server
 import os
+import socketserver
 import sys
 
 mirror, port_file = sys.argv[1], sys.argv[2]
@@ -59,15 +62,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         pass
 
 
-server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
 with open(port_file + ".tmp", "w") as f:
-    f.write(str(server.server_port))
+    f.write(str(server.server_address[1]))
 os.rename(port_file + ".tmp", port_file)
 server.serve_forever()
 PY
 server_pid=$!
 
-for _ in $(seq 50); do
+for _ in $(seq 300); do
   [ -s "$port_file" ] && break
   sleep 0.1
 done
