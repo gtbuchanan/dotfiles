@@ -21,8 +21,9 @@
        fetches each `package://` import over HTTPS on first evaluation, which
        a static musl binary can't do on bionic: it resolves names through
        /etc/resolv.conf, which Android has no equivalent of. Evaluation
-       succeeds once those packages are in pklr's cache and fails cold, so a
-       bump to hk or to the hk-config pin needs a seeded cache here.
+       succeeds once those packages are in pklr's cache and fails cold;
+       run_onchange_after_seed-hk-pkl-cache.sh, which sorts after this one,
+       warms it.
   pkl: glibc-dynamic `pkl-linux-aarch64`, launched through glibc-runner
        (`grun`, provided by the claude-code-termux package installed in
        run_onchange_after_claude-code-install.sh, which sorts earlier). hk

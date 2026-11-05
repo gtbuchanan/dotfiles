@@ -25,6 +25,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                                 | Gates the android scripts to Termux only                                  |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl) | Termux out-of-band `jactionlint` install                                  |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                   | Termux out-of-band `hk` + `pkl` install                                   |
+| [`home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl)     | Termux pklr package-cache seed for hk's `package://` imports              |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                       | Termux mise + native-bionic linters (`pkg`)                               |
 | [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                         | macOS mise install (Homebrew formula)                                     |
 | [`home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl)                 | Linux pinned mise install (download + SHA256 verify)                      |
@@ -248,8 +249,14 @@ routes, both landing wrappers/symlinks in `~/.local/bin`:
     That evaluator fetches each `package://` import over HTTPS the first time
     it evaluates a config, which the musl binary can't do on bionic — it
     resolves names through `/etc/resolv.conf`, which Android has no equivalent
-    of. Evaluation succeeds against pklr's package cache and fails cold, so
-    bumping hk or the hk-config pin needs that cache seeded on Termux.
+    of. Evaluation succeeds against pklr's package cache and fails cold.
+    [`seed-hk-pkl-cache.sh`](../home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl)
+    warms the cache: curl downloads each package into a mirror served on
+    `127.0.0.1`, which needs no lookup, and `HK_PKL_HTTP_REWRITE` points hk's
+    fetches there. pklr caches each package under its original URL, so later
+    evaluations work without the rewrite. The script renders `hk.pkl`'s
+    `package://` imports into itself as its `run_onchange` trigger, so bumping
+    hk or hk-config there re-runs it with no second copy of either version.
 
   - `jactionlint` is installed alone by
     [`install-jactionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl)

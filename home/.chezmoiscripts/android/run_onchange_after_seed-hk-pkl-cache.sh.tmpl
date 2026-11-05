@@ -1,0 +1,105 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  Seeds pklr's package cache for hk on Termux/Android.
+
+  hk evaluates hk.pkl with its embedded pklr, which fetches each `package://`
+  import over HTTPS on first use. The static musl hk that
+  run_onchange_after_install-hk.sh installs can't do that on bionic: musl
+  resolves names through /etc/resolv.conf, which Android has no equivalent
+  of, so every cold fetch fails with "error sending request". Evaluation
+  works only from a warm cache.
+
+  This warms it. curl (bionic, resolves fine) downloads each package into a
+  mirror directory served on 127.0.0.1, an address that needs no lookup, and
+  hk's HK_PKL_HTTP_REWRITE points every https:// fetch at that server. pklr
+  caches what it fetches under the original URL, so later runs need neither
+  the rewrite nor this script. pklr names one missing package per run, and
+  transitive ones (hk-config's own hk dependency) only once their parent is
+  cached, so the loop re-validates until nothing is missing.
+
+  The import list below is rendered from hk.pkl so that bumping hk or
+  hk-config there re-fires this script without a second copy of either
+  version here. At run time it validates the working tree's hk.pkl itself,
+  read from CHEZMOI_WORKING_TREE rather than rendered, to keep the hash
+  independent of --source (see AGENTS.md).
+*/}}
+set -euo pipefail
+
+# hk.pkl imports (the run_onchange trigger):
+{{- range regexFindAll "package://[^\"]+" (include "../hk.pkl") -1 }}
+#   {{ . }}
+{{- end }}
+
+HK="$HOME/.local/bin/hk"
+TREE="${CHEZMOI_WORKING_TREE:?CHEZMOI_WORKING_TREE is unset}"
+
+work=$(mktemp -d)
+server_pid=''
+trap '[ -z "$server_pid" ] || kill "$server_pid" 2>/dev/null || true; rm -rf "$work"' EXIT
+
+mirror="$work/mirror"
+port_file="$work/port"
+mkdir -p "$mirror"
+
+# Port 0 lets the OS pick a free port; the server reports it through
+# $port_file once it is listening.
+python3 - "$mirror" "$port_file" <<'PY' &
+import http.server
+import os
+import sys
+
+mirror, port_file = sys.argv[1], sys.argv[2]
+
+
+class Handler(http.server.SimpleHTTPRequestHandler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, directory=mirror, **kwargs)
+
+    def log_message(self, *args):
+        pass
+
+
+server = http.server.HTTPServer(("127.0.0.1", 0), Handler)
+with open(port_file + ".tmp", "w") as f:
+    f.write(str(server.server_port))
+os.rename(port_file + ".tmp", port_file)
+server.serve_forever()
+PY
+server_pid=$!
+
+for _ in $(seq 50); do
+  [ -s "$port_file" ] && break
+  sleep 0.1
+done
+[ -s "$port_file" ] || {
+  echo "pklr cache seed: loopback server did not start" >&2
+  exit 1
+}
+local_base="http://127.0.0.1:$(cat "$port_file")"
+
+# Bounded so a package that downloads but still fails to load can't spin.
+for _ in $(seq 20); do
+  if out=$(HK_PKL_HTTP_REWRITE="https://=$local_base/" "$HK" --cd "$TREE" validate 2>&1); then
+    exit 0
+  fi
+  url=$(grep -oE "$local_base/[^ :)]+" <<<"$out" | head -n 1 || true)
+  if [ -z "$url" ]; then
+    # Not a missing package: hk.pkl fails for its own reasons, which hk
+    # reports wherever it runs. Seeding has nothing left to do.
+    echo "pklr cache seed: hk.pkl fails to validate for a reason other than a missing package:" >&2
+    echo "$out" >&2
+    exit 0
+  fi
+  path=${url#"$local_base/"}
+  if [ -e "$mirror/$path" ]; then
+    echo "pklr cache seed: hk still can't load https://$path after it was mirrored:" >&2
+    echo "$out" >&2
+    exit 1
+  fi
+  echo "Seeding pklr cache: https://$path"
+  mkdir -p "$(dirname "$mirror/$path")"
+  curl -fsSL -o "$mirror/$path" "https://$path"
+done
+
+echo "pklr cache seed: gave up after 20 packages" >&2
+exit 1
