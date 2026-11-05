@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 #
 # jdx/mise publishes a SHA256 per asset in SHASUMS256.txt, so the download is
 # verified against the release rather than trusted outright (cf. the Termux
-# actionlint install, which does the same; hk publishes no per-asset checksum
+# jactionlint install, which does the same; hk publishes no per-asset checksum
 # and is pinned by version alone).
 
 $Version = '{{ .mise_version }}'

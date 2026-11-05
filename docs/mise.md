@@ -3,38 +3,38 @@
 [mise](https://mise.jdx.dev) is the tool-version / env / task manager
 installed on every platform this repo supports. [hk](https://hk.jdx.dev) is
 jdx's git-hook lint orchestrator that downstream project repos drive _through_
-mise (it resolves hk, pkl, actionlint, and the linters from mise-managed
+mise (it resolves hk, pkl, jactionlint, and the linters from mise-managed
 tools).
 
 This repo manages mise **installation and activation** on each platform, plus
 a Termux-only workaround layer that stands in for mise's tool backends where
 they have no Android assets. It pins the Termux lint toolchain (`hk`, `pkl`,
-`actionlint` — see [hk Toolchain Version Pinning](#hk-toolchain-version-pinning)),
+`jactionlint` — see [hk Toolchain Version Pinning](#hk-toolchain-version-pinning)),
 but does **not** pin downstream projects' tool versions — those live in each
 project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 `mise.toml`, which the Termux pins are kept in sync with).
 
 ## File Map
 
-| File                                                                                                                                                          | Role                                                                      |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| [`home/.chezmoidata/actionlint.yaml`](../home/.chezmoidata/actionlint.yaml)                                                                                   | Pinned `actionlint` version for the Termux install (Renovate-tracked)     |
-| [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                   | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked)    |
-| [`home/.chezmoidata/mise.yaml`](../home/.chezmoidata/mise.yaml)                                                                                               | Pinned mise version for the Windows and Linux installs (Renovate-tracked) |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                       | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`               |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                               | Gates the android scripts to Termux only                                  |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl) | Termux out-of-band `actionlint` install                                   |
-| [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                 | Termux out-of-band `hk` + `pkl` install                                   |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                     | Termux mise + native-bionic linters (`pkg`)                               |
-| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                       | macOS mise install (Homebrew formula)                                     |
-| [`home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl)               | Linux pinned mise install (download + SHA256 verify)                      |
-| [`home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl)         | Windows pinned mise install (download + SHA256 verify)                    |
-| [`home/.chezmoitemplates/mise-install`](../home/.chezmoitemplates/mise-install)                                                                               | Shared body of the per-platform global-tool install script                |
-| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                             | `mise activate bash` (interactive)                                        |
-| [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                              | Global mise config fragments, gated per-platform by their own ignore      |
-| [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                     | `mise activate pwsh`                                                      |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                           | Shims dir on PATH (non-interactive)                                       |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                           | Shims-dir PATH entry; removes the superseded winget mise package          |
+| File                                                                                                                                                            | Role                                                                      |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| [`home/.chezmoidata/jactionlint.yaml`](../home/.chezmoidata/jactionlint.yaml)                                                                                   | Pinned `jactionlint` version for the Termux install (Renovate-tracked)    |
+| [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                     | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked)    |
+| [`home/.chezmoidata/mise.yaml`](../home/.chezmoidata/mise.yaml)                                                                                                 | Pinned mise version for the Windows and Linux installs (Renovate-tracked) |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                         | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`               |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                                 | Gates the android scripts to Termux only                                  |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl) | Termux out-of-band `jactionlint` install                                  |
+| [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                   | Termux out-of-band `hk` + `pkl` install                                   |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                       | Termux mise + native-bionic linters (`pkg`)                               |
+| [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                         | macOS mise install (Homebrew formula)                                     |
+| [`home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl)                 | Linux pinned mise install (download + SHA256 verify)                      |
+| [`home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl`](../home/.chezmoiscripts/windows/run_onchange_before_install-mise.ps1.tmpl)           | Windows pinned mise install (download + SHA256 verify)                    |
+| [`home/.chezmoitemplates/mise-install`](../home/.chezmoitemplates/mise-install)                                                                                 | Shared body of the per-platform global-tool install script                |
+| [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                               | `mise activate bash` (interactive)                                        |
+| [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                                | Global mise config fragments, gated per-platform by their own ignore      |
+| [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                       | `mise activate pwsh`                                                      |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                             | Shims dir on PATH (non-interactive)                                       |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                             | Shims-dir PATH entry; removes the superseded winget mise package          |
 
 ## mise Installation Per Platform
 
@@ -251,8 +251,8 @@ routes, both landing wrappers/symlinks in `~/.local/bin`:
     of. Evaluation succeeds against pklr's package cache and fails cold, so
     bumping hk or the hk-config pin needs that cache seeded on Termux.
 
-  - `actionlint` is installed alone by
-    [`install-actionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-actionlint.sh.tmpl)
+  - `jactionlint` is installed alone by
+    [`install-jactionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl)
     — hk merely **orchestrates** it as a workflow-lint step, it's not an hk
     runtime dependency.
 
@@ -267,11 +267,11 @@ The out-of-band Termux installs are version-pinned in
 re-fire on a bump:
 
 - [`hk.yaml`](../home/.chezmoidata/hk.yaml) — `hk_version`, `pkl_version`
-- [`actionlint.yaml`](../home/.chezmoidata/actionlint.yaml) — `actionlint_version`
+- [`jactionlint.yaml`](../home/.chezmoidata/jactionlint.yaml) — `jactionlint_version`
 
 All carry `renovate:` annotations (datasource `github-releases`) for automated
 bumps, and are kept in sync with `gtbuchanan/tooling`'s `mise.toml` so local
-Termux hk runs match what CI installs through mise. actionlint publishes
+Termux hk runs match what CI installs through mise. jactionlint publishes
 per-asset checksums, which the install script verifies; jdx/hk does not
 publish per-tarball checksums, so hk is pinned by version only.
 
