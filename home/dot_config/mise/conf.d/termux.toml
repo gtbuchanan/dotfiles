@@ -139,3 +139,13 @@ disable_tools = [
 # step with it. Shelling out to npm skips that client entirely; the cost is a
 # slower install, which only a version bump pays.
 npm.shell_out = true
+
+# A workaround, not a preference: it turns off checksum pinning for the tools
+# mise still installs here, so drop it once mise works with project lockfiles
+# on Android. Two things fail with lockfiles on as of mise 2026.11.1. `mise
+# install` locks the current platform after installing and errors resolving
+# tools with no android-arm64 artifact (hk's packslip release, for one), even
+# ones disable_tools excludes. And a lockfile carrying embedded-aube dependency
+# graphs for `npm:` tools refuses the shell_out install above, while aube itself
+# hits the rustls-platform-verifier abort.
+lockfile = false
