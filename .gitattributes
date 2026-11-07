@@ -1,1 +1,3 @@
 *     text=auto eol=lf
+.mise/locks/** linguist-generated
+mise.lock linguist-generated

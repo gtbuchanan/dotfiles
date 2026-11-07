@@ -3,12 +3,15 @@
 # never applied by chezmoi. Mirrors gtbuchanan/tooling's mise.toml so local
 # pre-commit runs match that repo's shared hk preset.
 
-# Two floors, whichever is higher. minimum_release_age_excludes (below) needs
-# 2026.6.2 — older mise silently ignores the field instead of failing, so
-# enforce the version rather than soft-warn. hk 2.x installs through the
-# `packslip` backend rather than `aqua`, and the lock entry that backend writes
-# (a per-platform `signer`, no `url_api`) needs 2026.9.5 to produce or consume.
-min_version = "2026.9.5"
+# The oldest mise that reads mise.lock's `lockfile_version = 3`, declared so an
+# older one fails with a version error instead of a confusing lockfile one. It
+# also covers minimum_release_age_excludes (below, 2026.6.2) and the packslip
+# lock entries hk 2.x writes (2026.9.5).
+#
+# Stay on version 3 until every pinned mise reads version 4 (2026.11.0):
+# `mise lock --upgrade` writes the newest format, so regenerate with a mise
+# older than that.
+min_version = "2026.9.16"
 
 [env]
 # hk wraps hook steps in `mise x` so mise-managed tools resolve without
