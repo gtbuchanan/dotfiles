@@ -128,9 +128,12 @@ url = "https://nodejs.org/dist/v26.13.0/node-v26.13.0-win-x64.zip"
 
 [[tools."npm:@gtbuchanan/cli"]]
 version = "2.0.0"
-aube = { path = ".mise/locks/npm-gtbuchanan-cli/2.0.0", digest = "sha256:c6f03a9a28c43f6df57c600f0035650715f8f4d36683e4125e99508e76ec4899" }
+aube = { path = ".mise/locks/npm-gtbuchanan-cli/2.0.0~49579b74", digest = "sha256:4490f967ebcabf9f007bb85ee8bb9c49c327078a6b450812e73cc641c7a0f83a" }
 backend = "npm:@gtbuchanan/cli"
 specifiers = ["2.0.0"]
+
+[tools."npm:@gtbuchanan/cli".options]
+allow_low_downloads = "true"
 
 [[tools."npm:renovate"]]
 version = "44.137.0"

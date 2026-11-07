@@ -46,7 +46,10 @@ chezmoi = "2.74.0"
 hk = "2.11.1"
 jactionlint = "v2.4.0"
 node = "26.13.0"
-"npm:@gtbuchanan/cli" = "2.0.0"
+# aube refuses a package under its weekly-download floor when it resolves one,
+# which locked installs skip but Termux's unlocked ones (MISE_LOCKFILE=false in
+# its profile) do not. Our own CLI sits under that floor.
+"npm:@gtbuchanan/cli" = { allow_low_downloads = true, version = "2.0.0" }
 # Exempt transitive `@yarnpkg/libzip@3.2.2` from aube's no-downgrade policy.
 # 3.2.0 was published by CI with SLSA provenance; 3.2.2 by the lead maintainer
 # by hand without it — same repo, same publisher identity, so the missing
