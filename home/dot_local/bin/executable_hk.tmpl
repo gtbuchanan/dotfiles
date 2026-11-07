@@ -1,0 +1,9 @@
+#!/data/data/com.termux/files/usr/bin/bash
+#
+# Launches the static musl hk that run_onchange_after_install-hk.sh installs
+# on Termux, where mise can't install hk itself.
+#
+# hk evaluates hk.pkl with its embedded pklr, which reads its CA roots from
+# the system store and finds none on Android, so name Termux's bundle.
+export SSL_CERT_FILE="${SSL_CERT_FILE:-/data/data/com.termux/files/usr/etc/tls/cert.pem}"
+exec "$HOME/.local/share/hk/hk-{{ .hk_version }}" "$@"

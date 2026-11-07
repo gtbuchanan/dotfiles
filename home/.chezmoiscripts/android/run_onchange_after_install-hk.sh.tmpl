@@ -17,7 +17,9 @@
 
        hk 2.0 evaluates hk.pkl with its embedded pklr and no longer shells
        out to the pkl CLI. pklr reads its CA roots from the system store and
-       finds none here, so the wrapper below names Termux's bundle. It also
+       finds none here, so the ~/.local/bin/hk wrapper (dot_local/bin/
+       executable_hk.tmpl, which renders the same pinned version) names
+       Termux's bundle. It also
        fetches each `package://` import over HTTPS on first evaluation, which
        a static musl binary can't do on bionic: it resolves names through
        /etc/resolv.conf, which Android has no equivalent of. Evaluation
@@ -64,15 +66,6 @@ if [ ! -x "$HK_BINARY" ]; then
   trap - EXIT
 fi
 
-# Delete first: where $BIN_DIR/hk is still the symlink an earlier layout left,
-# the redirect below writes through it and overwrites the binary it points at.
-rm -f "$BIN_DIR/hk"
-cat > "$BIN_DIR/hk" <<EOF
-#!/data/data/com.termux/files/usr/bin/bash
-export SSL_CERT_FILE="\${SSL_CERT_FILE:-$PREFIX/etc/tls/cert.pem}"
-exec "$HK_BINARY" "\$@"
-EOF
-chmod +x "$BIN_DIR/hk"
 find "$HK_DIR" -mindepth 1 -maxdepth 1 -type f -name 'hk-*' ! -name "hk-$HK_VERSION" -delete
 
 # --- pkl ------------------------------------------------------------------

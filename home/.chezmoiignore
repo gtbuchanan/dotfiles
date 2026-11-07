@@ -17,6 +17,7 @@ Documents
 {{- if ne .chezmoi.os "android" }}
 .chezmoiscripts/android/**
 .local/bin/bw-session-termux
+.local/bin/hk
 .local/bin/hk-seed-pkl-cache
 .local/bin/pinentry-termux
 .local/bin/pnpm
