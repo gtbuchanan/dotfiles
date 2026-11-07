@@ -15,6 +15,16 @@ export SSH_ASKPASS_REQUIRE=force
 # https://github.com/gtbuchanan/tooling/issues/51
 export UV_LIBC=none
 
+# A workaround that turns off mise's checksum pinning here; drop it once mise
+# works with project lockfiles on Android. `mise install` locks the current
+# platform after installing and errors on tools with no android-arm64 artifact
+# (hk's packslip release), even ones disable_tools excludes, and a lockfile with
+# aube dependency graphs refuses the npm.shell_out install in
+# conf.d/termux.toml. An environment variable rather than a conf.d setting
+# because a project's `lockfile = true` outranks global config, and only the
+# environment outranks the project.
+export MISE_LOCKFILE=false
+
 # Packages whose `os` allowlist omits android (libsql and onnxruntime-node in
 # promptfoo's tree) fail pnpm's platform check, a hard error in projects with
 # engineStrict. Accepting linux lets them install. Set here rather than in a
