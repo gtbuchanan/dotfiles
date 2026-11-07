@@ -6,4 +6,36 @@
 # hk evaluates hk.pkl with its embedded pklr, which reads its CA roots from
 # the system store and finds none on Android, so name Termux's bundle.
 export SSL_CERT_FILE="${SSL_CERT_FILE:-/data/data/com.termux/files/usr/etc/tls/cert.pem}"
-exec "$HOME/.local/share/hk/hk-{{ .hk_version }}" "$@"
+
+hk="$HOME/.local/share/hk/hk-{{ .hk_version }}"
+
+# hk-seed-pkl-cache sets HK_PKL_HTTP_REWRITE to point pklr's fetches at its
+# loopback mirror and reads the failures itself, so seeding from inside it
+# would recurse.
+[ -z "${HK_PKL_HTTP_REWRITE:-}" ] || exec "$hk" "$@"
+
+# Run in the foreground rather than capturing output, so hk keeps its
+# terminal for progress.
+"$hk" "$@" && exit 0
+status=$?
+
+# pklr can't fetch an uncached `package://` import here (see
+# hk-seed-pkl-cache), so a repo pinning an hk or hk-config version not yet
+# cached fails to load its config. Ask validate whether that is the cause:
+# it names the URL only when the config fails to load, which also means no
+# step ran and rerunning is safe.
+dir=$PWD
+args=("$@")
+for ((i = 0; i < ${#args[@]}; i++)); do
+  case ${args[i]} in
+    --cd) dir=${args[i + 1]:-$dir} ;;
+    --cd=*) dir=${args[i]#--cd=} ;;
+  esac
+done
+
+"$hk" --cd "$dir" validate 2>&1 | grep -q 'HTTP fetch failed for https://' ||
+  exit "$status"
+
+echo "hk: hk.pkl imports a package pklr hasn't cached; seeding it and retrying" >&2
+"$HOME/.local/bin/hk-seed-pkl-cache" "$dir" || exit "$status"
+exec "$hk" "$@"

@@ -34,7 +34,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                               | `mise activate bash` (interactive)                                        |
 | [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                                | Global mise config fragments, gated per-platform by their own ignore      |
 | [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                       | `mise activate pwsh`                                                      |
-| [`home/dot_local/bin/executable_hk.tmpl`](../home/dot_local/bin/executable_hk.tmpl)                                                                             | Termux `hk` wrapper: pinned binary + CA bundle                            |
+| [`home/dot_local/bin/executable_hk.tmpl`](../home/dot_local/bin/executable_hk.tmpl)                                                                             | Termux `hk` wrapper: pinned binary, CA bundle, seed                       |
 | [`home/dot_local/bin/executable_hk-seed-pkl-cache`](../home/dot_local/bin/executable_hk-seed-pkl-cache)                                                         | Termux pklr package-cache seed for any repo's `hk.pkl`                    |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                             | Shims dir on PATH (non-interactive)                                       |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                             | Shims-dir PATH entry; removes the superseded winget mise package          |
@@ -261,8 +261,12 @@ routes, both landing wrappers/symlinks in `~/.local/bin`:
     runs it on this repo. It renders `hk.pkl`'s `package://` imports into
     itself as its `run_onchange` trigger, so bumping hk or hk-config there
     re-runs it with no second copy of either version. Any other repo whose
-    `hk.pkl` imports a version not yet cached fails `hk install --mise` until
-    `hk-seed-pkl-cache` runs there.
+    `hk.pkl` imports a version not yet cached would fail `hk install --mise`,
+    so the [`hk` wrapper](../home/dot_local/bin/executable_hk.tmpl) seeds on
+    demand: when hk exits nonzero and `hk validate` names an `https://`
+    package fetch, it runs `hk-seed-pkl-cache` on that directory and reruns
+    the command. A config that fails to load runs no steps, so the rerun
+    repeats nothing.
 
   - `jactionlint` is installed alone by
     [`install-jactionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl)
