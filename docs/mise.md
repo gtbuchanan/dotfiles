@@ -25,7 +25,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                                 | Gates the android scripts to Termux only                                  |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl) | Termux out-of-band `jactionlint` install                                  |
 | [`home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_install-hk.sh.tmpl)                   | Termux out-of-band `hk` + `pkl` install                                   |
-| [`home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl)     | Termux pklr package-cache seed for hk's `package://` imports              |
+| [`home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl)     | Runs the pklr cache seed on this repo's `hk.pkl`                          |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)                                       | Termux mise + native-bionic linters (`pkg`)                               |
 | [`home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/darwin/run_onchange_before.sh.tmpl)                                         | macOS mise install (Homebrew formula)                                     |
 | [`home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl`](../home/.chezmoiscripts/linux/run_onchange_before_install-mise.sh.tmpl)                 | Linux pinned mise install (download + SHA256 verify)                      |
@@ -34,6 +34,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | [`home/dot_bashrc.tmpl`](../home/dot_bashrc.tmpl)                                                                                                               | `mise activate bash` (interactive)                                        |
 | [`home/dot_config/mise/conf.d/`](../home/dot_config/mise/conf.d)                                                                                                | Global mise config fragments, gated per-platform by their own ignore      |
 | [`home/dot_config/powershell/profile.d/15-mise.ps1`](../home/dot_config/powershell/profile.d/15-mise.ps1)                                                       | `mise activate pwsh`                                                      |
+| [`home/dot_local/bin/executable_hk-seed-pkl-cache`](../home/dot_local/bin/executable_hk-seed-pkl-cache)                                                         | Termux pklr package-cache seed for any repo's `hk.pkl`                    |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                                             | Shims dir on PATH (non-interactive)                                       |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                                                             | Shims-dir PATH entry; removes the superseded winget mise package          |
 
@@ -250,13 +251,17 @@ routes, both landing wrappers/symlinks in `~/.local/bin`:
     it evaluates a config, which the musl binary can't do on bionic — it
     resolves names through `/etc/resolv.conf`, which Android has no equivalent
     of. Evaluation succeeds against pklr's package cache and fails cold.
+    [`hk-seed-pkl-cache`](../home/dot_local/bin/executable_hk-seed-pkl-cache)
+    warms the cache for the `hk.pkl` in a given directory: curl downloads each
+    package into a mirror served on `127.0.0.1`, which needs no lookup, and
+    `HK_PKL_HTTP_REWRITE` points hk's fetches there. pklr caches each package
+    under its original URL, so later evaluations work without the rewrite.
     [`seed-hk-pkl-cache.sh`](../home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl)
-    warms the cache: curl downloads each package into a mirror served on
-    `127.0.0.1`, which needs no lookup, and `HK_PKL_HTTP_REWRITE` points hk's
-    fetches there. pklr caches each package under its original URL, so later
-    evaluations work without the rewrite. The script renders `hk.pkl`'s
-    `package://` imports into itself as its `run_onchange` trigger, so bumping
-    hk or hk-config there re-runs it with no second copy of either version.
+    runs it on this repo. It renders `hk.pkl`'s `package://` imports into
+    itself as its `run_onchange` trigger, so bumping hk or hk-config there
+    re-runs it with no second copy of either version. Any other repo whose
+    `hk.pkl` imports a version not yet cached fails `hk install --mise` until
+    `hk-seed-pkl-cache` runs there.
 
   - `jactionlint` is installed alone by
     [`install-jactionlint.sh`](../home/.chezmoiscripts/android/run_onchange_after_install-jactionlint.sh.tmpl)

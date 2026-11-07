@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 #
-# Tests for the Termux pklr cache seeder
-# (home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl),
-# which downloads the Pkl packages hk.pkl imports and feeds them to hk over a
-# loopback server, because hk's static musl build can't resolve hostnames on
-# Android.
+# Tests for the Termux pklr cache seeder (home/dot_local/bin/
+# executable_hk-seed-pkl-cache), which downloads the Pkl packages hk.pkl
+# imports and feeds them to hk over a loopback server, because hk's static
+# musl build can't resolve hostnames on Android, and for the run_onchange
+# script that calls it on the chezmoi working tree
+# (home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl).
 #
-# Rendered with `chezmoi execute-template`, which consults no .chezmoiignore,
-# so the suite runs on any host with chezmoi and python3.
+# The run_onchange script is rendered with `chezmoi execute-template`, which
+# consults no .chezmoiignore, so the suite runs on any host with chezmoi and
+# python3.
 #
 # Nothing real is reached. A `curl` stub serves upstream packages from a
 # fixture directory and logs each URL. An `hk` stub plays pklr: it needs the
@@ -26,6 +28,7 @@
 cd "$(dirname "$0")/.." || exit 1
 
 readonly ROOT="$PWD"
+readonly SEEDER="$ROOT/home/dot_local/bin/executable_hk-seed-pkl-cache"
 readonly SOURCE="$ROOT/home/.chezmoiscripts/android/run_onchange_after_seed-hk-pkl-cache.sh.tmpl"
 
 for tool in chezmoi python3; do
@@ -136,16 +139,26 @@ precache() {
   printf 'cached' >"$(cache_file "$1")"
 }
 
+# Runs the seeder from directory $1 with the remaining arguments.
+run_seeder_in() {
+  local dir=$1
+  shift
+  (
+    cd "$dir" || exit 1
+    HOME="$SANDBOX" \
+      PATH="$BIN:$PATH" \
+      CURL_LOG="$CURL_LOG" \
+      UPSTREAM_DIR="$UPSTREAM" \
+      STUB_CACHE="$CACHE" \
+      STUB_REQUIRES="${REQUIRES:-}" \
+      STUB_BROKEN="${BROKEN:-}" \
+      bash "$SEEDER" "$@" >"$SANDBOX/seeder.out" 2>&1
+  )
+}
+
+# Runs the seeder on the working tree, as the run_onchange script does.
 run_seeder() {
-  HOME="$SANDBOX" \
-    PATH="$BIN:$PATH" \
-    CHEZMOI_WORKING_TREE="$TREE" \
-    CURL_LOG="$CURL_LOG" \
-    UPSTREAM_DIR="$UPSTREAM" \
-    STUB_CACHE="$CACHE" \
-    STUB_REQUIRES="${REQUIRES:-}" \
-    STUB_BROKEN="${BROKEN:-}" \
-    bash "$RENDERED" >"$SANDBOX/seeder.out" 2>&1
+  run_seeder_in "$SANDBOX" "$TREE"
 }
 
 # What the seeder printed, for an assertion message to carry when it fails.
@@ -202,6 +215,24 @@ test_validates_the_working_tree_hk_pkl() {
 
   REQUIRES="$CONFIG_URL" run_seeder
   assertEquals "hk arguments$(said)" "--cd $TREE validate" "$(cat "$SANDBOX/hk.args" 2>/dev/null)"
+}
+
+test_validates_the_current_directory_without_an_argument() {
+  precache "$CONFIG_URL"
+
+  REQUIRES="$CONFIG_URL" run_seeder_in "$TREE"
+  assertEquals "hk arguments$(said)" "--cd $TREE validate" "$(cat "$SANDBOX/hk.args" 2>/dev/null)"
+}
+
+test_run_onchange_script_seeds_the_chezmoi_working_tree() {
+  cat >"$SANDBOX/.local/bin/hk-seed-pkl-cache" <<'STUB'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >>"$HOME/seeder.args"
+STUB
+  chmod +x "$SANDBOX/.local/bin/hk-seed-pkl-cache"
+
+  HOME="$SANDBOX" CHEZMOI_WORKING_TREE="$TREE" bash "$RENDERED" >"$SANDBOX/seeder.out" 2>&1
+  assertEquals "seeder arguments$(said)" "$TREE" "$(cat "$SANDBOX/seeder.args" 2>/dev/null)"
 }
 
 test_fails_when_a_package_cannot_be_downloaded() {
