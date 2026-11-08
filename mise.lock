@@ -182,7 +182,7 @@ url_api = "https://api.github.com/repos/apple/pkl/releases/assets/663854370"
 [[tools.pnpm]]
 version = "12.17.0"
 backend = "aqua:pnpm/pnpm"
-specifiers = ["12.16.1"]
+specifiers = ["12.17.0"]
 
 [tools.pnpm."platforms.linux-arm64"]
 checksum = "sha256:ce5a5b95a9974a0bbd713a5ef74416dbcd0e3fdf11f69ea92c5995b9c18ccb47"
