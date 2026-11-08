@@ -8,6 +8,6 @@
   # PowerShell Gallery feed (a custom manager in .github/renovate.json), so a
   # bump lands like any other dependency PR. Keep the mapping alphabetical to
   # reduce merge conflicts.
-  Pester           = '5.9.1'
+  Pester           = '6.2.0'
   PSScriptAnalyzer = '1.25.0'
 }

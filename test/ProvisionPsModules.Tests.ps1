@@ -53,7 +53,12 @@ Describe 'provision psmodules' {
   }
 
   AfterEach {
-    Remove-Item $script:sandbox -Recurse -Force -ErrorAction SilentlyContinue
+    # Not Remove-Item: a case that mocks it behind a -ParameterFilter keeps the
+    # mock live here, and Pester 6 throws on a call no filter matches rather
+    # than falling through to the real cmdlet.
+    if ([IO.Directory]::Exists($script:sandbox)) {
+      [IO.Directory]::Delete($script:sandbox, $true)
+    }
   }
 
   It 'saves a module on the first attempt when the gallery answers' {
