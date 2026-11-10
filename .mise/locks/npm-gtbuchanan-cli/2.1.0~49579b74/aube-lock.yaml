@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@gtbuchanan/cli':
-        specifier: 2.0.0
-        version: 2.0.0(skills@1.7.6)(typescript@7.0.2)
+        specifier: 2.1.0
+        version: 2.1.0(skills@1.7.6)(typescript@7.0.2)
 
 packages:
 
@@ -30,8 +30,8 @@ packages:
     resolution: {integrity: sha512-c5GoiQyt3pxiXjrWSNoP8/GRf4kG+VnKzovx1OQM8dYYALlSwgedmkPmJ+ZqGxqwg9D3Bkj85Uo4KLd5BN3A0w==}
     engines: {node: ^22.11 || ^24 || >=26}
 
-  '@gtbuchanan/cli@2.0.0':
-    resolution: {integrity: sha512-EtreEg3TtDNL2AXKuJ+iXik6MLFUUkErSgUIIn3NQETxB6Ur5xl5PrTlJ+RYpgK5T4c0YrxYdIwMshx3T2KY8w==}
+  '@gtbuchanan/cli@2.1.0':
+    resolution: {integrity: sha512-4fFnCXUEuFgjyyU6gt0PqeBSA4lt/AViIaRnVn9aVdZo0QXvjy9UCJygMxwUT/B+7tDmvh25fkep0Hf1Q0zv1A==}
     engines: {node: '>=24.0.0'}
     hasBin: true
     peerDependencies:
@@ -319,7 +319,7 @@ snapshots:
 
   '@changesets/types@7.0.0': {}
 
-  '@gtbuchanan/cli@2.0.0(skills@1.7.6)(typescript@7.0.2)':
+  '@gtbuchanan/cli@2.1.0(skills@1.7.6)(typescript@7.0.2)':
     dependencies:
       '@changesets/config': 4.0.1
       citty: 0.2.2
