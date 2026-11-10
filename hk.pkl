@@ -1,6 +1,6 @@
 /// Pre-commit config for developing this chezmoi repo. Adopts the shared
-/// @gtbuchanan/hk-config `recommended` preset and adds a guard that mise's
-/// generated tasks stay in sync. Tool versions come from mise.toml.
+/// @gtbuchanan/hk-config `recommended` preset and its `gtb verify` step, which
+/// keeps mise's generated tasks in sync. Tool versions come from mise.toml.
 amends "package://github.com/jdx/hk/releases/download/v2.12.0/hk@2.12.0#/Config.pkl"
 
 import "package://github.com/gtbuchanan/tooling/releases/download/hk-config@0.7.0/hk-config@0.7.0#/Defaults.pkl"
@@ -17,6 +17,8 @@ local shellExclude: Regex = Regex("\(Defaults.defaultExclude.pattern)|\\.tmpl$")
 // version.
 local baseSteps = new Mapping<String, Step> {
   ...Defaults.recommended
+  // gtb comes from mise's npm: backend, so it resolves on PATH
+  ...Defaults.gtbCliSteps(null)
 }
 
 local allSteps = (baseSteps) {
@@ -26,13 +28,6 @@ local allSteps = (baseSteps) {
   ["eslint"] {
     check = "pnpm exec eslint --max-warnings=0 --no-warn-ignored {{files}}"
     fix = "pnpm exec eslint --fix --max-warnings=0 --no-warn-ignored {{files}}"
-  }
-
-  // `gtb sync mise` generates mise.tasks.toml; guard the loader include and
-  // generated content against drift.
-  ["verify-mise"] {
-    glob = List("mise.toml", "mise.tasks.toml")
-    check = "gtb verify mise"
   }
 
   // Delegates to the test:templates mise task (the single render entrypoint the
