@@ -43,7 +43,7 @@ includes = ["mise-tasks", "mise.tasks.toml"]
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
 chezmoi = "2.74.0"
-hk = "2.11.1"
+hk = "2.12.0"
 jactionlint = "v2.4.0"
 node = "26.13.0"
 # aube refuses a package under its weekly-download floor when it resolves one,
