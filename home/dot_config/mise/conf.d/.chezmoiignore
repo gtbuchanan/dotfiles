@@ -4,6 +4,9 @@
        entry. See docs/mise.md. */}}
 {{- if ne .chezmoi.os "android" }}
 termux.toml
+{{- else }}
+{{- /* mobilecli publishes no Android build for mise to install. */}}
+mobilecli.toml
 {{- end }}
 
 {{- /* hass-cli is a personal-host application; work hosts have no use for it. */}}
