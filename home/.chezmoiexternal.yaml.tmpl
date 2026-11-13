@@ -116,22 +116,6 @@
   url: https://github.com/RyanMacG/tpm-redux/archive/c5347f71a291eadf26dbecacc43154ecd8ad061b.tar.gz
 {{- end }}
 
-{{- if eq .hosttype "personal" }}
-# Internal host definitions, pulled in by private_dot_ssh/config.tmpl via
-# `Include hosts/*.conf`. Kept in a private repo rather than encrypted into this
-# public one: a public repo archives its ciphertext permanently — forks, clones,
-# GH Archive — so a later re-key can't undo whatever was already published.
-# Splitting the repo removes the exposure instead of shrinking it, and keeps
-# diffs readable. An external rather than a submodule because these are plain
-# conf files needing no source-state semantics, and a submodule's pinned SHA
-# would make every private host edit require a pointer-bump commit here —
-# publishing the timing of private config changes.
-'.ssh/hosts':
-  refreshPeriod: 168h
-  type: git-repo
-  url: git@github.com:gtbuchanan/ssh-hosts.git
-{{- end }}
-
 '.vim/autoload/plug.vim':
   refreshPeriod: 168h
   type: file
@@ -153,6 +137,21 @@
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@github.com:gtbuchanan/skills.git
+{{- if eq .hosttype "personal" }}
+# Internal host definitions, pulled in by private_dot_ssh/config.tmpl via
+# `Include …/hosts/ssh/*.conf`. Kept in a private repo rather than encrypted into
+# this public one: a public repo archives its ciphertext permanently — forks,
+# clones, GH Archive — so a later re-key can't undo whatever was already
+# published. Splitting the repo removes the exposure instead of shrinking it, and
+# keeps diffs readable. An external rather than a submodule because these are
+# plain client config files needing no source-state semantics, and a submodule's
+# pinned SHA would make every private host edit require a pointer-bump commit
+# here — publishing the timing of private config changes.
+'{{ .codeDir }}/gtbuchanan/hosts':
+  refreshPeriod: {{ $refresh }}
+  type: git-repo
+  url: git@github.com:gtbuchanan/hosts.git
+{{- end }}
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Imported by the PowerShell profile.
 '{{ .codeDir }}/energyworldnet/PSRSA':

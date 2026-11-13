@@ -11,7 +11,7 @@ checked in.
 
 | File                                                                                                                                | Role                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                             | Clones the private host inventory to `~/.ssh/hosts` on personal hosts                                                  |
+| [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                             | Clones the private host inventory under `~/Code/gtbuchanan` on personal hosts                                          |
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                     | Gates `ssh-askpass-termux` and the agent hook to Android, the `*.pub` halves to personal                               |
 | [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh)           | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)           | Installs `openssh` from Termux's pkg repo                                                                              |
@@ -57,13 +57,20 @@ mechanics and the one case where 443 loses to 22.
 
 ## Private SSH Host Inventory
 
-Host definitions live in a separate private repo, `gtbuchanan/ssh-hosts`,
-cloned to `~/.ssh/hosts/` by a `git-repo` external gated to personal
-hosts. `config.tmpl` picks them up with `Include hosts/*.conf`, listed
-after `Include ./*.conf` so an unversioned local file still wins on
-conflicts — ssh takes the first value obtained for each keyword. A glob
-matching nothing is not an error, so the include is inert on hosts
-without the clone.
+Host definitions live in a separate private repo, `gtbuchanan/hosts`,
+cloned to `~/{{ .codeDir }}/gtbuchanan/hosts/` by a `git-repo` external
+gated to personal hosts. The repo holds one directory per client, and
+ssh's is `ssh/`. `config.tmpl` picks it up with
+`Include ~/{{ .codeDir }}/gtbuchanan/hosts/ssh/*.conf`, listed after
+`Include ./*.conf` so an unversioned local file still wins on conflicts
+— ssh takes the first value obtained for each keyword. A glob matching
+nothing is not an error, so the include is inert on hosts without the
+clone.
+
+The clone sits under the code directory rather than inside `~/.ssh`
+because it is a working copy: host edits are made and pushed from it,
+and the weekly refresh only fast-forwards, so an unpushed commit stalls
+the refresh rather than being overwritten.
 
 The alternative was committing the definitions here encrypted. A public
 repo archives its ciphertext permanently — forks, clones, GH Archive —
@@ -127,7 +134,7 @@ is irrelevant. An older client rejects the `command ""` line and refuses
 the whole config, so every connection fails, not only `:shell:` hosts.
 Ubuntu 24.04 ships 9.6 and 26.04 ships 10.2.
 
-To add a host, commit a `*.conf` to the private repo with its
+To add a host, commit an `ssh/*.conf` to the private repo with its
 `HostName`, `User`, and flags. Nothing in this repo changes unless the
 host needs a flag that doesn't exist yet.
 

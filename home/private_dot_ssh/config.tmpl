@@ -2,13 +2,13 @@
 # https://superuser.com/a/1142813
 Include ./*.conf
 
-# Internal hosts, versioned in the private gtbuchanan/ssh-hosts repo and cloned
-# here by .chezmoiexternal.yaml.tmpl, so internal hostnames stay out of this public
-# repo entirely -- not even as ciphertext, which a public repo would archive
+# Internal hosts, versioned in the private gtbuchanan/hosts repo and cloned by
+# .chezmoiexternal.yaml.tmpl, so internal hostnames stay out of this public repo
+# entirely -- not even as ciphertext, which a public repo would archive
 # permanently. Listed after ./*.conf so an unversioned local file still wins on
 # conflicts (ssh takes the first value obtained). A glob matching nothing is not an
 # error, so this is inert on hosts without the clone. See docs/ssh.md.
-Include hosts/*.conf
+Include ~/{{ .codeDir }}/gtbuchanan/hosts/ssh/*.conf
 
 # Behavior attached to the flags private hosts set on themselves. The flag list and
 # the one-Tag-per-host constraint these glob patterns work around are documented in
