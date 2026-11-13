@@ -131,7 +131,7 @@ worktree.
 
 Some aliases shell out to external PowerShell scripts. They live in
 their own gists rather than this repo, but chezmoi clones them under
-`~/{{ .codeDir }}/` (`~/Code` on Windows, `~/code` elsewhere) as
+`~/{{ .codeDir }}/<owner>/<repo>` (`~/Code` on Windows, `~/code` elsewhere) as
 `git-repo` externals (see
 [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)),
 so they're available without a manual clone:

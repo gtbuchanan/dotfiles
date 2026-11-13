@@ -139,7 +139,7 @@
   url: https://raw.githubusercontent.com/junegunn/vim-plug/7e5aae5e1187842cb0b1d8def986e48d481c4410/plug.vim
 
 # Git repos this dotfiles repo references but doesn't vendor, cloned under
-# ~/{{ .codeDir }}. Cloned on first apply, refreshed weekly so chezmoi doesn't
+# ~/{{ .codeDir }}/<owner>/<repo>. Cloned on first apply, refreshed weekly so chezmoi doesn't
 # pull over local work. Keyed on .codeDir so the casing tracks each platform.
 {{- $refresh := "168h" }}
 # Personal skills — all trusted, since I author the repo. Cloned whole (not
@@ -149,27 +149,27 @@
 # into .agents/skills/<name>. This clone-then-symlink indirection is required
 # because a git-repo external can't flatten the repo's skills/<name> layout the
 # way the archive externals above do with stripComponents.
-'{{ .codeDir }}/skills':
+'{{ .codeDir }}/gtbuchanan/skills':
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@github.com:gtbuchanan/skills.git
 {{- if and (eq .hosttype "ewn") (eq .chezmoi.os "windows") }}
 # Imported by the PowerShell profile.
-'{{ .codeDir }}/PSRSA':
+'{{ .codeDir }}/energyworldnet/PSRSA':
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@github.com:energyworldnet/PSRSA.git
 {{- end }}
 {{- if eq .chezmoi.os "windows" }}
 # Backs the `git amt` alias.
-'{{ .codeDir }}/git-add-mergetool':
+'{{ .codeDir }}/gtbuchanan/git-add-mergetool':
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@gist.github.com:3c5e44100c5a83f4aec7d2a832d50d42.git
 {{- end }}
 {{- if eq .hosttype "ewn" }}
 # Backs the `git unpicked` alias.
-'{{ .codeDir }}/git-unpicked':
+'{{ .codeDir }}/gtbuchanan/git-unpicked':
   refreshPeriod: {{ $refresh }}
   type: git-repo
   url: git@gist.github.com:1a9699e8350d2eacc73de902c29d8ea0.git

@@ -4,7 +4,7 @@
 # added upstream appear once the clone refreshes. Only symlinks this script
 # created are pruned; real (third-party) skill directories are left untouched.
 $ErrorActionPreference = 'Stop'
-$src = Join-Path $env:USERPROFILE '{{ .codeDir }}\skills\skills'
+$src = Join-Path $env:USERPROFILE '{{ .codeDir }}\gtbuchanan\skills\skills'
 $dst = Join-Path $env:USERPROFILE '.agents\skills'
 
 if (-not (Test-Path -LiteralPath $src)) { return }

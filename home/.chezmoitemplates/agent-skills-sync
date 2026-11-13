@@ -3,7 +3,7 @@
 # Code picks them up too). Idempotent and runs after every apply, so skills
 # added upstream appear once the clone refreshes. Only symlinks this script
 # created are pruned; real (third-party) skill directories are left untouched.
-src="$HOME/{{ .codeDir }}/skills/skills"
+src="$HOME/{{ .codeDir }}/gtbuchanan/skills/skills"
 dst="$HOME/.agents/skills"
 
 [ -d "$src" ] || exit 0
