@@ -1,4 +1,51 @@
+# Host aliases an ssh config defines, following Include the way ssh does:
+# relative paths resolve against ~/.ssh, and ssh's own nesting limit stops a
+# config that includes itself. Patterns are left out, since `*.example` or
+# `!bastion` is not a name anyone can connect to.
+Function Get-SshConfigHost {
+  param([string] $Path = (Join-Path $HOME '.ssh/config'), [int] $Depth = 0)
+
+  if ($Depth -gt 16) { return }
+  foreach ($line in Get-Content -LiteralPath $Path -ErrorAction Ignore) {
+    if ($line -notmatch '^\s*(\w+)(?:\s*=\s*|\s+)(.+?)\s*$') { continue }
+    $arguments = -split $Matches[2]
+    switch ($Matches[1]) {
+      'Host' { $arguments | Where-Object { $_ -notmatch '[*?!]' } }
+      'Include' {
+        foreach ($pattern in $arguments -replace '^~', $HOME) {
+          if (-not [IO.Path]::IsPathRooted($pattern)) {
+            $pattern = Join-Path $HOME ".ssh/$pattern"
+          }
+          Get-ChildItem -Path $pattern -File -ErrorAction Ignore |
+            ForEach-Object { Get-SshConfigHost $_.FullName ($Depth + 1) }
+        }
+      }
+    }
+  }
+}
+
+# Completes host aliases for ssh, keeping any user@ prefix. Options are left
+# alone, and so is the word after an option that takes an argument (the
+# letters are ssh(1)'s), which returns nothing and lets PowerShell fall back to
+# path completion for -i and -F.
+Microsoft.PowerShell.Core\Register-ArgumentCompleter -Native -CommandName ssh -ScriptBlock {
+  param($wordToComplete, $commandAst, $cursorPosition)
+
+  $elements = $commandAst.CommandElements
+  $previous = $elements[$elements.Count - ($wordToComplete ? 2 : 1)]
+  if ($wordToComplete -like '-*' -or "$previous" -cmatch '^-\w*[BbcDEeFIiJLlmOoPpQRSWw]$') {
+    return
+  }
+
+  $user, $partial = $wordToComplete -match '^(.*@)(.*)$' ?
+    @($Matches[1], $Matches[2]) : @('', $wordToComplete)
+  Get-SshConfigHost | Sort-Object -Unique | Where-Object { $_ -like "$partial*" } |
+    ForEach-Object {
+      [System.Management.Automation.CompletionResult]::new("$user$_", $_, 'ParameterValue', $_)
+    }
+}
 {{- if and (eq .chezmoi.os "windows") (eq .hosttype "personal") }}
+
 # RDP connection files live in the private hosts inventory, one per host under
 # rdp/<site>/, cloned by .chezmoiexternal.yaml.tmpl. See docs/rdp.md.
 $RdpInventory = Join-Path $HOME '{{ .codeDir }}/gtbuchanan/hosts/rdp'

@@ -18,6 +18,7 @@ checked in.
 | [`home/Library/LaunchAgents/local.ssh-add.plist`](../home/Library/LaunchAgents/local.ssh-add.plist)                                 | macOS: reloads keychain-held keys into the agent at login, for commit signing                                          |
 | [`home/dot_bash_profile.tmpl`](../home/dot_bash_profile.tmpl)                                                                       | Starts the WSL→Windows agent bridge on WSL hosts                                                                       |
 | [`home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl`](../home/dot_config/powershell/profile.d/40-integrations.ps1.tmpl) | Points `SSH_ASKPASS` at the Bitwarden helper on personal Windows                                                       |
+| [`home/dot_config/powershell/profile.d/45-remote.ps1.tmpl`](../home/dot_config/powershell/profile.d/45-remote.ps1.tmpl)             | Completes `ssh` host aliases from the config and its includes                                                          |
 | [`home/dot_config/wezterm/wezterm.lua.tmpl`](../home/dot_config/wezterm/wezterm.lua.tmpl)                                           | Disables WezTerm's built-in agent mux so the native agent stays in charge                                              |
 | [`home/dot_gitconfig.tmpl`](../home/dot_gitconfig.tmpl)                                                                             | Sets `core.sshCommand = ssha` on Android so Git auto-starts ssh-agent                                                  |
 | [`home/dot_local/bin/.chezmoiignore`](../home/dot_local/bin/.chezmoiignore)                                                         | Gates `ssh-agent-pipe` to WSL, the Bitwarden askpass to personal Windows                                               |
@@ -91,6 +92,17 @@ decides where any new piece belongs:
   clear.
 - **The private repo holds topology.** Hostnames, users, ports, and the
   flags each host claims. Nothing there describes behavior.
+
+## SSH Host Completion in PowerShell
+
+PowerShell has no ssh completion of its own, so
+[`45-remote.ps1.tmpl`](../home/dot_config/powershell/profile.d/45-remote.ps1.tmpl)
+registers one that offers every `Host` alias `~/.ssh/config` defines. It
+follows `Include` the way ssh does, so the private inventory's hosts complete
+without the completer knowing where the clone lives. Patterns such as
+`*.example` are skipped, a `user@` prefix is kept, and the word after an
+option that takes an argument is left to path completion, which is what `-i`
+and `-F` want.
 
 ## SSH Host Tags
 
