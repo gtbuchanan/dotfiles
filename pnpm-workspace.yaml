@@ -16,7 +16,7 @@ catalogs:
     '@bitwarden/cli': 2026.10.1
     '@openai/codex': 0.167.0
     '@playwright/cli': 0.1.23
-    '@pnp/cli-microsoft365': 11.11.0
+    '@pnp/cli-microsoft365': 12.0.0
     '@readonly-mcp/server': 1.0.0
     '@vtsls/language-server': 0.3.0
     '@vue/language-server': 2.2.12
