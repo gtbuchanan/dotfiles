@@ -1,0 +1,33 @@
+{{- if and (eq .chezmoi.os "windows") (eq .hosttype "personal") }}
+# RDP connection files live in the private hosts inventory, one per host under
+# rdp/<site>/, cloned by .chezmoiexternal.yaml.tmpl. See docs/rdp.md.
+$RdpInventory = Join-Path $HOME '{{ .codeDir }}/gtbuchanan/hosts/rdp'
+
+Function Get-RdpHost {
+  Get-ChildItem -LiteralPath $RdpInventory -Filter *.rdp -File -Recurse -ErrorAction Ignore
+}
+
+# Opens a host's connection file in mstsc, passing any further arguments (/f,
+# /admin, /multimon) through. A host name two sites share is refused rather
+# than resolved to whichever file the directory walk happens to reach first.
+Function rdp {
+  param(
+    [Parameter(Mandatory)]
+    [ArgumentCompleter({
+        param($commandName, $parameterName, $wordToComplete)
+        Get-RdpHost | ForEach-Object BaseName | Sort-Object -Unique |
+          Where-Object { $_ -like "$wordToComplete*" }
+      })]
+    [string] $Name,
+    [Parameter(ValueFromRemainingArguments)]
+    [string[]] $MstscArgs
+  )
+
+  $files = @(Get-RdpHost | Where-Object BaseName -EQ $Name)
+  switch ($files.Count) {
+    0 { throw "No RDP file named '$Name' under $RdpInventory" }
+    1 { mstsc $files[0].FullName @MstscArgs }
+    default { throw "'$Name' matches more than one RDP file: $($files.FullName -join ', ')" }
+  }
+}
+{{- end }}

@@ -139,7 +139,7 @@
   url: git@github.com:gtbuchanan/skills.git
 {{- if eq .hosttype "personal" }}
 # Internal host definitions, pulled in by private_dot_ssh/config.tmpl via
-# `Include …/hosts/ssh/*.conf`. Kept in a private repo rather than encrypted into
+# `Include …/hosts/ssh/*.conf` and read by the PowerShell `rdp` command. Kept in a private repo rather than encrypted into
 # this public one: a public repo archives its ciphertext permanently — forks,
 # clones, GH Archive — so a later re-key can't undo whatever was already
 # published. Splitting the repo removes the exposure instead of shrinking it, and
