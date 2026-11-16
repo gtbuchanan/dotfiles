@@ -46,7 +46,8 @@ fi
 # line. A single pane idle in default-shell (pwsh, by the Windows path the
 # stub reports) is the placeholder psmux creates at boot; more than one pane,
 # or a pane running anything else, is a session the user has been working in
-# since. Every creation command's `-P -F` prints a number distinct
+# since. $EXISTING_PANES_FIRST, when set, replaces it for the first such call
+# only, standing in for a profile still running when the restore first looks. Every creation command's `-P -F` prints a number distinct
 # from anything the fixture below saves, so a test asserting on that number
 # can only pass if the script used what psmux reported rather than the value
 # it started from -- and `list-windows` answers 7 for the same reason, so an
@@ -69,7 +70,14 @@ case " \$* " in
   *' new-window '*) echo '31' ;;
   *' split-window '*) echo '32' ;;
   *' show-options -gv default-shell '*) echo 'C:\\Program Files\\PowerShell\\7\\pwsh.exe' ;;
-  *' list-panes -s '*) printf '%s\\n' $EXISTING_PANES ;;
+  *' list-panes -s '*)
+    if [ -n "$EXISTING_PANES_FIRST" ] && [ ! -e "$SANDBOX/listed" ]; then
+      : >"$SANDBOX/listed"
+      printf '%s\\n' $EXISTING_PANES_FIRST
+    else
+      printf '%s\\n' $EXISTING_PANES
+    fi
+    ;;
   *' list-windows '*) echo '7' ;;
   *' list-panes '*) echo '33' ;;
 esac
@@ -87,8 +95,10 @@ write_layout() {
     >"$LAYOUT"
 }
 
+# A one-second idle timeout keeps the cases whose pane never goes idle from
+# waiting out the production one.
 run_restore() {
-  PATH="$BIN:$PATH" bash "$RESTORE" --layout "$LAYOUT"
+  PATH="$BIN:$PATH" bash "$RESTORE" --layout "$LAYOUT" --idle-timeout 1
 }
 
 # Every call matching $1 (a substring), across the whole log. `--` guards a
@@ -104,6 +114,7 @@ setUp() {
   LAYOUT="$SANDBOX/layout.json"
   EXISTING=''
   EXISTING_PANES='pwsh'
+  EXISTING_PANES_FIRST=''
   mkdir -p "$BIN"
   : >"$LOG"
 }
@@ -243,6 +254,22 @@ test_leaves_a_lone_pane_running_something_other_than_a_shell_alone() {
   run_restore
 
   assertEquals 'nothing sent to the pane' 0 "$(calls_matching 'send-keys')"
+}
+
+test_adopts_the_placeholder_once_its_profile_finishes() {
+  # The restore can reach the boot pane while the shell is still running its
+  # profile (`mise activate`, measured live at 1.5s after boot). Judged on
+  # that first look, the pane seemed busy and the only session was skipped.
+  write_layout 'main' '[{"name":"editor","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  EXISTING='main'
+  EXISTING_PANES_FIRST='mise'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'the placeholder window took the saved name' 1 \
+    "$(calls_matching 'rename-window.*main:7.*editor')"
 }
 
 test_leaves_a_lone_pane_running_a_shell_other_than_the_default_alone() {

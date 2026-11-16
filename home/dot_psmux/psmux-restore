@@ -37,12 +37,18 @@
 layout="$HOME/.psmux/layout.json"
 readonly settle_delay=0.3
 readonly shell_ready_delay=1
+idle_timeout=60
 
 while [ $# -gt 0 ]; do
   case "$1" in
   --layout)
     [ $# -ge 2 ] || exit 0
     layout="$2"
+    shift
+    ;;
+  --idle-timeout)
+    [ $# -ge 2 ] || exit 0
+    idle_timeout="$2"
     shift
     ;;
   *) exit 0 ;;
@@ -77,23 +83,36 @@ else
   p() { "$bin" -L "$namespace" "$@"; }
 fi
 
-# Whether a session is still the placeholder psmux creates at boot: a single
-# pane whose foreground process is the default-shell psmux started in it,
-# meaning nothing has been run from it since. The pane count alone cannot
-# tell that pane from one the user has started Claude in while this restore
-# was still on its way, and adopting that one types `cd` and `claude --resume`
-# into Claude's prompt. pane_current_command reports the bare name (`pwsh`
-# for `C:\...\pwsh.exe`), so default-shell is cut down to match. A session
-# that reports nothing (no server, no such session) is not a placeholder.
-is_placeholder() {
-  local commands shell
-  commands=$(p list-panes -s -t "$1" -F '#{pane_current_command}' 2>/dev/null)
-  case "$commands" in '' | *$'\n'*) return 1 ;; esac
-
+# Waits for a session to show itself as the placeholder psmux creates at
+# boot: a single pane idle at the default-shell psmux started in it. The pane
+# count alone cannot tell that pane from one the user has started Claude in
+# while this restore was still on its way, and adopting that one types `cd`
+# and `claude --resume` into Claude's prompt.
+#
+# One look is not enough either. The restore can arrive while the shell is
+# still running its profile, whose `mise activate` was the foreground process
+# 1.5s after a live boot, and a pane judged then looked busy and lost its
+# whole session. So a lone pane is polled until it first sits at the shell,
+# or $idle_timeout seconds pass. A second pane settles it at once: nothing
+# but the user puts one there.
+#
+# pane_current_command reports the bare name (`pwsh` for `C:\...\pwsh.exe`),
+# so default-shell is cut down to match. A session that reports nothing (no
+# server, no such session) is not a placeholder.
+wait_for_placeholder() {
+  local commands shell attempt
   shell=$(p show-options -gv default-shell 2>/dev/null)
   shell="${shell##*[/\\]}"
   shell="${shell%.[eE][xX][eE]}"
-  [ -n "$shell" ] && [ "$commands" = "$shell" ]
+  [ -n "$shell" ] || return 1
+
+  for ((attempt = 0; attempt <= idle_timeout * 2; attempt++)); do
+    commands=$(p list-panes -s -t "$1" -F '#{pane_current_command}' 2>/dev/null)
+    case "$commands" in '' | *$'\n'*) return 1 ;; esac
+    [ "$commands" = "$shell" ] && return 0
+    sleep 0.5
+  done
+  return 1
 }
 
 # Creates every pane of a window beyond the one that already exists (the sole
@@ -147,7 +166,7 @@ restore_session() {
   # `cd` into a shell someone is using.
   local adopted=''
   if p has-session -t "$name" 2>/dev/null; then
-    is_placeholder "$name" || return 0
+    wait_for_placeholder "$name" || return 0
     adopted=$(p list-windows -t "$name" -F '#{window_index}' 2>/dev/null)
     [ -n "$adopted" ] || return 0
   fi

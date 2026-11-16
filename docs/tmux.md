@@ -110,10 +110,14 @@ nothing else is that placeholder: restore renames its window, splits the saved
 panes into it, and sends the saved directory as a `cd` first, because that
 shell started wherever psmux put it and `claude --resume` finds a conversation
 only from the directory that recorded it. A session holding more than one
-pane, or a lone pane running anything else, belongs to whoever built it and is
-left alone. The restore can take a minute or more to reach the session on a
-slow machine, and before that check existed, a Claude started in the boot
-pane in the meantime got `cd` and `claude --resume` typed into its prompt.
+pane belongs to whoever built it and is left alone. A lone pane running
+anything else is polled every half second until it first sits idle at the
+shell, and is left alone if it hasn't within a minute: the restore often
+arrives while the profile is still running (`mise` was the foreground
+process 1.5s into a live boot), and judging the pane on that first look lost
+the session. The restore can also arrive late, after the user has started
+Claude in the boot pane, and before the shell check existed that Claude got
+`cd` and `claude --resume` typed into its prompt.
 The restore also reads the layout once, up front, because Claude sessions on
 the new server rewrite the same file while it runs.
 
