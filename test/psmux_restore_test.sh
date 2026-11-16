@@ -38,12 +38,15 @@ fi
 # --- harness ----------------------------------------------------------------
 
 # Logs every call as one line of tab-joined argv, then answers each
-# subcommand psmux-restore depends on. has-session succeeds only for a name
+# subcommand psmux-restore depends on, after sourcing $BIN/hook when a test
+# has written one to act on a particular call. has-session succeeds only for a name
 # listed in $EXISTING (space-separated), simulating a session already on the
 # server when the restore runs. $EXISTING_PANES is what such a session reports
-# for a whole-session `list-panes -s`, one id per line: a single pane is the
-# placeholder psmux creates at boot, more than one is a session the user has
-# built up since. Every creation command's `-P -F` prints a number distinct
+# for a whole-session `list-panes -s`: each pane's current command, one per
+# line. A single pane idle in default-shell (pwsh, by the Windows path the
+# stub reports) is the placeholder psmux creates at boot; more than one pane,
+# or a pane running anything else, is a session the user has been working in
+# since. Every creation command's `-P -F` prints a number distinct
 # from anything the fixture below saves, so a test asserting on that number
 # can only pass if the script used what psmux reported rather than the value
 # it started from -- and `list-windows` answers 7 for the same reason, so an
@@ -53,6 +56,7 @@ write_psmux_stub() {
 #!/usr/bin/env bash
 printf '%s\\t' "\$@" >>"$LOG"
 printf '\\n' >>"$LOG"
+[ -f "$BIN/hook" ] && . "$BIN/hook"
 
 case " \$* " in
   *' has-session '*)
@@ -64,6 +68,7 @@ case " \$* " in
   *' new-session '*) echo '30' ;;
   *' new-window '*) echo '31' ;;
   *' split-window '*) echo '32' ;;
+  *' show-options -gv default-shell '*) echo 'C:\\Program Files\\PowerShell\\7\\pwsh.exe' ;;
   *' list-panes -s '*) printf '%s\\n' $EXISTING_PANES ;;
   *' list-windows '*) echo '7' ;;
   *' list-panes '*) echo '33' ;;
@@ -98,7 +103,7 @@ setUp() {
   LOG="$SANDBOX/argv.log"
   LAYOUT="$SANDBOX/layout.json"
   EXISTING=''
-  EXISTING_PANES='%1'
+  EXISTING_PANES='pwsh'
   mkdir -p "$BIN"
   : >"$LOG"
 }
@@ -214,7 +219,7 @@ test_leaves_a_session_that_holds_more_than_a_placeholder_alone() {
   write_layout 'main' '[{"name":"one","layout":"L","active":true,
     "panes":[{"cwd":"/repo","sessionId":"11111111-2222-3333-4444-555555555555"}]}]'
   EXISTING='main'
-  EXISTING_PANES='%1 %2'
+  EXISTING_PANES='pwsh pwsh'
   write_psmux_stub
 
   run_restore
@@ -222,6 +227,62 @@ test_leaves_a_session_that_holds_more_than_a_placeholder_alone() {
   assertEquals 'nothing renamed' 0 "$(calls_matching 'rename-window')"
   assertEquals 'nothing split' 0 "$(calls_matching 'split-window')"
   assertEquals 'nothing sent to any shell' 0 "$(calls_matching 'send-keys')"
+}
+
+test_leaves_a_lone_pane_running_something_other_than_a_shell_alone() {
+  # The restore is backgrounded and can take a minute and more to reach a
+  # session on a slow machine, long enough for the user to start Claude in the
+  # boot pane. A pane count cannot tell that pane from the idle placeholder,
+  # and adopting it typed `cd` and `claude --resume` into Claude's prompt.
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":"11111111-2222-3333-4444-555555555555"}]}]'
+  EXISTING='main'
+  EXISTING_PANES='claude'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'nothing sent to the pane' 0 "$(calls_matching 'send-keys')"
+}
+
+test_leaves_a_lone_pane_running_a_shell_other_than_the_default_alone() {
+  # The placeholder runs default-shell; any other shell in the pane is one
+  # the user started from it.
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  EXISTING='main'
+  EXISTING_PANES='bash'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'nothing sent to the pane' 0 "$(calls_matching 'send-keys')"
+}
+
+test_restores_the_layout_as_it_stood_when_the_restore_began() {
+  # Claude sessions started on the new server snapshot it into the same file
+  # while the restore is still working through it. A restore that re-read the
+  # file between sessions would rebuild part of the old server and part of the
+  # new one. The stub stands in for that snapshot by rewriting the file on the
+  # first session's creation.
+  jq -n '{namespace: "default", sessions: [
+    {name: "first", windows: [{name: "one", layout: "L", active: true,
+      panes: [{cwd: "/repo", sessionId: null}]}]},
+    {name: "second", windows: [{name: "two", layout: "L", active: true,
+      panes: [{cwd: "/repo", sessionId: null}]}]}
+  ]}' >"$LAYOUT"
+  write_psmux_stub
+  cat >"$BIN/hook" <<HOOK
+if [[ " \$* " == *' new-session '*' -s first '* ]]; then
+  jq '.sessions[1].name = "rewritten"' "$LAYOUT" >"$LAYOUT.new" &&
+    mv -f "$LAYOUT.new" "$LAYOUT"
+fi
+HOOK
+
+  run_restore
+
+  assertEquals 'second session created under its original name' 1 \
+    "$(calls_matching 'new-session.*-s.second')"
 }
 
 test_creates_a_missing_session_at_its_first_panes_directory() {

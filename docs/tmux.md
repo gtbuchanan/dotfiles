@@ -104,12 +104,17 @@ it from the same `last_session` the layout was saved under, and has it running
 before the backgrounded restore issues its first command — measured live at
 1.3s ahead — so a restore that refused to touch a session already on the
 server refused the only session a single-session layout holds, every boot. A
-session reporting a single pane is that placeholder: restore renames its
-window, splits the saved panes into it, and sends the saved directory as a
-`cd` first, because that shell started wherever psmux put it and
-`claude --resume` finds a conversation only from the directory that recorded
-it. A session holding more than one pane belongs to whoever built it and is
-still left alone.
+session whose single pane is still running psmux's `default-shell` and
+nothing else is that placeholder: restore renames its window, splits the saved
+panes into it, and sends the saved directory as a `cd` first, because that
+shell started wherever psmux put it and `claude --resume` finds a conversation
+only from the directory that recorded it. A session holding more than one
+pane, or a lone pane running anything else, belongs to whoever built it and is
+left alone. The restore can take a minute or more to reach the session on a
+slow machine, and before that check existed, a Claude started in the boot
+pane in the meantime got `cd` and `claude --resume` typed into its prompt.
+The restore also reads the layout once, up front, because Claude sessions on
+the new server rewrite the same file while it runs.
 
 Restore recreates each pane with `-P -F`, psmux's flag for printing the
 index it just assigned, and uses only that for targeting — never a saved
