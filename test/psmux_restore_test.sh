@@ -39,25 +39,49 @@ fi
 
 # Logs every call as one line of tab-joined argv, then answers each
 # subcommand psmux-restore depends on, after sourcing $BIN/hook when a test
-# has written one to act on a particular call. has-session succeeds only for a name
-# listed in $EXISTING (space-separated), simulating a session already on the
-# server when the restore runs. $EXISTING_PANES is what such a session reports
+# has written one to act on a particular call. A whole-session
+# `list-panes -s` succeeds only for a name listed in $EXISTING
+# (space-separated), simulating a session already on the server when the
+# restore runs. $EXISTING_PANES is what such a session reports
 # for a whole-session `list-panes -s`: each pane's current command, one per
 # line. A single pane idle in default-shell (pwsh, by the Windows path the
 # stub reports) is the placeholder psmux creates at boot; more than one pane,
 # or a pane running anything else, is a session the user has been working in
 # since. $EXISTING_PANES_FIRST, when set, replaces it for the first such call
-# only, standing in for a profile still running when the restore first looks. Every creation command's `-P -F` prints a number distinct
-# from anything the fixture below saves, so a test asserting on that number
-# can only pass if the script used what psmux reported rather than the value
-# it started from -- and `list-windows` answers 7 for the same reason, so an
-# adopted window can only be targeted correctly by asking psmux where it is.
+# only, standing in for a profile still running when the restore first looks.
+#
+# Each answer renders the call's own `-F` format, as psmux does. The window
+# and pane indices it reports are distinct from anything the fixture below
+# saves: new-session reports window 30 pane 34, new-window 31.35, every
+# split pane 32, and an existing session's pane 7.33. A test asserting on one
+# of them can only pass if the script targeted what psmux reported rather
+# than the value it started from. A server-wide `list-panes -a` reports every
+# one of those panes as pwsh with its cursor at column $READY_CURSOR: past 0
+# means the prompt has been drawn.
 write_psmux_stub() {
   cat >"$BIN/psmux" <<STUB
 #!/usr/bin/env bash
 printf '%s\\t' "\$@" >>"$LOG"
 printf '\\n' >>"$LOG"
 [ -f "$BIN/hook" ] && . "$BIN/hook"
+
+fmt=''
+prev=''
+for arg in "\$@"; do
+  [ "\$prev" = '-F' ] && fmt="\$arg"
+  prev="\$arg"
+done
+
+# \$1 window index, \$2 pane index, \$3 current command, \$4 cursor column.
+render() {
+  local f="\$fmt"
+  f="\${f//'#{session_name}'/main}"
+  f="\${f//'#{window_index}'/\$1}"
+  f="\${f//'#{pane_index}'/\$2}"
+  f="\${f//'#{pane_current_command}'/\$3}"
+  f="\${f//'#{cursor_x}'/\$4}"
+  printf '%s\\n' "\$f"
+}
 
 case " \$* " in
   *' has-session '*)
@@ -66,20 +90,30 @@ case " \$* " in
     done
     exit 1
     ;;
-  *' new-session '*) echo '30' ;;
-  *' new-window '*) echo '31' ;;
-  *' split-window '*) echo '32' ;;
+  *' new-session '*) render 30 34 ;;
+  *' new-window '*) render 31 35 ;;
+  *' split-window '*) render '' 32 ;;
   *' show-options -gv default-shell '*) echo 'C:\\Program Files\\PowerShell\\7\\pwsh.exe' ;;
   *' list-panes -s '*)
+    found=''
+    for existing in $EXISTING; do
+      [[ " \$* " == *" -t \$existing "* ]] && found=1
+    done
+    [ -n "\$found" ] || exit 1
+    panes="$EXISTING_PANES"
     if [ -n "$EXISTING_PANES_FIRST" ] && [ ! -e "$SANDBOX/listed" ]; then
       : >"$SANDBOX/listed"
-      printf '%s\\n' $EXISTING_PANES_FIRST
-    else
-      printf '%s\\n' $EXISTING_PANES
+      panes="$EXISTING_PANES_FIRST"
     fi
+    for command in \$panes; do render 7 33 "\$command"; done
     ;;
-  *' list-windows '*) echo '7' ;;
-  *' list-panes '*) echo '33' ;;
+  *' list-panes -a '*)
+    for pane in '7 33' '30 34' '30 32' '31 35' '31 32'; do
+      render \$pane pwsh "$READY_CURSOR"
+    done
+    ;;
+  *' list-windows '*) render 7 ;;
+  *' list-panes '*) render '' 33 ;;
 esac
 exit 0
 STUB
@@ -115,6 +149,7 @@ setUp() {
   EXISTING=''
   EXISTING_PANES='pwsh'
   EXISTING_PANES_FIRST=''
+  READY_CURSOR=45
   mkdir -p "$BIN"
   : >"$LOG"
 }
@@ -323,17 +358,15 @@ test_creates_a_missing_session_at_its_first_panes_directory() {
     "$(calls_matching 'new-session.*-s.*main.*-c.*/repo')"
 }
 
-test_renames_the_first_window_to_its_saved_name() {
+test_names_the_first_window_with_its_saved_name() {
   write_layout 'main' '[{"name":"editor","layout":"L","active":true,
     "panes":[{"cwd":"/repo","sessionId":null}]}]'
   write_psmux_stub
 
   run_restore
 
-  # new-session's -P -F reports window 30 (see write_psmux_stub); the rename
-  # must target that, not window 0 or 1.
-  assertNotEquals 'renamed the reported window to the saved name' 0 \
-    "$(calls_matching 'rename-window.*main:30.*editor')"
+  assertEquals 'new-session named the window' 1 \
+    "$(calls_matching 'new-session.*-n.editor')"
 }
 
 test_creates_one_pane_per_extra_pane_at_its_own_directory() {
@@ -349,13 +382,25 @@ test_creates_one_pane_per_extra_pane_at_its_own_directory() {
 
 test_applies_the_saved_layout_string() {
   write_layout 'main' '[{"name":"one","layout":"a1b2,80x24,0,0,1","active":true,
-    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+    "panes":[{"cwd":"/repo","sessionId":null},{"cwd":"/repo","sessionId":null}]}]'
   write_psmux_stub
 
   run_restore
 
   assertEquals 'select-layout with the exact saved string' 1 \
-    "$(calls_matching 'select-layout.*a1b2,80x24,0,0,1')"
+    "$(calls_matching 'select-layout.*main:30.*a1b2,80x24,0,0,1')"
+}
+
+test_skips_the_layout_string_for_a_window_of_one_pane() {
+  # One pane fills its window whatever the string says, and a psmux call
+  # costs the restore 400-800ms.
+  write_layout 'main' '[{"name":"one","layout":"a1b2,80x24,0,0,1","active":true,
+    "panes":[{"cwd":"/repo","sessionId":null}]}]'
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'no select-layout' 0 "$(calls_matching 'select-layout')"
 }
 
 test_resumes_a_pane_that_has_a_recorded_session_id() {
@@ -373,6 +418,20 @@ test_resumes_a_pane_that_has_a_recorded_session_id() {
   # psmux actually just assigned.
   assertEquals 'resumed at the reported pane, by id' 1 \
     "$(calls_matching 'send-keys.*main:30\.32.*claude --resume 11111111-2222-3333-4444-555555555555')"
+}
+
+test_types_nothing_into_a_pane_whose_prompt_never_appears() {
+  # Keys sent before the shell is reading are lost: of five panes typed into
+  # as they started together, none ran the line. The prompt is the signal
+  # that the shell has started reading.
+  write_layout 'main' '[{"name":"one","layout":"L","active":true,
+    "panes":[{"cwd":"/repo","sessionId":"11111111-2222-3333-4444-555555555555"}]}]'
+  READY_CURSOR=0
+  write_psmux_stub
+
+  run_restore
+
+  assertEquals 'nothing typed' 0 "$(calls_matching 'send-keys')"
 }
 
 test_does_not_send_anything_to_a_pane_with_no_recorded_session() {
@@ -448,7 +507,8 @@ test_creates_a_second_window_with_its_own_panes_and_layout() {
     {"name":"one","layout":"L1","active":true,
       "panes":[{"cwd":"/repo","sessionId":null}]},
     {"name":"two","layout":"L2","active":false,
-      "panes":[{"cwd":"/repo/other","sessionId":null}]}
+      "panes":[{"cwd":"/repo/other","sessionId":null},
+        {"cwd":"/repo/other","sessionId":null}]}
   ]'
   write_psmux_stub
 
@@ -456,7 +516,7 @@ test_creates_a_second_window_with_its_own_panes_and_layout() {
 
   assertEquals 'new-window for the second window' 1 \
     "$(calls_matching 'new-window.*-n.*two.*-c./repo/other')"
-  assertEquals 'its own layout applied' 1 "$(calls_matching 'select-layout.*L2')"
+  assertEquals 'its own layout applied' 1 "$(calls_matching 'select-layout.*main:31.*L2')"
 }
 
 # shUnit2 takes over here: it discovers the test_* functions above and prints

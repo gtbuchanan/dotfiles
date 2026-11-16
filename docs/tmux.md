@@ -112,7 +112,7 @@ shell started wherever psmux put it and `claude --resume` finds a conversation
 only from the directory that recorded it. A session holding more than one
 pane belongs to whoever built it and is left alone. A lone pane running
 anything else is polled every half second until it first sits idle at the
-shell, and is left alone if it hasn't within a minute: the restore often
+shell, and is left alone if it hasn't within two minutes: the restore often
 arrives while the profile is still running (`mise` was the foreground
 process 1.5s into a live boot), and judging the pane on that first look lost
 the session. The restore can also arrive late, after the user has started
@@ -143,6 +143,29 @@ pane's own live pane-id lookup (what `ccr` does) can never match anything,
 since a new server hands out pane ids from `%0`; falling back to `--continue`
 there is wrong the instant two restored panes share a directory, the exact
 ambiguity the whole pane-session/psmux-snapshot chain exists to avoid.
+
+### psmux Restore Timing
+
+Nothing is typed into a pane until its shell is reading, because keys sent
+earlier are lost: of five panes typed into as they started together, none
+ran the line. The shell is the pane's foreground process from the moment it
+starts, so that alone says nothing; a pane is ready once it is idle at the
+shell with the cursor past column 0, which is the prompt having been drawn.
+Each pane gets a single line, the adopted pane's `cd` and `claude --resume`
+joined with `;`, because a second line sent during startup was lost where
+the first ran. A pane that hasn't drawn its prompt within two minutes is
+given up on.
+
+Starting a process is what costs: 70–100ms from Git Bash under endpoint
+protection, and 400–800ms for a psmux call the server answers. So restore
+reads the layout with one `jq`, creates every session, window and pane
+before waiting on any, applies a layout string only to a window of more than
+one pane, and watches every pending pane with one `list-panes -a` per poll.
+Against a real boot of a three-pane layout, that took the last line typed
+from 12.7s to 8.2s after boot.
+
+Most of what remains is the shells' own profiles: one alone takes 3.5s to
+reach a prompt, and five starting together took 20–30s.
 
 ### Layout Forgotten When the Last psmux Pane Exits
 

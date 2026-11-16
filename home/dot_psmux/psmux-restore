@@ -20,24 +20,33 @@
 # running before this script issues its first command -- measured live at 1.3s
 # ahead -- so a guard that skipped every existing session skipped the only
 # session a single-session layout holds, every boot. A session holding more
-# than one pane, or a lone pane running anything but a shell, is someone's
-# work rather than that placeholder, and is still left alone. Run from `dot_tmux.conf.tmpl`, which psmux reads exactly once per
-# server lifetime, so this never re-fires on a later attach; the caller
-# backgrounds it so a slow or many-paned restore never delays that attach.
+# than one pane, or a lone pane that never sits idle at its shell, is
+# someone's work rather than that placeholder, and is still left alone. Run
+# from `dot_tmux.conf.tmpl`, which psmux reads exactly once per server
+# lifetime, so this never re-fires on a later attach; the caller backgrounds
+# it so a slow or many-paned restore never delays that attach.
 #
 # Every failure is silent: a session or two failing to come back is nothing
 # to interrupt over, since psmux itself is already usable by the time this
 # runs.
 #
-# Settle delays are plain sleeps, the same crude tool psmux-resurrect used
-# for the same problem (a pane addressed before its shell has started can
-# drop what's sent to it) -- proven sufficient by hand against a live server,
-# not derived from any readiness signal.
+# Starting a process is the cost that matters here: Git Bash under endpoint
+# protection takes 70-100ms to start one, and a psmux call answered by the
+# server 400-800ms. So the layout is read with one jq, every pane is created
+# before any is waited on, and one `list-panes -a` per poll watches them all.
+#
+# Nothing is typed into a pane until its shell is reading. Keys sent earlier
+# are lost: of five panes typed into as they started together, none ran the
+# line, and five profiles starting at once took 20-30s to reach a prompt
+# where one alone takes 3.5s. A pane is ready once it is idle at its shell
+# with the cursor past column 0, which is the prompt having been drawn: the
+# shell is the foreground process from the moment it starts, so that alone
+# says nothing. Each pane gets one line, `cd` and `claude --resume` joined,
+# because a second line sent during startup was lost where the first ran.
 
 layout="$HOME/.psmux/layout.json"
-readonly settle_delay=0.3
-readonly shell_ready_delay=1
-idle_timeout=60
+idle_timeout=120
+readonly poll_interval=0.5
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -68,7 +77,28 @@ done
 # server already holds rather than from what the last one left behind.
 layout_json=$(<"$layout") 2>/dev/null || exit 0
 
-namespace=$(printf '%s' "$layout_json" | jq -r '.namespace // "default"' 2>/dev/null) || exit 0
+# The whole layout as one record per line, tab-separated, from a single jq:
+#   N <namespace>
+#   S <session name>
+#   W <active> <panes> <layout string> <window name>
+#   P <session id, or - for none> <cwd>
+# The free-text field goes last on each line, so `read` hands it over whole
+# whatever it holds, and no field is ever empty, since `read` collapses
+# consecutive tabs. jq's @tsv is no use here: it escapes the backslashes in
+# every Windows path.
+plan=$(printf '%s' "$layout_json" | jq -r '
+  ["N", (.namespace // "default")],
+  (.sessions[] | ["S", .name],
+    (.windows[] | ["W", (.active | tostring), (.panes | length | tostring),
+        .layout, .name],
+      (.panes[] | ["P", (.sessionId // "-"), .cwd])))
+  | join("\t")' 2>/dev/null) || exit 0
+
+# jq on Windows ends its lines with CRLF, and a carriage return left on the
+# last field of each record would ride into every session name and cwd.
+plan="${plan//$'\r'/}"
+
+namespace=$(printf '%s\n' "$plan" | sed -n '1s/^N\t//p')
 
 # `-L <name>` only reaches a server actually started with a matching -L; the
 # ordinary, unnamed default server's own socket leaf happens to read
@@ -83,163 +113,182 @@ else
   p() { "$bin" -L "$namespace" "$@"; }
 fi
 
-# Waits for a session to show itself as the placeholder psmux creates at
-# boot: a single pane idle at the default-shell psmux started in it. The pane
-# count alone cannot tell that pane from one the user has started Claude in
-# while this restore was still on its way, and adopting that one types `cd`
-# and `claude --resume` into Claude's prompt.
+# The bare name pane_current_command reports for psmux's default-shell
+# (`pwsh` for `C:\...\pwsh.exe`), asked for once and only once there is a
+# server to answer.
+shell=''
+default_shell() {
+  if [ -z "$shell" ]; then
+    shell=$(p show-options -gv default-shell 2>/dev/null)
+    shell="${shell##*[/\\]}"
+    shell="${shell%.[eE][xX][eE]}"
+  fi
+  [ -n "$shell" ]
+}
+
+# Waits for an existing session to show itself as the placeholder psmux
+# creates at boot: a single pane idle at its default-shell. Prints that
+# pane's window.pane index and succeeds once it does. Fails at once for a
+# session holding a second pane, which nothing but the user puts there, and
+# after $idle_timeout seconds for a lone pane that never sits at the shell.
 #
-# One look is not enough either. The restore can arrive while the shell is
-# still running its profile, whose `mise activate` was the foreground process
-# 1.5s after a live boot, and a pane judged then looked busy and lost its
-# whole session. So a lone pane is polled until it first sits at the shell,
-# or $idle_timeout seconds pass. A second pane settles it at once: nothing
-# but the user puts one there.
-#
-# pane_current_command reports the bare name (`pwsh` for `C:\...\pwsh.exe`),
-# so default-shell is cut down to match. A session that reports nothing (no
-# server, no such session) is not a placeholder.
+# One look is not enough. The restore can arrive while the shell is still
+# running its profile, whose `mise activate` was the foreground process 1.5s
+# after a live boot, and a pane judged then looked busy and lost its whole
+# session. Nor is the pane count alone: it cannot tell the placeholder from a
+# pane the user has started Claude in while this restore was on its way.
 wait_for_placeholder() {
-  local commands shell attempt
-  shell=$(p show-options -gv default-shell 2>/dev/null)
-  shell="${shell##*[/\\]}"
-  shell="${shell%.[eE][xX][eE]}"
-  [ -n "$shell" ] || return 1
-
-  for ((attempt = 0; attempt <= idle_timeout * 2; attempt++)); do
-    commands=$(p list-panes -s -t "$1" -F '#{pane_current_command}' 2>/dev/null)
-    case "$commands" in '' | *$'\n'*) return 1 ;; esac
-    [ "$commands" = "$shell" ] && return 0
-    sleep 0.5
-  done
-  return 1
-}
-
-# Creates every pane of a window beyond the one that already exists (the sole
-# pane of a session's auto-created first window, or a new window's own).
-# $windowPanes is that window's panes array (JSON); echoes the actual pane
-# index psmux reports for each entry, in the same order, one per line.
-restore_panes() {
-  local target="$1" window_panes="$2" first_index="$3"
-  echo "$first_index"
-
-  local count cwd i
-  count=$(printf '%s' "$window_panes" | jq 'length')
-  for ((i = 1; i < count; i++)); do
-    cwd=$(printf '%s' "$window_panes" | jq -r ".[$i].cwd")
-    p split-window -t "$target" -c "$cwd" -P -F '#{pane_index}'
-    sleep "$settle_delay"
+  local listed deadline=$((SECONDS + idle_timeout))
+  default_shell || return 1
+  while :; do
+    listed=$(p list-panes -s -t "$1" \
+      -F '#{pane_current_command} #{window_index}.#{pane_index}' 2>/dev/null)
+    case "$listed" in '' | *$'\n'*) return 1 ;; esac
+    if [ "${listed% *}" = "$shell" ]; then
+      printf '%s\n' "${listed##* }"
+      return 0
+    fi
+    [ "$SECONDS" -lt "$deadline" ] || return 1
+    sleep "$poll_interval"
   done
 }
 
-# Sends `claude --resume <id>` into every pane that recorded one.
-# $actualIndices is the newline-separated output of restore_panes, in the
-# same order as $windowPanes.
-resume_panes() {
-  local session="$1" window_index="$2" window_panes="$3" actual_indices="$4"
+# Lines to type, each into its own pane once that pane's shell is reading,
+# in matching order.
+send_targets=()
+send_lines=()
 
-  local count i pane_index session_id
-  count=$(printf '%s' "$window_panes" | jq 'length')
-  for ((i = 0; i < count; i++)); do
-    pane_index=$(printf '%s\n' "$actual_indices" | sed -n "$((i + 1))p")
-    session_id=$(printf '%s' "$window_panes" | jq -r ".[$i].sessionId")
-    [ "$session_id" != 'null' ] || continue
+queue_line() {
+  send_targets+=("$1")
+  send_lines+=("$2")
+}
 
-    p send-keys -t "$session:$window_index.$pane_index" \
-      "claude --resume $session_id" Enter
-    sleep "$shell_ready_delay"
+# Types every queued line as its pane becomes ready, watching all of them
+# with one `list-panes -a` per poll. A pane still not ready after
+# $idle_timeout seconds is given up on. The shell check also covers the
+# adopted pane: one where the user started something while this waited is
+# left alone.
+type_when_ready() {
+  [ "${#send_targets[@]}" -gt 0 ] || return 0
+  default_shell || return 0
+
+  local deadline=$((SECONDS + idle_timeout)) i listed line rest
+  local target command cursor
+  while :; do
+    listed=$(p list-panes -a \
+      -F '#{session_name}:#{window_index}.#{pane_index} #{pane_current_command} #{cursor_x}' \
+      2>/dev/null)
+    while IFS= read -r line; do
+      cursor="${line##* }"
+      rest="${line% *}"
+      command="${rest##* }"
+      target="${rest% *}"
+      [ "$command" = "$shell" ] || continue
+      case "$cursor" in '' | *[!0-9]* | 0) continue ;; esac
+      for i in "${!send_targets[@]}"; do
+        [ "${send_targets[i]}" = "$target" ] || continue
+        p send-keys -t "$target" "${send_lines[i]}" Enter
+        unset 'send_targets[i]' 'send_lines[i]'
+      done
+    done <<<"$listed"
+
+    [ "${#send_targets[@]}" -gt 0 ] || return 0
+    [ "$SECONDS" -lt "$deadline" ] || return 0
+    sleep "$poll_interval"
   done
 }
 
-restore_session() {
-  local session_json="$1" name windows_json window_count
-  name=$(printf '%s' "$session_json" | jq -r '.name')
+# State for the session and window being built. A window is created on its
+# first P record rather than its W, because a new window or session starts in
+# its first pane's directory.
+session='' session_skipped='' session_windows=0 active_window='' adopted=''
+window_name='' window_layout='' window_active='' window_panes=0
+window_index='' pane_count=0
 
-  windows_json=$(printf '%s' "$session_json" | jq -c '.windows')
-  window_count=$(printf '%s' "$windows_json" | jq 'length')
-  [ "$window_count" -gt 0 ] || return 0
+finish_window() {
+  if [ "$window_panes" -gt 1 ] && [ -n "$window_index" ]; then
+    p select-layout -t "$session:$window_index" "$window_layout"
+  fi
+}
 
-  # $adopted holds the window index of psmux's boot placeholder when this
-  # session is already on the server and still looks like one. Anything
-  # larger belongs to whoever built it -- a session restored by an earlier
-  # run included -- and writing into it would duplicate every pane and send
-  # `cd` into a shell someone is using.
-  local adopted=''
-  if p has-session -t "$name" 2>/dev/null; then
-    wait_for_placeholder "$name" || return 0
-    adopted=$(p list-windows -t "$name" -F '#{window_index}' 2>/dev/null)
-    [ -n "$adopted" ] || return 0
+# Which window to leave the session on, selected once every window exists:
+# `new-window` switches to what it creates, so selecting any earlier would be
+# undone by the next one. A session of one window needs no selecting.
+finish_session() {
+  [ -n "$session" ] && [ -z "$session_skipped" ] || return 0
+  finish_window
+  if [ "$session_windows" -gt 1 ] && [ -n "$active_window" ]; then
+    p select-window -t "$session:$active_window"
+  fi
+}
+
+start_session() {
+  finish_session
+  session="$1" session_skipped='' session_windows=0 active_window=''
+  window_index='' window_panes=0 adopted=''
+
+  # A session already on the server is adopted only while it is still the
+  # boot placeholder. Anything else belongs to whoever built it -- a session
+  # restored by an earlier run included -- and writing into it would
+  # duplicate every pane and send `cd` into a shell someone is using.
+  #
+  # default_shell is asked here rather than inside wait_for_placeholder, whose
+  # output is captured in a subshell that would keep the answer to itself.
+  p list-panes -s -t "$session" -F '#{pane_id}' >/dev/null 2>&1 || return 0
+  if ! default_shell || ! adopted=$(wait_for_placeholder "$session"); then
+    session_skipped=1
+  fi
+}
+
+start_window() {
+  finish_window
+  window_active="$1" window_panes="$2" window_layout="$3" window_name="$4"
+  window_index='' pane_count=0
+  session_windows=$((session_windows + 1))
+}
+
+add_pane() {
+  local session_id="$1" cwd="$2" created resume=''
+  [ "$session_id" = '-' ] || resume="claude --resume $session_id"
+  pane_count=$((pane_count + 1))
+
+  if [ "$pane_count" -gt 1 ]; then
+    created=$(p split-window -t "$session:$window_index" -c "$cwd" \
+      -P -F '#{pane_index}' 2>/dev/null) || return 0
+    [ -z "$resume" ] || queue_line "$session:$window_index.$created" "$resume"
+    return 0
   fi
 
-  local window window_name window_layout window_panes first_pane_cwd
-  local window_index first_pane_index actual_indices
-
-  window=$(printf '%s' "$windows_json" | jq -c '.[0]')
-  window_name=$(printf '%s' "$window" | jq -r '.name')
-  window_layout=$(printf '%s' "$window" | jq -r '.layout')
-  window_panes=$(printf '%s' "$window" | jq -c '.panes')
-  first_pane_cwd=$(printf '%s' "$window_panes" | jq -r '.[0].cwd')
-
   if [ -n "$adopted" ]; then
-    window_index="$adopted"
+    # The placeholder's shell started wherever psmux put it, and
+    # `claude --resume` finds a conversation only from the directory that
+    # recorded it; every other pane is born in its own (`-c`).
+    created="$adopted"
+    adopted=''
+    p rename-window -t "$session:${created%.*}" "$window_name"
+    queue_line "$session:$created" "cd '$cwd'${resume:+; $resume}"
+  elif [ "$session_windows" -eq 1 ]; then
+    created=$(p new-session -d -s "$session" -n "$window_name" -c "$cwd" \
+      -P -F '#{window_index}.#{pane_index}' 2>/dev/null) || return 0
+    [ -z "$resume" ] || queue_line "$session:$created" "$resume"
   else
-    window_index=$(p new-session -d -s "$name" -c "$first_pane_cwd" \
-      -P -F '#{window_index}')
-    sleep "$shell_ready_delay"
+    created=$(p new-window -t "$session" -n "$window_name" -c "$cwd" \
+      -P -F '#{window_index}.#{pane_index}' 2>/dev/null) || return 0
+    [ -z "$resume" ] || queue_line "$session:$created" "$resume"
   fi
 
-  p rename-window -t "$name:$window_index" "$window_name"
-
-  first_pane_index=$(p list-panes -t "$name:$window_index" -F '#{pane_index}')
-
-  # Every other pane is born in its own directory (`split-window -c`), but an
-  # adopted pane's shell started wherever psmux put it, and `claude --resume`
-  # finds a conversation only from the directory that recorded it.
-  if [ -n "$adopted" ]; then
-    p send-keys -t "$name:$window_index.$first_pane_index" \
-      "cd '$first_pane_cwd'" Enter
-    sleep "$settle_delay"
-  fi
-
-  actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
-  p select-layout -t "$name:$window_index" "$window_layout"
-  resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
-
-  # Which window to leave the session on, held until every window exists:
-  # `new-window` switches to what it creates, so selecting any earlier would
-  # be undone by the next one.
-  local active_window=''
-  [ "$(printf '%s' "$window" | jq -r '.active')" = 'true' ] &&
-    active_window="$window_index"
-
-  local i
-  for ((i = 1; i < window_count; i++)); do
-    window=$(printf '%s' "$windows_json" | jq -c ".[$i]")
-    window_name=$(printf '%s' "$window" | jq -r '.name')
-    window_layout=$(printf '%s' "$window" | jq -r '.layout')
-    window_panes=$(printf '%s' "$window" | jq -c '.panes')
-    first_pane_cwd=$(printf '%s' "$window_panes" | jq -r '.[0].cwd')
-
-    window_index=$(p new-window -t "$name" -n "$window_name" -c "$first_pane_cwd" \
-      -P -F '#{window_index}')
-    sleep "$shell_ready_delay"
-
-    first_pane_index=$(p list-panes -t "$name:$window_index" -F '#{pane_index}')
-    actual_indices=$(restore_panes "$name:$window_index" "$window_panes" "$first_pane_index")
-    p select-layout -t "$name:$window_index" "$window_layout"
-    resume_panes "$name" "$window_index" "$window_panes" "$actual_indices"
-
-    [ "$(printf '%s' "$window" | jq -r '.active')" = 'true' ] &&
-      active_window="$window_index"
-  done
-
-  if [ -n "$active_window" ]; then
-    p select-window -t "$name:$active_window"
-  fi
+  window_index="${created%.*}"
+  [ "$window_active" = 'true' ] && active_window="$window_index"
 }
 
-session_count=$(printf '%s' "$layout_json" | jq '.sessions | length' 2>/dev/null) || exit 0
-for ((s = 0; s < session_count; s++)); do
-  restore_session "$(printf '%s' "$layout_json" | jq -c ".sessions[$s]")"
-done
+while IFS=$'\t' read -r kind a b c d; do
+  case "$kind" in
+  S) start_session "$a" ;;
+  W) [ -n "$session_skipped" ] || start_window "$a" "$b" "$c" "$d" ;;
+  P) [ -n "$session_skipped" ] || add_pane "$a" "$b" ;;
+  esac
+done <<<"$plan"
+finish_session
+
+type_when_ready
 exit 0
