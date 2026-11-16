@@ -15,7 +15,7 @@ catalogs:
     # eslint-disable pnpm/yaml-no-unused-catalog-item -- consumed by the chezmoi pnpm-globals template, not a package.json
     '@bitwarden/cli': 2026.10.1
     '@openai/codex': 0.167.0
-    '@playwright/cli': 0.1.23
+    '@playwright/cli': 0.1.24
     '@pnp/cli-microsoft365': 11.11.0
     '@readonly-mcp/server': 1.0.0
     '@vtsls/language-server': 0.3.0
