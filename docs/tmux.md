@@ -21,6 +21,7 @@ where the backends diverge.
 | [`home/dot_psmux/psmux-snapshot`](../home/dot_psmux/psmux-snapshot)                                                   | Captures the whole layout to `~/.psmux/layout.json` — see [Layout Snapshot and Restore](#layout-snapshot-and-restore) |
 | [`home/dot_psmux/psmux-restore`](../home/dot_psmux/psmux-restore)                                                     | Rebuilds it at server boot, resuming each pane's own Claude session                                                   |
 | [`home/dot_psmux/psmux-autosave`](../home/dot_psmux/psmux-autosave)                                                   | One snapshot loop per server, catching what the Claude session hooks miss                                             |
+| [`home/dot_config/powershell/profile.d/25-psmux.ps1`](../home/dot_config/powershell/profile.d/25-psmux.ps1)           | Deletes the saved layout when the last pane's shell exits by hand                                                     |
 | [`home/dot_tmux.conf.tmpl`](../home/dot_tmux.conf.tmpl)                                                               | The multiplexer config; prefix, splits, per-OS tuning, plugin/nav declarations                                        |
 | [`home/private_dot_vim/private_config/plug.vim.tmpl`](../home/private_dot_vim/private_config/plug.vim.tmpl)           | Declares `christoomey/vim-tmux-navigator` — the Vim side, all platforms                                               |
 | [`home/private_dot_vim/private_plugin/settings.vim.tmpl`](../home/private_dot_vim/private_plugin/settings.vim.tmpl)   | Windows-only Vim shell override so edge-forwarding runs `tmux`                                                        |
@@ -138,6 +139,24 @@ pane's own live pane-id lookup (what `ccr` does) can never match anything,
 since a new server hands out pane ids from `%0`; falling back to `--continue`
 there is wrong the instant two restored panes share a directory, the exact
 ambiguity the whole pane-session/psmux-snapshot chain exists to avoid.
+
+### Layout Forgotten When the Last psmux Pane Exits
+
+Typing `exit` in the last pane deletes `layout.json`, so the next server boot
+restores nothing; closing every pane is a choice to start over. A reboot, or
+psmux killing the shell with `kill-pane` or `kill-server`, leaves the layout
+for restore to rebuild. The dated copies in `~/.psmux/layouts/` are kept
+either way.
+
+[`25-psmux.ps1`](../home/dot_config/powershell/profile.d/25-psmux.ps1) does
+this from PowerShell's `PowerShell.Exiting` event, which fires for `exit` and,
+measured against a live server, not for either kill. psmux's own hooks cannot
+do it: `pane-exited` fires for the last pane, but the server exits before the
+`run-shell` it starts can finish, and psmux ends a namespace's last session
+even with `exit-empty off`. The handler runs while psmux still lists the pane,
+and deletes the layout only when the exiting shell is the pane's own
+(`#{pane_pid}`, not a nested pwsh), the pane is the server's last, and the
+layout's `namespace` names this server.
 
 ## Pane Navigation
 
