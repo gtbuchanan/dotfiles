@@ -48,6 +48,15 @@ for tool in chezmoi git jq mise node; do
   command -v "$tool" >/dev/null || missing="$missing $tool"
 done
 if [ -n "$missing" ]; then
+  # With no mirror chosen, pkg picks at random from every mirror Termux lists,
+  # and CI kept drawing ones that timed out, served a half-synced index, rate
+  # limited, or answered 404. The default mirror is a Cloudflare cache of the
+  # official repository, so it has no sync of its own to be caught partway
+  # through. A device that already has a mirror chosen keeps it.
+  chosen=$PREFIX/etc/termux/chosen_mirrors
+  if [ ! -e "$chosen" ] && [ ! -L "$chosen" ]; then
+    ln -s "$PREFIX/etc/termux/mirrors/default" "$chosen"
+  fi
   pkg update -y >/dev/null # seed the apt mirror on a fresh image
   # `node` is the binary; `nodejs` is the package that provides it.
   #
