@@ -21,7 +21,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: gtbuchanan/tooling/.github/actions/mise-setup@cc8db05d356667bcff53d990ecee5a96a527f03c # v1.0.0
+      - uses: gtbuchanan/tooling/.github/actions/mise-setup@0f6d2cedc85218b1e98c0b796576a64d10373883 # v1.1.0
       - run: mise run test:fast
     strategy:
       fail-fast: false
@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: gtbuchanan/tooling/.github/actions/mise-setup@cc8db05d356667bcff53d990ecee5a96a527f03c # v1.0.0
+      - uses: gtbuchanan/tooling/.github/actions/mise-setup@0f6d2cedc85218b1e98c0b796576a64d10373883 # v1.1.0
       - run: mise run test:termux
 
 name: CI
