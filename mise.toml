@@ -45,7 +45,7 @@ includes = ["mise-tasks", "mise.tasks.toml"]
 chezmoi = "2.74.1"
 hk = "2.12.0"
 jactionlint = "v2.5.0"
-node = "26.13.0"
+node = "26.13.1"
 # aube refuses a package under its weekly-download floor when it resolves one,
 # which locked installs skip but Termux's unlocked ones (MISE_LOCKFILE=false in
 # its profile) do not. Our own CLI sits under that floor.
