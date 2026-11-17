@@ -42,7 +42,7 @@ includes = ["mise-tasks", "mise.tasks.toml"]
 [tools]
 # Backs the hk render-templates step; also lets CI render templates without a
 # separate chezmoi install.
-chezmoi = "2.74.0"
+chezmoi = "2.74.1"
 hk = "2.12.0"
 jactionlint = "v2.5.0"
 node = "26.13.0"
