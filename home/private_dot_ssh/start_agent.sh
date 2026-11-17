@@ -4,8 +4,9 @@
 #
 # Termux's $PREFIX/libexec/source-ssh-agent.sh sources this file, if it exists,
 # for exactly this purpose. The `ssha` wrapper -- which dot_gitconfig.tmpl sets
-# as core.sshCommand on Android -- runs that script, so Git and manual ssh both
-# pick this up with no further wiring.
+# as core.sshCommand on Android -- runs that script, and so does the plain `ssh`
+# in ~/.local/bin/wrappers, so Git and manual ssh both pick this up with no
+# further wiring.
 #
 # The key is streamed to `ssh-add -` on stdin and never written to disk; it
 # exists only in the agent's memory.

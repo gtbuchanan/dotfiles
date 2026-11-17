@@ -23,6 +23,7 @@ Documents
 .local/bin/pnpm
 .local/bin/ssh-askpass-termux
 .local/bin/ssh-keygena
+.local/bin/wrappers/ssh
 .ssh/start_agent.sh
 .termux
 {{- end }}
