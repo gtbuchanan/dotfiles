@@ -22,29 +22,6 @@
  * }>}
  */
 const patches = [
-  /* @azure/monitor-opentelemetry-exporter (the applicationinsights telemetry
-   * pulled by @pnp/cli-microsoft365) requires @azure/logger in its compiled
-   * output but declares it as neither a dependency nor a peerDependency — it
-   * relies on @azure/logger being hoisted (it's a transitive dep of the many
-   * @azure/core-* packages, all of which depend on it). Under our hoist: false
-   * workspace it isn't linked into the exporter's scope, so the CLI crashes at
-   * load with "Cannot find module '@azure/logger'". Hoisted layouts (npm) mask
-   * the bug. Add @azure/logger as an explicit dep so pnpm symlinks the
-   * already-resolved copy into the exporter's scope.
-   *
-   * A recurring Azure SDK anti-pattern (@azure/logger left in devDependencies
-   * while used in dist): https://github.com/Azure/azure-sdk-for-js/issues/26618
-   * (@azure/cosmos), https://github.com/Azure/azure-sdk-for-js/issues/9477
-   * (@azure/identity). No exporter-specific issue is filed yet.
-   *
-   * Drop this patch once the exporter declares @azure/logger as a dependency.
-   */
-  {
-    package: '@azure/monitor-opentelemetry-exporter',
-    dependency: '@azure/logger',
-    spec: '^1',
-    when: 'missing',
-  },
   /* @bitwarden/cli's webpack bundle requires the `buffer` shim (note the
    * trailing slash in `require("buffer/")` — not the node builtin) without
    * declaring it; npm's hoisted layout supplies it, so upstream never notices.

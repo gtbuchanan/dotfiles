@@ -69,10 +69,6 @@ self-contained, no ordering dependencies.
 - `ink-link` omits its `react` dependency, crashing `tweakcc` under
   pnpm's isolated `node_modules`; the hook adds it. Pulled by `tweakcc`,
   installed by `claude-configure`.
-- `@azure/monitor-opentelemetry-exporter` (via `@pnp/cli-microsoft365`)
-  leaves `@azure/logger` in `devDependencies`, crashing `m365` under
-  isolated `node_modules`; the hook adds it. Installed by
-  `install-pnpm-globals` (`ewn` only).
 - `@bitwarden/cli` requires the `buffer` shim from its webpack bundle
   without declaring it, crashing `bw` at startup; the hook adds it.
   Latent until pnpm 11 started symlinking global packages into the store
