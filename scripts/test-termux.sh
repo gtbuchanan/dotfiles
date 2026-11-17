@@ -49,22 +49,39 @@ for tool in chezmoi git jq mise node; do
 done
 if [ -n "$missing" ]; then
   # With no mirror chosen, pkg picks at random from every mirror Termux lists,
-  # and CI kept drawing ones that timed out, served a half-synced index, rate
-  # limited, or answered 404. The default mirror is a Cloudflare cache of the
-  # official repository, so it has no sync of its own to be caught partway
-  # through. A device that already has a mirror chosen keeps it.
+  # and CI kept drawing ones that timed out, rate limited, or answered 404.
+  # The default mirror, a Cloudflare cache of the official repository, avoids
+  # those. A device that already has a mirror chosen keeps it.
   chosen=$PREFIX/etc/termux/chosen_mirrors
   if [ ! -e "$chosen" ] && [ ! -L "$chosen" ]; then
     ln -s "$PREFIX/etc/termux/mirrors/default" "$chosen"
   fi
-  pkg update -y >/dev/null # seed the apt mirror on a fresh image
+
+  # Any mirror can still be caught mid-update: the cache has served a
+  # Packages file that no longer matched the index it was listed in. That
+  # clears once the cache catches up, so the update and install are retried
+  # together; retrying only the install would reuse the stale index.
+  #
   # `node` is the binary; `nodejs` is the package that provides it.
   #
   # Without recommends because git recommends openssh, which nothing here
   # needs, and a package pulled in that way can fail the whole install: the
   # index once listed an openssh build that two mirrors in a row answered
   # with a 404.
-  pkg install -y --no-install-recommends chezmoi git jq mise nodejs >/dev/null
+  install_packages() {
+    pkg update -y &&
+      pkg install -y --no-install-recommends chezmoi git jq mise nodejs
+  }
+  attempt=1
+  until install_packages >/dev/null; do
+    if [ "$attempt" -ge 4 ]; then
+      echo '==> package install failed 4 times; giving up' >&2
+      exit 1
+    fi
+    echo "==> package install failed; retrying in $((attempt * 30))s" >&2
+    sleep $((attempt * 30))
+    attempt=$((attempt + 1))
+  done
 fi
 
 export LD_PRELOAD="${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}"
