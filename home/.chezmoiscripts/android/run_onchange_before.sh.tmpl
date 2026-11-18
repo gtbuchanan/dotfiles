@@ -20,10 +20,15 @@
 # python is the same story: mise's only android path is compiling CPython from
 # source, which doesn't compile against bionic, so a repo pinning a Python
 # version resolves the pkg build from PATH.
+#
+# chromium is the browser playwright-cli drives here (see
+# ~/.local/bin/wrappers/playwright-cli): Playwright publishes no android build.
+# It lives in x11-repo, which must be enabled before `pkg update` indexes it.
 PKG_PACKAGES=(
   "age"
   "bash-completion"
   "chezmoi"
+  "chromium"
   "clang"
   "eza"
   "fzf"
@@ -50,6 +55,7 @@ PKG_PACKAGES=(
   "uv"
   "vim"
 )
+pkg install -y x11-repo
 pkg update
 pkg install -y $(printf "%s " "${PKG_PACKAGES[@]}")
 

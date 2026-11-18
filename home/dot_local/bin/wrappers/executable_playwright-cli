@@ -1,0 +1,29 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Runs playwright-cli against Termux's Chromium, the only browser it can drive
+# here: Playwright publishes no android build, so `install-browser` has nothing
+# to fetch.
+#
+# playwright-core throws "Unsupported platform: android" while loading, from
+# cache-directory lookups that accept only linux, darwin and win32. One of them
+# honors PLAYWRIGHT_BROWSERS_PATH and one has no override at all, so the preload
+# reports the platform as linux before either runs. NODE_OPTIONS carries it into
+# the session daemon the CLI spawns, which is the process that launches the
+# browser.
+#
+# PLAYWRIGHT_MCP_EXECUTABLE_PATH points every launch at the system binary
+# without a config file. `--config` would do the same, but only `open` and
+# `attach` accept it.
+#
+# It runs playwright-cli by its pnpm path, because PATH puts
+# ~/.local/bin/wrappers ahead of pnpm's bin directory and a bare name resolves
+# back to this file.
+#
+# This is run by sh, so it must stay POSIX -- no bashisms.
+
+prefix=${TERMUX__PREFIX:-$PREFIX}
+
+NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--import=data:text/javascript,Object.defineProperty(process,'platform',{value:'linux'})"
+PLAYWRIGHT_MCP_EXECUTABLE_PATH=${PLAYWRIGHT_MCP_EXECUTABLE_PATH:-$prefix/bin/chromium-browser}
+export NODE_OPTIONS PLAYWRIGHT_MCP_EXECUTABLE_PATH
+
+exec "${PNPM_HOME:-$HOME/.local/share/pnpm}/bin/playwright-cli" "$@"
