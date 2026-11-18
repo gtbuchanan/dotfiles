@@ -37,6 +37,18 @@ BASH_COMP_PATH="/usr/share/bash-completion/bash_completion"
 
 # Enable ble.sh
 . "$HOME/.local/share/blesh/ble.sh"
+{{- if eq .chezmoi.os "android" }}
+
+# pnpm's global bin goes on PATH before mise activates, so the PATH mise
+# captures already holds it. mise keeps an entry prepended after activation in
+# front of its own, which would put pnpm's playwright-cli ahead of
+# ~/.local/bin/wrappers (see dot_config/mise/conf.d/wrappers.toml).
+export PNPM_HOME="$HOME/.local/share/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+esac
+{{- end }}
 
 # Activate mise (tool version + env + task manager); prepends real tool
 # paths, overriding the shims that .profile adds for non-interactive use
@@ -86,13 +98,3 @@ command -v wt >/dev/null && eval "$(wt config shell init bash)"
 
 # Add aliases
 . "$HOME/.bash_aliases"
-
-{{- if eq .chezmoi.os "android" }}
-
-# pnpm
-export PNPM_HOME="$HOME/.local/share/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME/bin:"*) ;;
-  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
-esac
-{{- end }}
