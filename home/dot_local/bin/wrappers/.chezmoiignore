@@ -6,9 +6,10 @@
        On Windows each shell finds a different one of these under the name
        `hass-cli`. `hass-cli.cmd` is the wrapper, and what cmd finds.
        PowerShell looks for a .ps1 first, so `hass-cli.ps1` gets there ahead of
-       it and fixes the quoting cmd would break. Git Bash honours no PATHEXT at
-       all and would walk past both to mise's shim, so the extensionless
-       `hass-cli` hands off to the .cmd. Termux needs only that last one. */}}
+       it and runs the binary without cmd re-parsing the arguments. Git Bash
+       honours no PATHEXT at all and would walk past both to mise's shim, so
+       the extensionless `hass-cli` hands off to the .cmd. Termux needs only
+       that last one. */}}
 {{- if or (and (ne .chezmoi.os "android") (ne .chezmoi.os "windows")) (ne .hosttype "personal") }}
 hass-cli
 {{- end }}
