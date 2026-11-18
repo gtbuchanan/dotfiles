@@ -1,0 +1,9 @@
+# Termux only, read by
+# .chezmoiscripts/android/run_onchange_after_install-gh-stack.sh.tmpl.
+# `gh extension install` can't resolve an android asset, and
+# `gh extension upgrade` can't manage the hand-placed install, so the version
+# is pinned here instead.
+#
+---
+# renovate: datasource=github-releases depName=github/gh-stack
+gh_stack_version: '0.3.0'

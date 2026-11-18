@@ -1,0 +1,82 @@
+#!/data/data/com.termux/files/usr/bin/bash
+{{/*
+  gh-stack install for Termux/Android.
+
+  gh-stack publishes no android-arm64 asset, so `gh extension install` fails.
+  The static linux-arm64 Go binary runs on bionic, but its resolver reads
+  /etc/resolv.conf and its TLS stack the standard certificate paths, neither
+  of which exists on Termux: every API call fails with
+  `lookup api.github.com on [::1]:53: ... connection refused`. The wrapper
+  binds Termux's resolv.conf into place with proot and points SSL_CERT_FILE
+  at Termux's CA bundle.
+
+  The binary sits in gh's extension directory beside a manifest.yml, so
+  `gh stack` dispatches to the wrapper and `gh extension list` reports it.
+  `gh extension upgrade` can't fetch an android asset either, so the version
+  is pinned in home/.chezmoidata/gh-stack.yaml (Renovate-tracked).
+*/}}
+set -euo pipefail
+
+VERSION='{{ .gh_stack_version }}'
+TAG="v${VERSION}"
+ASSET='linux-arm64'
+RELEASE_API="https://api.github.com/repos/github/gh-stack/releases/tags/${TAG}"
+
+EXT_DIR="$HOME/.local/share/gh/extensions/gh-stack"
+BINARY="$EXT_DIR/gh-stack-$ASSET"
+WRAPPER="$EXT_DIR/gh-stack"
+MANIFEST="$EXT_DIR/manifest.yml"
+
+# gh comes from run_onchange_before.sh; proot is installed here because
+# nothing else on this platform guarantees it.
+pkg install -y proot
+
+mkdir -p "$EXT_DIR"
+
+installed_tag=$(sed -n 's/^tag: //p' "$MANIFEST" 2> /dev/null || true)
+if [ "$installed_tag" != "$TAG" ] || [ ! -x "$BINARY" ]; then
+  echo "Installing gh-stack $VERSION..."
+  # The release ships no checksum file; GitHub's API publishes a sha256
+  # digest for each asset instead.
+  asset_json=$(curl -fsSL "$RELEASE_API" \
+    | jq -er --arg n "$ASSET" '.assets[] | select(.name == $n)')
+  checksum=$(jq -er '.digest | ltrimstr("sha256:")' <<< "$asset_json")
+  url=$(jq -er '.browser_download_url' <<< "$asset_json")
+
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$url" -o "$tmp/$ASSET"
+
+  actual=$(sha256sum "$tmp/$ASSET" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $ASSET: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  chmod +x "$tmp/$ASSET"
+  mv "$tmp/$ASSET" "$BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+
+cat > "$WRAPPER" << 'WRAPPER_EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+# Runs gh-stack's static linux-arm64 build, which expects /etc/resolv.conf
+# and the standard certificate paths: proot binds Termux's resolver into
+# place, and SSL_CERT_FILE points at Termux's CA bundle.
+prefix="${PREFIX:-/data/data/com.termux/files/usr}"
+export SSL_CERT_FILE="${SSL_CERT_FILE:-${prefix}/etc/tls/cert.pem}"
+exec "${prefix}/bin/proot" -b "${prefix}/etc/resolv.conf:/etc/resolv.conf" \
+  "$(dirname "$0")/gh-stack-linux-arm64" "$@"
+WRAPPER_EOF
+chmod +x "$WRAPPER"
+
+# Written last so an interrupted install leaves a stale tag and retries.
+cat > "$MANIFEST" << MANIFEST_EOF
+owner: github
+name: gh-stack
+host: github.com
+tag: $TAG
+ispinned: false
+path: $WRAPPER
+MANIFEST_EOF
