@@ -41,12 +41,14 @@ printf '%s\n%s\n' "${HASS_SERVER-}" "${HASS_TOKEN-}" >"$dir/env.txt"
 exit $#
 '@
 
-  # Compiled once per run: starting Windows PowerShell to drive csc costs
-  # seconds, and every sandbox can copy the same binary. pwsh's own Add-Type
-  # can no longer emit an executable, hence the detour.
+  # Compiled once per Describe: starting Windows PowerShell to drive csc costs
+  # seconds, and every sandbox in a block can copy the same binary. Pester
+  # removes $TestDrive when a Describe ends, so the cache is the file itself
+  # rather than a remembered path. pwsh's own Add-Type can no longer emit an
+  # executable, hence the detour.
   $script:compiledStub = $null
   function script:Get-CompiledStub {
-    if (-not $script:compiledStub) {
+    if (-not ($script:compiledStub -and (Test-Path -LiteralPath $script:compiledStub))) {
       $out = Join-Path $TestDrive 'hass-cli-stub.exe'
       powershell.exe -NoProfile -NonInteractive -Command {
         param($Source, $Out)
