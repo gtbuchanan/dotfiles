@@ -1,4 +1,4 @@
-"$schema" = 'https://starship.rs/config-schema.json'
+"$schema" = "https://starship.rs/config-schema.json"
 
 format = """
 [](env_bg)\
@@ -27,19 +27,19 @@ ${env_var.VI_MODE_PROMPT}\
 
 add_newline = false
 
-palette = 'default'
+palette = "default"
 
 [env_var.VI_MODE_PROMPT]
-default = ''
-format = '$env_value'
+default = ""
+format = "$env_value"
 
 [custom.vi_mode_bash]
 command = 'echo "\q{blerc/vim-mode}"'
-format = '$output'
-ignore_timeout = true                    # PowerShell is slow to test
-os = 'unix'
-unsafe_no_escape = true                  # Required for the escape sequence
-when = 'test "$STARSHIP_SHELL" = "bash"' # This needs to work in PowerShell
+format = "$output"
+ignore_timeout = true  # PowerShell is slow to test
+os = "unix"
+unsafe_no_escape = true  # Required for the escape sequence
+when = 'test "$STARSHIP_SHELL" = "bash"'  # This needs to work in PowerShell
 
 [os]
 disabled = false
@@ -76,7 +76,7 @@ pwsh_indicator = "pwsh"
 style = "bg:env_bg fg:light_fg"
 
 [username]
-format = '[ $user]($style)'
+format = "[ $user]($style)"
 show_always = false
 style_root = "bg:id_bg fg:light_fg"
 style_user = "bg:id_bg fg:light_fg"
@@ -92,7 +92,7 @@ repo_root_format = "[ \uF408 $repo_root$path [$read_only]($read_only_style)]($st
 repo_root_style = "bold"
 style = "bg:dir_bg fg:dark_fg"
 truncation_length = 5
-truncation_symbol = '.../'
+truncation_symbol = ".../"
 
 [directory.substitutions]
 "Developer" = "󰲋 "
@@ -102,7 +102,7 @@ truncation_symbol = '.../'
 "Pictures" = " "
 
 [git_branch]
-format = '[ $symbol $branch ]($style)'
+format = "[ $symbol $branch ]($style)"
 style = "bg:git_bg fg:light_fg"
 symbol = ""
 
@@ -112,17 +112,17 @@ behind = "⇣${count}"
 conflicted = "!${count}"
 deleted = "-${count}"
 diverged = "⇕${count}"
-format = '([($stashed )( ($untracked )($modified )($renamed )($deleted )($conflicted ))($staged )($ahead_behind )]($style))'
+format = "([($stashed )( ($untracked )($modified )($renamed )($deleted )($conflicted ))($staged )($ahead_behind )]($style))"
 modified = "~${count}"
 renamed = "»${count}"
 staged = " ${count}"
-stashed = ' ${count}'
+stashed = " ${count}"
 style = "bg:git_bg fg:light_fg"
 untracked = "?${count}"
 
 [git_state]
 cherry_pick = "\uE29B"
-format = '[$state ($progress_current/$progress_total )]($style)'
+format = "[$state ($progress_current/$progress_total )]($style)"
 merge = "\uE727"
 rebase = "\uE728"
 revert = "\uF0E2"
@@ -130,7 +130,7 @@ style = "bg:git_bg fg:light_fg"
 
 [time]
 disabled = false
-format = '[[ $time ](fg:light_fg bg:env_bg)]($style)'
+format = "[[ $time ](fg:light_fg bg:env_bg)]($style)"
 style = "bg:time_bg"
 time_format = "%R"
 
