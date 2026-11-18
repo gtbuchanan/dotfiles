@@ -50,10 +50,9 @@
 - Write headers as future-proof permalinks. The auto-generated anchor
   (`#header-slug`) is a public contract — external links, cross-doc
   references, and bookmarks depend on it, so renames break them silently.
-  - Scope each header to its document's subject, not just the local
-    section, so the anchor is self-describing out of context. In a
-    mixed-topic doc, `## Commit Messages` is fine; in a Git-only doc,
-    prefer `## Git Commit Messages` over `## Messages`.
+  - Make each header specific enough to stand alone as an anchor. Qualify
+    it to separate it from its siblings, not to restate the document's
+    subject.
   - Avoid vague nouns that invite collision (`## Notes`, `## Overview`,
     `## Configuration`) — pick something specific enough that a sibling
     section won't later need the same name.
