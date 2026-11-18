@@ -27,19 +27,19 @@
   which crashes glibc binaries on startup — but by the time this env is
   applied the dynamic linker is already done with claude; it only takes
   effect in subprocesses, which is exactly what we want. Claude's
-  launcher wrapper clears LD_PRELOAD before exec'ing the binary so this
+  launcher wrapper replaces LD_PRELOAD before exec'ing the binary so this
   value doesn't leak into the binary's own startup.
 
-  This LD_PRELOAD also leaks into claude's shell snapshot subprocesses,
-  whose `grep`/`find`/`rg` functions re-exec the claude binary via
-  $CLAUDE_CODE_EXECPATH. That re-exec inherits LD_PRELOAD and crashes
-  with "libc.so: invalid ELF header" (libtermux-exec can't load into
-  glibc — bionic ABI). The claude-code-termux package patches the binary
-  so it sets CLAUDE_CODE_EXECPATH="" in subprocess env; the snapshot's
-  `[[ -x $_cc_bin ]] || _cc_bin=$WRAPPER` fallback then routes the
-  re-exec through the wrapper, which clears LD_PRELOAD.
+  The claude-code-termux launcher shim goes first. Claude's shell snapshot
+  can bake the bare patched binary's path into its `grep`/`find`
+  functions, and that exec would carry this bionic LD_PRELOAD into the
+  glibc binary, which aborts with "libc.so: invalid ELF header". The shim
+  sends any shell exec of the bare binary through the launcher and
+  forwards every other exec to termux-exec behind it. This mirrors the
+  value the package's postinst writes, which CLAUDE_CODE_SKIP_SETTINGS
+  turns off here.
 */}}
-    "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
+    "LD_PRELOAD": "/data/data/com.termux/files/usr/lib/claude-code-termux/launcher-redirect.so:/data/data/com.termux/files/usr/lib/libtermux-exec-ld-preload.so"
 {{- end }}
   },
 {{- /*
