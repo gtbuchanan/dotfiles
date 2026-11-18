@@ -1,0 +1,25 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Starts ssh-agent if none is reachable, seeds it from the vault through
+# ~/.ssh/start_agent.sh, and exports SSH_AUTH_SOCK before running tea, the
+# same way the ssh wrapper beside this file does for ssh.
+#
+# A tea login made with --ssh-agent-key signs every API request with that
+# agent-held key instead of storing a token. Termux exports SSH_AUTH_SOCK only
+# inside its `ssha`-style wrappers, so a bare tea finds no agent, falls back to
+# scanning ~/.ssh, and fails opening a private key that exists only in the
+# agent. This file shadows tea for every caller, because PATH puts
+# ~/.local/bin/wrappers ahead of $PREFIX/bin.
+#
+# It runs tea by its prefix path. Termux's own wrappers run "$wrapped_cmd",
+# which source-ssh-agent.sh derives from $0 by dropping a trailing `a`; named
+# `tea`, that resolves back to this file and loops.
+#
+# This is run by sh, so it must stay POSIX -- no bashisms.
+
+prefix=${TERMUX__PREFIX:-$PREFIX}
+
+# Termux ships this script outside the repo, so there is nothing to follow.
+# shellcheck source=/dev/null
+. "$prefix/libexec/source-ssh-agent.sh"
+
+exec "$prefix/bin/tea" "$@"
