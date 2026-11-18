@@ -1,0 +1,13 @@
+# mobilecli, which drives iOS and Android devices, simulators and emulators
+# from the shell: accessibility snapshots with tappable refs, screenshots, app
+# install and launch, and webview inspection. Its skill is a chezmoi external.
+#
+# A Go binary from GitHub releases, so it needs no Node in the global scope
+# the way an `npm:` tool would. Real iOS devices still need a Mac to build,
+# sign and install WebDriverAgent; from other hosts it drives Android.
+#
+# `ubi:` rather than `github:`: the release zips store the binary without its
+# execute bit, which ubi restores and the github backend leaves off, so the
+# shim fails with "Permission denied".
+[tools]
+"ubi:mobile-next/mobilecli" = "1.0.21"
