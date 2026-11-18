@@ -1,14 +1,47 @@
-#!/usr/bin/env sh
-# Git Bash entry point for the hass-cli wrapper. The wrapper itself is
-# hass-cli.cmd beside this file; this only exists so bash can find it.
+#!/usr/bin/env bash
+# Runs hass-cli with credentials in its environment, for Git Bash callers.
 #
-# MSYS bash does not honour PATHEXT, so a bare `hass-cli` never matches a .cmd
-# no matter where the wrappers directory sits on PATH -- bash walks straight
-# past it to mise's shim and runs hass-cli with no credentials, failing over to
-# zeroconf discovery exactly as it did before any of this existed. An
-# extensionless file is the only name bash will resolve, and bash can execute a
-# .cmd given a path, so the two facts meet here.
+# MSYS bash does not honour PATHEXT, so a bare `hass-cli` never matches the
+# .cmd or .ps1 wrappers beside this file -- bash walks straight past them to
+# mise's shim and runs hass-cli with no credentials, failing over to zeroconf
+# discovery. An extensionless file is the only name bash will resolve.
 #
-# Deliberately a hand-off rather than a second implementation: duplicating the
-# credential handling in two languages would mean two places to get it wrong.
-exec "$(dirname "$0")/hass-cli.cmd" "$@"
+# It runs hass-cli.exe itself rather than handing off to hass-cli.cmd. MSYS
+# writes a JSON argument's inner quotes as \", which hass-cli.exe parses and
+# cmd does not: cmd re-parses the .cmd's `"%SHIM%" %*` line, each \" toggles
+# its quote state, and a `|`, `&`, `<` or `>` left outside a quoted span
+# becomes an operator. A batch file cannot forward arbitrary arguments safely.
+#
+# The credential handling follows the Termux wrapper; see docs/home-assistant.md.
+
+set -euo pipefail
+
+# LOCALAPPDATA keeps its Windows form under MSYS; cygpath makes it a path bash
+# can test and exec. The shim rather than `hass-cli`, which would find this
+# wrapper again and recurse.
+shim="$(cygpath -u "$LOCALAPPDATA")/mise/shims/hass-cli.exe"
+
+if [ ! -x "$shim" ]; then
+  printf 'hass-cli: mise shim not found at %s\n' "$shim" >&2
+  printf "hass-cli: run 'mise install' to install the pinned CLI\n" >&2
+  exit 127
+fi
+
+# By path, so nothing in the caller's directory can stand in for the resolver.
+# Its only argument is a literal, so cmd has nothing here to misparse.
+if ! credential=$("$(dirname "$0")/../hass-vault.cmd" credential); then
+  printf "hass-cli: could not resolve credentials; run 'hass-vault check'\n" >&2
+  exit 1
+fi
+
+# cmd ends each line in CRLF, and the CR would become part of the token.
+{
+  IFS= read -r HASS_SERVER
+  IFS= read -r HASS_TOKEN
+} <<<"${credential//$'\r'/}"
+unset credential
+export HASS_SERVER HASS_TOKEN
+
+# exec, so hass-cli inherits this process rather than gaining a parent holding
+# the same credentials.
+exec "$shim" "$@"

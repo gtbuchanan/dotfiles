@@ -6,27 +6,29 @@ hosts only**, on every platform this repo supports. Credentials are wired up on 
 
 ## File Map
 
-| File                                                                                                                      | Role                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [`home/.chezmoiremove`](../home/.chezmoiremove)                                                                           | Deletes the retired `[env]` fragment from hosts that already had it  |
-| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs Termux's native `uv`, the install engine on Android         |
-| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                   | The version pin, personal hosts                                      |
-| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                           | uv, the engine mise's `pipx:` backend installs through               |
-| [`home/dot_config/mise/conf.d/wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)                               | Puts `wrappers/` ahead of mise's install directories                 |
-| [`home/dot_local/bin/executable_hass-cli-postinstall`](../home/dot_local/bin/executable_hass-cli-postinstall)             | Event-loop shim for Python 3.14 venvs, run by the pin's postinstall  |
-| [`home/dot_local/bin/executable_hass-vault`](../home/dot_local/bin/executable_hass-vault)                                 | Vault resolver + keystore-sealed cache, Termux                       |
-| [`home/dot_local/bin/hass-cli-postinstall.cmd`](../home/dot_local/bin/hass-cli-postinstall.cmd)                           | Windows no-op, so the shared pin's postinstall resolves there        |
-| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                               | Shim, so the wrapper can name `hass-vault` as a bare command         |
-| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                               | Vault resolver + DPAPI-wrapped cache, Windows                        |
-| [`home/dot_local/bin/wrappers/executable_hass-cli.tmpl`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl)         | Scopes credentials to hass-cli's process (Termux); Git Bash hand-off |
-| [`home/dot_local/bin/wrappers/hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd)                                 | Scopes credentials to hass-cli's process, Windows                    |
-| [`home/dot_local/bin/wrappers/hass-cli.ps1`](../home/dot_local/bin/wrappers/hass-cli.ps1)                                 | Scopes credentials to hass-cli's process, PowerShell                 |
-| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims                             |
-| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims on the user PATH            |
-| [`test/HassCliWrapper.Tests.ps1`](../test/HassCliWrapper.Tests.ps1)                                                       | Pester suite for the PowerShell wrapper, in CI                       |
-| [`test/HassVault.Tests.ps1`](../test/HassVault.Tests.ps1)                                                                 | Pester suite, Windows (`mise run test:pester`), in CI                |
-| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                   | shUnit2 suite, Termux (`mise run test:shunit2`), in CI               |
-| [`test/stubs/termux-keystore`](../test/stubs/termux-keystore)                                                             | Model of the keystore, so that suite can run off a device            |
+| File                                                                                                                      | Role                                                                |
+| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [`home/.chezmoiremove`](../home/.chezmoiremove)                                                                           | Deletes the retired `[env]` fragment from hosts that already had it |
+| [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl) | Installs Termux's native `uv`, the install engine on Android        |
+| [`home/.chezmoitemplates/hass-cli-gitbash`](../home/.chezmoitemplates/hass-cli-gitbash)                                   | The Git Bash wrapper body, kept as plain shell                      |
+| [`home/dot_config/mise/conf.d/home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml)                   | The version pin, personal hosts                                     |
+| [`home/dot_config/mise/conf.d/uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                                           | uv, the engine mise's `pipx:` backend installs through              |
+| [`home/dot_config/mise/conf.d/wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)                               | Puts `wrappers/` ahead of mise's install directories                |
+| [`home/dot_local/bin/executable_hass-cli-postinstall`](../home/dot_local/bin/executable_hass-cli-postinstall)             | Event-loop shim for Python 3.14 venvs, run by the pin's postinstall |
+| [`home/dot_local/bin/executable_hass-vault`](../home/dot_local/bin/executable_hass-vault)                                 | Vault resolver + keystore-sealed cache, Termux                      |
+| [`home/dot_local/bin/hass-cli-postinstall.cmd`](../home/dot_local/bin/hass-cli-postinstall.cmd)                           | Windows no-op, so the shared pin's postinstall resolves there       |
+| [`home/dot_local/bin/hass-vault.cmd`](../home/dot_local/bin/hass-vault.cmd)                                               | Shim, so the wrapper can name `hass-vault` as a bare command        |
+| [`home/dot_local/bin/hass-vault.ps1`](../home/dot_local/bin/hass-vault.ps1)                                               | Vault resolver + DPAPI-wrapped cache, Windows                       |
+| [`home/dot_local/bin/wrappers/executable_hass-cli.tmpl`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl)         | Scopes credentials to hass-cli's process, Termux and Git Bash       |
+| [`home/dot_local/bin/wrappers/hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd)                                 | Scopes credentials to hass-cli's process, Windows                   |
+| [`home/dot_local/bin/wrappers/hass-cli.ps1`](../home/dot_local/bin/wrappers/hass-cli.ps1)                                 | Scopes credentials to hass-cli's process, PowerShell                |
+| [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims                            |
+| [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims on the user PATH           |
+| [`test/HassCliWrapper.Tests.ps1`](../test/HassCliWrapper.Tests.ps1)                                                       | Pester suite for the PowerShell wrapper, in CI                      |
+| [`test/HassVault.Tests.ps1`](../test/HassVault.Tests.ps1)                                                                 | Pester suite, Windows (`mise run test:pester`), in CI               |
+| [`test/hass_cli_gitbash_test.sh`](../test/hass_cli_gitbash_test.sh)                                                       | shUnit2 suite for the Git Bash wrapper, in CI                       |
+| [`test/hass_vault_test.sh`](../test/hass_vault_test.sh)                                                                   | shUnit2 suite, Termux (`mise run test:shunit2`), in CI              |
+| [`test/stubs/termux-keystore`](../test/stubs/termux-keystore)                                                             | Model of the keystore, so that suite can run off a device           |
 
 ## Installation
 
@@ -113,7 +115,9 @@ PowerShell callers therefore get their own wrapper. [`hass-cli.ps1`](../home/dot
 
 Worth noting for anyone re-testing this: the harness process here sets `NoDefaultCurrentDirectoryInExePath=1`, which disables that search and masks the vector entirely. It has to be cleared to reproduce, and `where` lists the decoy first regardless of whether it would actually be executed.
 
-The extensionless file exists because **MSYS bash does not honour `PATHEXT`**. A bare `hass-cli` in Git Bash never matches a `.cmd` no matter where `wrappers/` sits on PATH — bash walks straight past it to mise's shim and runs with no credentials, failing over to zeroconf exactly as before. Measured: the full entity list through the wrapper, and the zeroconf failure without it. Bash _can_ execute a `.cmd` given a path, so the extensionless [`hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl) is a one-line hand-off to its sibling rather than a second implementation. That is also why that source is a template: one file has to serve Termux's full wrapper and this hand-off.
+The extensionless file exists because **MSYS bash does not honour `PATHEXT`**. A bare `hass-cli` in Git Bash never matches a `.cmd` no matter where `wrappers/` sits on PATH — bash walks straight past it to mise's shim and runs with no credentials, failing over to zeroconf exactly as before. Measured: the full entity list through the wrapper, and the zeroconf failure without it.
+
+The extensionless [`hass-cli`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl) runs hass-cli.exe itself rather than handing off to the `.cmd`. MSYS writes a JSON argument's inner quotes as `\"`, which is right for hass-cli.exe and wrong for cmd: cmd re-parses the `.cmd`'s `"%SHIM%" %*` line, each `\"` toggles its quote state, and a `|`, `&`, `<` or `>` left outside a quoted span becomes an operator. The credential handling follows the Termux wrapper, with two Windows differences: `LOCALAPPDATA` goes through `cygpath` to become a path bash can exec, and the CRs cmd puts on the resolver's output are stripped before they can end up in the token. One source serves both platforms, so it is a template, and the Git Bash body lives in the [`hass-cli-gitbash`](../home/.chezmoitemplates/hass-cli-gitbash) partial as plain shell. That keeps it within reach of shellcheck and of [`test/hass_cli_gitbash_test.sh`](../test/hass_cli_gitbash_test.sh), which runs it against stubs on every OS. On Windows that suite's stub binary is a compiled executable, so MSYS's quoting meets the same C runtime parser hass-cli.exe uses.
 
 PATH ordering takes two mutations here as well, mirroring `.profile` and the mise fragment:
 the winget config's `wrappersPath` resource puts `wrappers/` on the **user** PATH ahead of the mise shims, for callers that never activate mise, and
@@ -249,7 +253,7 @@ Linux and macOS install the CLI but have no resolver, so they get no credentials
 ## Git Bash Path Arguments
 
 Credentials resolve the same in Git Bash as in PowerShell, once the
-extensionless hand-off described above is on PATH. What differs is argument
+extensionless wrapper described above is on PATH. What differs is argument
 handling: MSYS2 rewrites arguments that look like Unix paths into Windows
 paths, so
 

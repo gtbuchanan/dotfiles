@@ -11,9 +11,10 @@ rem
 rem It works because PATH puts %USERPROFILE%\.local\bin\wrappers ahead of the
 rem tool it wraps: ahead of the shims on the user PATH via the winget config,
 rem and ahead of mise's install directories in conf.d\wrappers.toml. So agents,
-rem scripts, Git Bash, and interactive shells all reach this rather than the
-rem binary -- which is what a shell function could never do, and why `[env]`
-rem was the original answer.
+rem scripts, and interactive shells all reach this rather than the binary --
+rem which is what a shell function could never do, and why `[env]` was the
+rem original answer. Git Bash and PowerShell reach their own wrappers beside
+rem this, which keep cmd from re-parsing their arguments.
 rem
 rem Two things follow from only running when someone asked for hass-cli. It may
 rem prompt, where an `[env]` resolver had to stay silent rather than raise a

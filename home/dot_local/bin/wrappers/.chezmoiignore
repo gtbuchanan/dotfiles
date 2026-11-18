@@ -8,7 +8,7 @@
        PowerShell looks for a .ps1 first, so `hass-cli.ps1` gets there ahead of
        it and runs the binary without cmd re-parsing the arguments. Git Bash
        honours no PATHEXT at all and would walk past both to mise's shim, so
-       the extensionless `hass-cli` hands off to the .cmd. Termux needs only
+       the extensionless `hass-cli` wraps the binary itself. Termux needs only
        that last one. */}}
 {{- if or (and (ne .chezmoi.os "android") (ne .chezmoi.os "windows")) (ne .hosttype "personal") }}
 hass-cli
