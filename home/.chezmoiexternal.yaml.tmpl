@@ -107,6 +107,10 @@
   stripComponents: 1
   include: ["PowerShellEditorServices/**"]
   url: https://github.com/PowerShell/PowerShellEditorServices/releases/download/v4.7.0/PowerShellEditorServices.zip
+  # The digest must be double-quoted: chezmoi rejects a single-quoted or bare
+  # one with only "invalid syntax", naming neither the key nor the line.
+  checksum:
+    sha256: "5084f0326cc88539e9d880b08f6c52ce5be4672bb8ecee8921e35f8895a6b9d7"
 
 {{- else }}
 '.tmux/plugins/tpm-redux':

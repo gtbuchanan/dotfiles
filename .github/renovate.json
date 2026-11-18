@@ -81,13 +81,13 @@
     },
     {
       "customType": "regex",
-      "datasourceTemplate": "github-releases",
-      "description": "Release assets downloaded by tag. The `releases/latest/download/` form these replace resolves at fetch time, so the version was whatever upstream had published that day.",
+      "datasourceTemplate": "github-release-attachments",
+      "description": "Release assets downloaded by tag, each verified by the SHA-256 recorded beside it. A tag pins which release is fetched but not its bytes -- GitHub lets an asset be replaced under the same tag unless the release is immutable -- so the match spans the URL and the checksum and moves them as one unit; a tag bumped without its digest would fail every apply after it.",
       "managerFilePatterns": [
         "/^home/\\.chezmoiexternal\\.yaml\\.tmpl$/"
       ],
       "matchStrings": [
-        "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/releases/download/(?<currentValue>[\\w.-]+)/"
+        "https://github\\.com/(?<depName>[\\w-]+/[\\w.-]+)/releases/download/(?<currentValue>[\\w.-]+)/\\S+\\s*\\n(?:[ \\t]*#.*\\n)*[ \\t]*checksum:\\s*\\n[ \\t]*sha256:\\s*\\\"(?<currentDigest>[a-f0-9]{64})\\\""
       ]
     },
     {
