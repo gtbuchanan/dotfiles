@@ -22,7 +22,7 @@ chain that lets desktop toasts switch focus into the right psmux pane.
 ## Settings Drift
 
 Claude Code rewrites `~/.claude/settings.json` at runtime — key
-reordering, blank-line stripping, auto-set fields like `editorMode`.
+reordering, blank-line stripping, fields it sets itself.
 Chezmoi sees drift on every apply, so this target needs a `--force`
 re-apply whenever its template content changes; everything else
 applies normally.

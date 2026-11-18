@@ -23,7 +23,7 @@ Always edit the corresponding source in **this repo** under `home/`, then run
   drift at the source or ask the user.
 - Exception that needs `--force` on every apply: `~/.claude/settings.json`
   is rewritten by Claude Code at runtime (key reordering, blank-line
-  stripping, auto-set fields like `editorMode`), so chezmoi sees drift on
+  stripping, fields it sets itself), so chezmoi sees drift on
   every run. When apply fails because of this, re-run targeted:
   `chezmoi apply --no-tty --force ~/.claude/settings.json`, then a normal
   `chezmoi apply --no-tty` for the rest. If a drifted field is actually
