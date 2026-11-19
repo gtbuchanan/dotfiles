@@ -1,0 +1,28 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# Runs gt, Gitea's CLI, from the static linux-arm64 release that
+# run_onchange_after_install-gt.sh.tmpl places under ~/.local/share/gitea-cli.
+# Termux packages no gt.
+#
+# That build resolves names through /etc/resolv.conf and verifies TLS against
+# the standard certificate paths, neither of which exists on Android: run bare,
+# every call fails with `lookup <host> on [::1]:53: ... connection refused`.
+# proot binds Termux's resolv.conf into place, and SSL_CERT_FILE names Termux's
+# CA bundle, as the gh-stack wrapper does.
+#
+# It also starts and seeds ssh-agent first, as the ssh wrapper beside this file
+# does. A login made with `gt auth login --ssh-agent-key` stores no token and
+# signs each request with the agent-held key, and gt finds the agent only
+# through SSH_AUTH_SOCK, which Termux exports only inside its agent wrappers.
+#
+# This is run by sh, so it must stay POSIX -- no bashisms.
+
+prefix=${TERMUX__PREFIX:-$PREFIX}
+
+# Termux ships this script outside the repo, so there is nothing to follow.
+# shellcheck source=/dev/null
+. "$prefix/libexec/source-ssh-agent.sh"
+
+export SSL_CERT_FILE="${SSL_CERT_FILE:-$prefix/etc/tls/cert.pem}"
+
+exec "$prefix/bin/proot" -b "$prefix/etc/resolv.conf:/etc/resolv.conf" \
+  "$HOME/.local/share/gitea-cli/gt" "$@"

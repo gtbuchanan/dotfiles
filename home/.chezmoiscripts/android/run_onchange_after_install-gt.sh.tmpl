@@ -1,0 +1,54 @@
+{{/*
+  gt install for Termux/Android.
+  gt, Gitea's official CLI, is not in the Termux registry. Its static
+  linux-arm64 release runs on bionic but can neither resolve names nor verify
+  TLS there; ~/.local/bin/wrappers/gt (dot_local/bin/wrappers/executable_gt)
+  runs it under proot and is what PATH finds. This script places the
+  checksum-verified binary where the wrapper expects it, and the proot the
+  wrapper needs.
+  Building from source with Termux's golang would avoid proot, but
+  `go install gitea.dev/cli/cmd/gt@v2.0.0` fails: the v2 tag kept the
+  unsuffixed module path.
+  Version pinned in `home/.chezmoidata/gt.yaml` and tracked by Renovate.
+*/}}
+set -euo pipefail
+
+VERSION='{{ .gt_version }}'
+ASSET="gitea-cli-${VERSION}-linux-arm64"
+DL_BASE="https://gitea.com/gitea/cli/releases/download/v${VERSION}"
+
+INSTALL_DIR="$HOME/.local/share/gitea-cli"
+BINARY="$INSTALL_DIR/gt-$VERSION"
+LINK="$INSTALL_DIR/gt"
+
+pkg install -y proot
+mkdir -p "$INSTALL_DIR"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Installing gt $VERSION..."
+  checksum=$(curl -fsSL "$DL_BASE/checksums.txt" |
+    awk -v f="$ASSET" '$2 == f { print $1 }')
+  if [ -z "$checksum" ]; then
+    echo "Could not find checksum for $ASSET" >&2
+    exit 1
+  fi
+
+  tmp=$(mktemp -d)
+  trap 'rm -rf "$tmp"' EXIT
+  curl -fsSL "$DL_BASE/$ASSET" -o "$tmp/$ASSET"
+
+  actual=$(sha256sum "$tmp/$ASSET" | cut -d' ' -f1)
+  if [ "$actual" != "$checksum" ]; then
+    echo "Checksum mismatch for $ASSET: expected $checksum, got $actual" >&2
+    exit 1
+  fi
+
+  chmod +x "$tmp/$ASSET"
+  mv "$tmp/$ASSET" "$BINARY"
+  rm -rf "$tmp"
+  trap - EXIT
+fi
+
+ln -sf "$BINARY" "$LINK"
+
+find "$INSTALL_DIR" -mindepth 1 -maxdepth 1 -type f -name 'gt-*' ! -name "gt-$VERSION" -delete

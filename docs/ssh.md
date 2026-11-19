@@ -12,7 +12,7 @@ checked in.
 | File                                                                                                                                | Role                                                                                                                   |
 | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                             | Clones the private host inventory under `~/Code/gtbuchanan` on personal hosts                                          |
-| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                     | Gates `ssh-askpass-termux`, the `ssh` and `tea` wrappers and the agent hook to Android, `*.pub` to personal            |
+| [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                     | Gates `ssh-askpass-termux`, the `gt`, `ssh` and `tea` wrappers and the agent hook to Android, `*.pub` to personal      |
 | [`home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh`](../home/.chezmoiscripts/android/run_after_ssh-agent-hook.sh)           | Symlinks the agent start hook into `$PREFIX/etc/ssh`                                                                   |
 | [`home/.chezmoiscripts/android/run_onchange_before.sh.tmpl`](../home/.chezmoiscripts/android/run_onchange_before.sh.tmpl)           | Installs `openssh` from Termux's pkg repo                                                                              |
 | [`home/Library/LaunchAgents/local.ssh-add.plist`](../home/Library/LaunchAgents/local.ssh-add.plist)                                 | macOS: reloads keychain-held keys into the agent at login, for commit signing                                          |
@@ -29,6 +29,7 @@ checked in.
 | [`home/dot_local/bin/ssh-askpass-bw.cmd`](../home/dot_local/bin/ssh-askpass-bw.cmd)                                                 | Windows SSH_ASKPASS entry point; `SSH_ASKPASS` needs an executable                                                     |
 | [`home/dot_local/bin/ssh-askpass-bw.ps1`](../home/dot_local/bin/ssh-askpass-bw.ps1)                                                 | Resolves a host password from the vault, else prompts via a dialog                                                     |
 | [`home/dot_local/bin/symlink_ssh-keygena`](../home/dot_local/bin/symlink_ssh-keygena)                                               | Android: `ssh-keygen` under Termux's agent wrapper, for commit signing                                                 |
+| [`home/dot_local/bin/wrappers/executable_gt`](../home/dot_local/bin/wrappers/executable_gt)                                         | Android: `gt` starts and seeds the agent, for logins that sign requests with an agent-held key                         |
 | [`home/dot_local/bin/wrappers/executable_ssh`](../home/dot_local/bin/wrappers/executable_ssh)                                       | Android: a plain `ssh` starts and seeds the agent, as `ssha` does                                                      |
 | [`home/dot_local/bin/wrappers/executable_tea`](../home/dot_local/bin/wrappers/executable_tea)                                       | Android: `tea` starts and seeds the agent, for logins that sign requests with an agent-held key                        |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                                 | Wires `SSH_ASKPASS` + `SSH_ASKPASS_REQUIRE` on Android                                                                 |
@@ -569,6 +570,11 @@ login made with `--ssh-agent-key` stores no token: it signs each API
 request with the agent-held key. Without the wrapper, `tea` finds no
 agent and falls back to scanning `~/.ssh`, where only the public halves
 exist.
+
+`~/.local/bin/wrappers/gt` sources the agent script for gt, Gitea's
+newer CLI, whose `gt auth login --ssh-agent-key` signs requests the
+same way. gt has no Termux package, so the wrapper also runs its static
+release under proot to give it a resolver, the way `gh-stack` runs.
 
 ### Bitwarden-Backed Keys on Android
 

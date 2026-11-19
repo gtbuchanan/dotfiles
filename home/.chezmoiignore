@@ -23,6 +23,7 @@ Documents
 .local/bin/pnpm
 .local/bin/ssh-askpass-termux
 .local/bin/ssh-keygena
+.local/bin/wrappers/gt
 .local/bin/wrappers/playwright-cli
 .local/bin/wrappers/ssh
 .local/bin/wrappers/tea
