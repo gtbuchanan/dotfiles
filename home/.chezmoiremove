@@ -47,3 +47,8 @@ AppData/Roaming/wt
 # PATH, so a host that already has it would go on shadowing the real pnpm with
 # a wrapper that downgrades a genuine version disagreement to a warning.
 .local/bin/pnpm
+
+# gt replaced tea on Termux (see wrappers/executable_gt), and tea is no longer
+# installed. The tea wrapper outranks $PREFIX/bin on PATH and would exec a
+# missing binary, so it has to go rather than merely stop being managed.
+.local/bin/wrappers/tea
