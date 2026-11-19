@@ -1,6 +1,7 @@
-# Version for the Termux out-of-band gt install, read by
-# .chezmoiscripts/android/run_onchange_after_install-gt.sh.tmpl. gt is Gitea's
-# official CLI, which replaced tea; Termux packages no gt.
+# The gt version for every platform. gt is Gitea's official CLI, which
+# replaced tea. Read by dot_config/mise/conf.d/gt.toml.tmpl on mise hosts, and
+# by .chezmoiscripts/android/run_onchange_after_install-gt.sh.tmpl on Termux,
+# which packages no gt.
 #
 ---
 # renovate: datasource=gitea-releases depName=gitea/cli

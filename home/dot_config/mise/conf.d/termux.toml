@@ -37,6 +37,11 @@ disable_tools = [
   # packages it as `git-delta` (run_onchange_before.sh), so let the pager and
   # its completion generator resolve that from PATH.
   "delta",
+  # gt (gt.toml) is the case chezmoi above describes: the `forgejo` backend
+  # installs the generic linux-arm64 Go binary, which can't resolve DNS on
+  # bionic. ~/.local/bin/wrappers/gt runs the same release under proot instead
+  # (installed by run_onchange_after_install-gt.sh), so skip the download.
+  "forgejo:gitea/cli",
   # Unlike its neighbours here, fzf does publish an android_arm64 build, so
   # aqua may well resolve one. Termux packages it natively either way, and no
   # host this repo can build on is able to test that resolution -- so it keeps

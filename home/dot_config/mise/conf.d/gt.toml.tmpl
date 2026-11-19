@@ -1,0 +1,15 @@
+# gt, Gitea's CLI, which replaced tea. Termux installs it out of band (see
+# .chezmoiscripts/android/run_onchange_after_install-gt.sh.tmpl) and disables
+# this entry in termux.toml.
+#
+# The one templated fragment. Renovate's mise manager has no `forgejo` backend,
+# so a plain pin here would never be bumped. The version comes from
+# .chezmoidata/gt.yaml instead, which Renovate tracks through gitea-releases
+# and the Termux install reads too, keeping one pin for every platform.
+#
+# The `forgejo` backend defaults to codeberg.org, which has no gitea/cli, so
+# `api_url` points it at gitea.com, which serves the same release API. The
+# asset ships as gitea-cli-<version>-<os>-<arch>, so `bin` names the binary.
+# An exact pin installs even inside the minimum_release_age quarantine.
+[tools]
+"forgejo:gitea/cli" = { version = "{{ .gt_version }}", api_url = "https://gitea.com/api/v1", bin = "gt" }

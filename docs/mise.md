@@ -20,6 +20,7 @@ project's `mise.toml` (the canonical reference here is `gtbuchanan/tooling`'s
 | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | [`home/.chezmoidata/jactionlint.yaml`](../home/.chezmoidata/jactionlint.yaml)                                                                                   | Pinned `jactionlint` version for the Termux install (Renovate-tracked)    |
 | [`home/.chezmoidata/hk.yaml`](../home/.chezmoidata/hk.yaml)                                                                                                     | Pinned `hk` + `pkl` versions for the Termux install (Renovate-tracked)    |
+| [`home/.chezmoidata/gt.yaml`](../home/.chezmoidata/gt.yaml)                                                                                                     | Pinned `gt` version for every platform (Renovate-tracked)                 |
 | [`home/.chezmoidata/mise.yaml`](../home/.chezmoidata/mise.yaml)                                                                                                 | Pinned mise version for the Windows and Linux installs (Renovate-tracked) |
 | [`home/.chezmoiexternal.yaml.tmpl`](../home/.chezmoiexternal.yaml.tmpl)                                                                                         | `mise-guide` skill archive → `~/.agents/skills/mise-guide/`               |
 | [`home/.chezmoiignore`](../home/.chezmoiignore)                                                                                                                 | Gates the android scripts to Termux only                                  |
@@ -116,20 +117,21 @@ The repo-managed global config is a set of fragments under
 alphabetically, below `~/.config/mise/config.toml` in precedence, which leaves
 the plain config file free for anything hand-written on a host.
 
-| Fragment                                                                    | Deployed on    | Holds                                                     |
-| --------------------------------------------------------------------------- | -------------- | --------------------------------------------------------- |
-| [`delta.toml`](../home/dot_config/mise/conf.d/delta.toml)                   | every host     | The `delta` pin (Termux uses `pkg`)                       |
-| [`fzf.toml`](../home/dot_config/mise/conf.d/fzf.toml)                       | every host     | The `fzf` pin (Termux uses `pkg`)                         |
-| [`gh.toml`](../home/dot_config/mise/conf.d/gh.toml)                         | every host     | The `gh` pin (Termux uses `pkg`), and mise's GitHub token |
-| [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                          |
-| [`jq.toml`](../home/dot_config/mise/conf.d/jq.toml)                         | every host     | The `jq` pin (Termux uses `pkg`)                          |
-| [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine                      |
-| [`ripgrep.toml`](../home/dot_config/mise/conf.d/ripgrep.toml)               | every host     | The `ripgrep` pin (Termux uses `pkg`)                     |
-| [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)                    |
-| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | The `disable_tools` workarounds                           |
-| [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via        |
-| [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)         |
-| [`wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)             | every host     | `~/.local/bin/wrappers` ahead of the tool paths           |
+| Fragment                                                                    | Deployed on    | Holds                                                                            |
+| --------------------------------------------------------------------------- | -------------- | -------------------------------------------------------------------------------- |
+| [`delta.toml`](../home/dot_config/mise/conf.d/delta.toml)                   | every host     | The `delta` pin (Termux uses `pkg`)                                              |
+| [`fzf.toml`](../home/dot_config/mise/conf.d/fzf.toml)                       | every host     | The `fzf` pin (Termux uses `pkg`)                                                |
+| [`gh.toml`](../home/dot_config/mise/conf.d/gh.toml)                         | every host     | The `gh` pin (Termux uses `pkg`), and mise's GitHub token                        |
+| [`gt.toml.tmpl`](../home/dot_config/mise/conf.d/gt.toml.tmpl)               | every host     | The `gt` pin, rendered from `.chezmoidata/gt.yaml` (Termux installs out of band) |
+| [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                                                 |
+| [`jq.toml`](../home/dot_config/mise/conf.d/jq.toml)                         | every host     | The `jq` pin (Termux uses `pkg`)                                                 |
+| [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine                                             |
+| [`ripgrep.toml`](../home/dot_config/mise/conf.d/ripgrep.toml)               | every host     | The `ripgrep` pin (Termux uses `pkg`)                                            |
+| [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)                                           |
+| [`termux.toml`](../home/dot_config/mise/conf.d/termux.toml)                 | android        | The `disable_tools` workarounds                                                  |
+| [`uv.toml`](../home/dot_config/mise/conf.d/uv.toml)                         | every host     | uv, the engine mise's `pipx:` backend installs via                               |
+| [`worktrunk.toml`](../home/dot_config/mise/conf.d/worktrunk.toml)           | every host     | The `worktrunk` pin (Termux installs out of band)                                |
+| [`wrappers.toml`](../home/dot_config/mise/conf.d/wrappers.toml)             | every host     | `~/.local/bin/wrappers` ahead of the tool paths                                  |
 
 **Dev toolchains stay out of the global namespace** on every platform. mise's
 `core`/`aqua` backends install them cleanly, so each project's `mise.toml`
@@ -153,6 +155,12 @@ regex manager. Go template directives would make a file unparseable and push it
 back onto one. So the per-platform split lives in
 [`conf.d/.chezmoiignore`](../home/dot_config/mise/conf.d/.chezmoiignore) rather
 than in `{{ if }}` gates inside the files.
+
+`gt.toml.tmpl` is the one exception. It installs through the `forgejo`
+backend, which Renovate's mise manager can't resolve, so plain TOML would buy
+nothing. It renders its version from
+[`.chezmoidata/gt.yaml`](../home/.chezmoidata/gt.yaml), the `renovate:`-annotated
+pin the Termux install reads too.
 
 The manager needs one nudge to find them: its built-in patterns key on a literal
 `.config/mise/conf.d`, which the chezmoi `dot_config` source path doesn't match,
