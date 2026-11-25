@@ -2,8 +2,8 @@
 #
 # PreToolUse guard for commands an agent session must not run:
 #
-#   - anything that prints a vault secret onto stdout, where it becomes a
-#     permanent part of the transcript;
+#   - anything that prints a vault secret or a forge CLI's token onto stdout,
+#     where it becomes a permanent part of the transcript;
 #   - anything that ends PowerShell processes by name, which reaches every pwsh
 #     on the machine rather than the one that was meant.
 #
@@ -310,12 +310,53 @@ evaluate() { # $1 = fragment, $2 = interpreter recursion depth
     -*) shift ;;
     *)
       subcommand=$1
+      shift
       break
       ;;
     esac
   done
 
-  verdict "$binary" "$subcommand"
+  # The forge CLIs nest their commands a level deeper than the table above
+  # reads, so they get the remaining words as well. Their global flags take a
+  # value, which the loop above reads as the subcommand -- the reason the whole
+  # tail is searched rather than the word after the binary.
+  case $binary in
+  gt | gh) forge_verdict "$subcommand" "$@" ;;
+  *) verdict "$binary" "$subcommand" ;;
+  esac
+}
+
+# Words that take a value, wherever they appear in a gt or gh command, so the
+# value is not mistaken for the next command word.
+FORGE_VALUE_FLAGS=' --host --user -r --repo --hostname '
+
+# The non-flag words of a forge command, in order -> _words.
+forge_words() {
+  _words=' '
+  while [ $# -gt 0 ]; do
+    case $1 in
+    -*=*) ;;
+    -*) in_set "$FORGE_VALUE_FLAGS" "$1" && shift ;;
+    *) _words="$_words$1 " ;;
+    esac
+    [ $# -gt 0 ] && shift
+  done
+}
+
+# Sets $reason and returns 0 when a gt or gh command prints a token.
+forge_verdict() { # $@ = the words after the binary
+  forge_words "$@"
+  case $_words in
+  *' auth token '*)
+    reason='Blocked: auth token prints the stored forge token in full, putting
+        a live credential into the transcript. git reads it through the
+        credential helper (gt auth setup-git, gh auth setup-git) without it
+        reaching stdout, and gt auth status or gh auth status reports whether
+        one is stored. An agent-key gt login has no token at all.'
+    return 0
+    ;;
+  esac
+  return 1
 }
 
 # --- payload -----------------------------------------------------------------

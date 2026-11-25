@@ -217,6 +217,30 @@ test_a_binary_is_matched_whole_not_by_prefix() {
   assert_allowed 'an unrelated command sharing a prefix' 'bwrap --version'
 }
 
+# --- forge CLI tokens -------------------------------------------------------
+
+test_printing_a_forge_token_is_refused() {
+  # `auth token` exists so scripts can read the stored token off stdout, which
+  # is the transcript here. git's credential helper is the sanctioned reader.
+  assert_denied 'gt prints the account token' 'gt auth token'
+  assert_denied 'gh prints the GitHub token' 'gh auth token'
+  assert_denied 'with a host after it' 'gt auth token --host https://forgejo.example.com'
+  assert_denied 'with a global flag before it' \
+    'gt --host https://forgejo.example.com auth token'
+  assert_denied 'with an env prefix' \
+    'GITEA_CLI_HOST=https://forgejo.example.com gt auth token'
+}
+
+test_forge_auth_commands_that_print_no_token_are_allowed() {
+  assert_allowed 'status reports whether a credential exists' 'gt auth status --verify'
+  assert_allowed 'an agent-key login stores no token' \
+    'gt auth login --host https://forgejo.example.com --ssh-agent-key SHA256:abc'
+  assert_allowed 'setup-git hands the token to git, not stdout' 'gt auth setup-git'
+  assert_allowed 'gh status' 'gh auth status'
+  assert_allowed 'a token word elsewhere in an api call' \
+    'gt api user --jq .token'
+}
+
 # --- payload handling -------------------------------------------------------
 
 test_a_payload_without_a_command_is_ignored() {
