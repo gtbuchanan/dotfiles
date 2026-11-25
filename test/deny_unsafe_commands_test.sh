@@ -241,6 +241,44 @@ test_forge_auth_commands_that_print_no_token_are_allowed() {
     'gt api user --jq .token'
 }
 
+# --- repository deletion ----------------------------------------------------
+
+# An ask hands the decision to the user rather than refusing it: deleting a
+# repository is legitimate, but no undo follows it.
+assert_asks() { # $1 = why, $2 = command
+  assertContains "$1" "$(decide "$2")" '"permissionDecision": "ask"'
+}
+
+test_deleting_a_repository_asks_first() {
+  assert_asks 'gt repo delete' 'gt repo delete acme/widgets'
+  assert_asks 'gh repo delete' 'gh repo delete acme/widgets --yes'
+  assert_asks 'gt api DELETE on the repository' \
+    'gt api --host https://forgejo.example.com -X DELETE repos/acme/widgets'
+  assert_asks 'the method after the path' 'gt api repos/acme/widgets -X DELETE'
+  assert_asks 'a leading slash' 'gh api --method DELETE /repos/acme/widgets'
+  assert_asks 'the joined forms' 'gh api --method=DELETE repos/acme/widgets'
+  assert_asks 'the short joined form' 'gt api -XDELETE repos/acme/widgets'
+  assert_asks 'a quoted path' "gt api -X DELETE 'repos/acme/widgets'"
+  assert_asks 'placeholders gt fills from the remote' \
+    'gt api -X DELETE repos/{owner}/{repo}'
+  assert_asks 'after another command' 'cd /tmp && gt repo delete acme/widgets'
+}
+
+test_other_deletes_and_repository_calls_are_allowed() {
+  assert_allowed 'a label inside the repository' \
+    'gt api -X DELETE repos/acme/widgets/labels/1'
+  assert_allowed 'a label through placeholders' \
+    'gt api -X DELETE repos/{owner}/{repo}/labels/1'
+  assert_allowed 'reading the repository' 'gt api repos/acme/widgets'
+  assert_allowed 'editing the repository' 'gh api -X PATCH repos/acme/widgets -f description=x'
+  assert_allowed 'viewing it' 'gt repo view acme/widgets'
+  assert_allowed 'archiving it' 'gt repo archive acme/widgets'
+}
+
+test_a_deny_outranks_an_ask() {
+  assert_denied 'the refusal decides' 'gt repo delete acme/widgets; hass-vault'
+}
+
 # --- payload handling -------------------------------------------------------
 
 test_a_payload_without_a_command_is_ignored() {

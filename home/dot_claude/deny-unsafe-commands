@@ -7,6 +7,9 @@
 #   - anything that ends PowerShell processes by name, which reaches every pwsh
 #     on the machine rather than the one that was meant.
 #
+# and for one it must not run without the user's say-so: deleting a repository
+# through gt or gh, which is asked rather than refused.
+#
 # One hook rather than one per concern, and the reason is complexity rather than
 # speed: matching hooks run in PARALLEL, so a second hook costs a whole
 # interpreter startup but adds nothing to the wall clock. What it does add is a
@@ -37,8 +40,9 @@
 # obfuscate past any string matcher. It is a guardrail against the accident,
 # which is the way this actually goes wrong.
 #
-# Emits a PreToolUse `deny` decision on match; stays silent (exit 0) otherwise
-# so normal permission handling continues. See test/deny_vault_secrets_test.sh.
+# Emits a PreToolUse `deny` decision on a refused command and an `ask` on one
+# needing approval, a deny winning when a command holds both; stays silent
+# (exit 0) otherwise so normal permission handling continues. See test/deny_vault_secrets_test.sh.
 
 # Pathname expansion is off for the whole script: the only word splitting done
 # here is over an untrusted command string, and a stray `*` in it must stay a
@@ -359,6 +363,98 @@ forge_verdict() { # $@ = the words after the binary
   return 1
 }
 
+# --- what needs the user's approval ------------------------------------------
+#
+# Deleting a repository is a legitimate request with no undo, so it is handed to
+# the user as an `ask` rather than refused. A permission rule in settings.json
+# cannot do this: a rule matches a command prefix, and `gt api` takes its method
+# flag anywhere in the command.
+
+DELETE_REPO_REASON='Deleting a repository cannot be undone, and an agent-key gt
+    login or a broad token carries no scope that would stop it. Confirm this is
+    the repository you meant.'
+
+# Cut the command into pipelines only, keeping braces and the words inside
+# quotes together -> _pipelines. The segment split above is too fine here: it
+# cuts `repos/{owner}/{repo}` at its braces and a quoted path away from the
+# command it belongs to, and both have to stay whole to tell the repository
+# from something inside it.
+split_into_pipelines() { # $1 = command text -> _pipelines
+  local s=$1 c
+  for c in ';' '&' '|' '(' ')' '`' '<' '>' $'\n' $'\r'; do
+    s=${s//"$c"/$'\v'}
+  done
+  s=${s//\"/}
+  s=${s//\'/}
+  local IFS=$'\v'
+  # Splitting on the sentinel is the point, and pathname expansion is off.
+  # shellcheck disable=SC2206
+  _pipelines=($s)
+}
+
+# True when the path names a repository itself rather than anything inside it.
+is_repository_path() { # $1 = API path
+  local p=${1#/}
+  p=${p%/}
+  case $p in
+  repos/*/*/*) return 1 ;;
+  repos/?*/?*) return 0 ;;
+  esac
+  return 1
+}
+
+# Returns 0 when one pipeline deletes a repository through gt or gh.
+deletes_repository() { # $1 = pipeline
+  # shellcheck disable=SC2086
+  set -- $1
+  while [ $# -gt 0 ]; do
+    case $1 in
+    *=* | sudo | exec | command | env | nohup | time | builtin) shift ;;
+    *) break ;;
+    esac
+  done
+  [ $# -gt 0 ] || return 1
+  basename_of "$1"
+  case $_binary in gt | gh) ;; *) return 1 ;; esac
+  shift
+
+  local method='' words=' '
+  while [ $# -gt 0 ]; do
+    case $1 in
+    -x | --method)
+      method=${2:-}
+      [ $# -gt 1 ] && shift
+      ;;
+    -x*) method=${1#-x} ;;
+    --method=*) method=${1#--method=} ;;
+    -*) in_set "$FORGE_VALUE_FLAGS" "$1" && [ $# -gt 1 ] && shift ;;
+    *) words="$words$1 " ;;
+    esac
+    shift
+  done
+
+  case $words in
+  ' repo delete '*) return 0 ;;
+  ' api '*)
+    [ "$method" = delete ] || return 1
+    # shellcheck disable=SC2086
+    set -- $words
+    is_repository_path "${2:-}"
+    return $?
+    ;;
+  esac
+  return 1
+}
+
+asks_approval() {
+  split_into_pipelines "$command_lower"
+  local pipeline
+  for pipeline in ${_pipelines[@]+"${_pipelines[@]}"}; do
+    deletes_repository "$pipeline" && return 0
+  done
+  return 1
+}
+
 # --- payload -----------------------------------------------------------------
 
 # Every "command" string in the payload, not just the first. A single greedy
@@ -374,6 +470,7 @@ forge_verdict() { # $@ = the words after the binary
 # --- decide ------------------------------------------------------------------
 
 denied=1
+asked=1
 while IFS= read -r raw; do
   [ -n "$raw" ] || continue
   unescape "$raw"
@@ -403,13 +500,23 @@ while IFS= read -r raw; do
     denied=0
   fi
   [ "$denied" -eq 0 ] && break
+  # Only noted, never decided on here: a later candidate may still deny, and a
+  # refusal outranks a question.
+  [ "$asked" -ne 0 ] && asks_approval && asked=0
 done < <(
   printf '%s' "$payload" |
     grep -oE '"command"[[:space:]]*:[[:space:]]*"(\\.|[^"\\])*"' |
     sed -E 's/^"command"[[:space:]]*:[[:space:]]*"//; s/"$//'
 )
 
-[ "$denied" -eq 0 ] || exit 0
+if [ "$denied" -eq 0 ]; then
+  decision=deny
+elif [ "$asked" -eq 0 ]; then
+  decision=ask
+  reason=$DELETE_REPO_REASON
+else
+  exit 0
+fi
 
 # Collapse the reason's source formatting -- newlines and indentation -- into
 # single spaces. It is a JSON string read as a sentence, and keeping the
@@ -427,6 +534,7 @@ reason=${reason% }
 # reasons above are the only interpolated text, and none contains a quote or
 # backslash to escape.
 printf '{"hookSpecificOutput": {"hookEventName": "PreToolUse", '
-printf '"permissionDecision": "deny", "permissionDecisionReason": "%s"}}\n' "$reason"
+printf '"permissionDecision": "%s", "permissionDecisionReason": "%s"}}\n' \
+  "$decision" "$reason"
 
 exit 0
