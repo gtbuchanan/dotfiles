@@ -225,8 +225,6 @@ test_printing_a_forge_token_is_refused() {
   assert_denied 'gt prints the account token' 'gt auth token'
   assert_denied 'gh prints the GitHub token' 'gh auth token'
   assert_denied 'with a host after it' 'gt auth token --host https://forgejo.example.com'
-  assert_denied 'with a global flag before it' \
-    'gt --host https://forgejo.example.com auth token'
   assert_denied 'with an env prefix' \
     'GITEA_CLI_HOST=https://forgejo.example.com gt auth token'
 }

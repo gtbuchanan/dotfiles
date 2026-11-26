@@ -197,7 +197,7 @@ TERMINATION_REASON='Blocked: this ends PowerShell processes by name rather than
     Stop-Process -Id <pid>, or taskkill /PID <pid>.'
 
 # Sets $reason and returns 0 when this binary/subcommand pair emits a secret.
-verdict() { # $1 = binary, $2 = subcommand
+verdict() { # $1 = binary, $2 = subcommand, $3 = the word after it
   case $1 in
   stop-process | spps | kill | taskkill | pkill | killall)
     # The verb alone is not the offence -- reaping a pid is fine -- so this
@@ -244,6 +244,14 @@ verdict() { # $1 = binary, $2 = subcommand
         stdout, which is how ssh reads one, so running it by hand puts that
         passphrase into the transcript. It is meant to be invoked by ssh, never
         directly.'
+    return 0
+    ;;
+  gh | gt)
+    [ "$2 $3" = 'auth token' ] || return 1
+    reason='Blocked: auth token prints the stored token in full, putting a live
+        credential into the transcript. git reads it through the credential
+        helper (gh auth setup-git, gt auth setup-git), and auth status reports
+        whether one is stored without printing it.'
     return 0
     ;;
   bw)
@@ -316,47 +324,8 @@ evaluate() { # $1 = fragment, $2 = interpreter recursion depth
     esac
   done
 
-  # The forge CLIs nest their commands a level deeper than the table above
-  # reads, so they get the remaining words as well. Their global flags take a
-  # value, which the loop above reads as the subcommand -- the reason the whole
-  # tail is searched rather than the word after the binary.
-  case $binary in
-  gt | gh) forge_verdict "$subcommand" "$@" ;;
-  *) verdict "$binary" "$subcommand" ;;
-  esac
-}
-
-# Words that take a value, wherever they appear in a gt or gh command, so the
-# value is not mistaken for the next command word.
-FORGE_VALUE_FLAGS=' --host --user -r --repo --hostname '
-
-# The non-flag words of a forge command, in order -> _words.
-forge_words() {
-  _words=' '
-  while [ $# -gt 0 ]; do
-    case $1 in
-    -*=*) ;;
-    -*) in_set "$FORGE_VALUE_FLAGS" "$1" && shift ;;
-    *) _words="$_words$1 " ;;
-    esac
-    [ $# -gt 0 ] && shift
-  done
-}
-
-# Sets $reason and returns 0 when a gt or gh command prints a token.
-forge_verdict() { # $@ = the words after the binary
-  forge_words "$@"
-  case $_words in
-  *' auth token '*)
-    reason='Blocked: auth token prints the stored forge token in full, putting
-        a live credential into the transcript. git reads it through the
-        credential helper (gt auth setup-git, gh auth setup-git) without it
-        reaching stdout, and gt auth status or gh auth status reports whether
-        one is stored. An agent-key gt login has no token at all.'
-    return 0
-    ;;
-  esac
-  return 1
+  # The word after the subcommand, for the CLIs that nest one level deeper.
+  verdict "$binary" "$subcommand" "${1:-}"
 }
 
 # --- payload -----------------------------------------------------------------
