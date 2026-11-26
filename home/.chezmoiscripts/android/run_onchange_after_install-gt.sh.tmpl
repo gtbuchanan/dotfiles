@@ -1,4 +1,4 @@
-{{/*
+{{- /*
   gt install for Termux/Android.
   gt, Gitea's official CLI, is not in the Termux registry. Its static
   linux-arm64 release runs on bionic but can neither resolve names nor verify
@@ -10,7 +10,8 @@
   `go install gitea.dev/cli/cmd/gt@v2.0.0` fails: the v2 tag kept the
   unsuffixed module path.
   Version pinned in `home/.chezmoidata/gt.yaml` and tracked by Renovate.
-*/}}
+*/ -}}
+#!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
 VERSION='{{ .gt_version }}'
