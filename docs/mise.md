@@ -125,6 +125,7 @@ the plain config file free for anything hand-written on a host.
 | [`gt.toml.tmpl`](../home/dot_config/mise/conf.d/gt.toml.tmpl)               | every host     | The `gt` pin, rendered from `.chezmoidata/gt.yaml` (Termux installs out of band) |
 | [`home-assistant.toml`](../home/dot_config/mise/conf.d/home-assistant.toml) | personal hosts | The `pipx:homeassistant-cli` pin                                                 |
 | [`jq.toml`](../home/dot_config/mise/conf.d/jq.toml)                         | every host     | The `jq` pin (Termux uses `pkg`)                                                 |
+| [`mobilecli.toml`](../home/dot_config/mise/conf.d/mobilecli.toml)           | not android    | The `mobilecli` pin (no Android build to install)                                |
 | [`release-age.toml`](../home/dot_config/mise/conf.d/release-age.toml)       | every host     | The `minimum_release_age` quarantine                                             |
 | [`ripgrep.toml`](../home/dot_config/mise/conf.d/ripgrep.toml)               | every host     | The `ripgrep` pin (Termux uses `pkg`)                                            |
 | [`starship.toml`](../home/dot_config/mise/conf.d/starship.toml)             | every host     | The `starship` pin (Termux uses `pkg`)                                           |
