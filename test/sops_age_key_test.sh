@@ -116,13 +116,19 @@ oneTimeTearDown() {
 }
 
 # bash explicitly, not the Termux shebang, so this runs on every CI leg.
+#
+# CRs are stripped because a native jq.exe writes stdout in text mode, turning
+# every newline between keys into CRLF on the Windows leg. The script deploys
+# only on Termux, where jq writes LF, so this normalizes the harness rather than
+# hiding a defect. The script's own status is returned, not tr's.
 run() { # $@ = env assignments, then args
   local -a envs=()
   while [ $# -gt 0 ] && [[ $1 == *=* ]]; do
     envs+=("$1")
     shift
   done
-  env ${envs[@]+"${envs[@]}"} bash "$BIN/sops-age-key" "$@"
+  env ${envs[@]+"${envs[@]}"} bash "$BIN/sops-age-key" "$@" | tr -d '\r'
+  return "${PIPESTATUS[0]}"
 }
 
 # --- identity ---------------------------------------------------------------
