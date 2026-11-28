@@ -59,8 +59,9 @@ IFS= read -r -d '' payload
 # Each family is an allowlist of its non-emitting subcommands rather than a
 # denylist of the emitting ones, so a subcommand added upstream is refused until
 # someone has looked at it. The bare invocation matters as much as the named
-# one: `hass-vault` and `bw-session-*` both default to the subcommand that
-# prints the secret, so an empty subcommand has to fall through to the deny.
+# one: `hass-vault`, `bw-session-*` and `sops-age-key` all default to the
+# subcommand that prints the secret, so an empty subcommand has to fall through
+# to the deny.
 #
 # `bw` is the exception and is a denylist. An allowlist there would refuse
 # `bw edit`, `bw create`, `bw generate` and the rest for no secrecy gain -- none
@@ -69,6 +70,7 @@ IFS= read -r -d '' payload
 
 HASS_VAULT_SAFE=' check status refresh reset '
 BW_SESSION_SAFE=' check lock reset status '
+SOPS_AGE_KEY_SAFE=' check '
 BW_EMITS=' get list export unlock login serve '
 
 # Interpreters whose arguments are themselves a command. Without this,
@@ -230,6 +232,16 @@ verdict() { # $1 = binary, $2 = subcommand
         whole vault and would persist in the transcript. A bare invocation is
         the get subcommand: it is the default. Use check for whether the cache
         is warm, or status for how long it has left; neither emits a value.'
+    return 0
+    ;;
+  sops-age-key)
+    in_set "$SOPS_AGE_KEY_SAFE" "$2" && return 1
+    reason='Blocked: this prints the SOPS age identity, which decrypts every
+        secret encrypted to it and would persist in the transcript. It exists
+        for sops to read through SOPS_AGE_KEY_CMD: run sops itself, or diagnose
+        with sops-age-key check, which reports how many identities resolved
+        without emitting one. Note that a bare sops-age-key is the identity
+        subcommand: it is the default.'
     return 0
     ;;
   bwbio)

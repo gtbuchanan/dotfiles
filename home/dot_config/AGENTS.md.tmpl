@@ -352,15 +352,17 @@
 
 - Never run a command whose output is a credential. The ones that do are the
   `credential` subcommand of `hass-vault`, the `get` subcommand of
-  `bw-session-windows.ps1` and `bw-session-termux`, `bwbio`, the
-  `ssh-askpass-*` helpers, and the `bw` subcommands that read vault contents
+  `bw-session-windows.ps1` and `bw-session-termux`, the `identity` subcommand
+  of `sops-age-key`, `bwbio`, the `ssh-askpass-*` helpers, and the `bw`
+  subcommands that read vault contents
   (`get`, `list`, `export`, `unlock`, `login`). Each exists so that a wrapper
   can read the secret off stdout, so running one by hand writes a live
   credential into the transcript — which deleting the message does not
   unwrite. The remedy at that point is rotating the secret, so the only good
   outcome is not running it.
-- A bare invocation counts. `hass-vault` and `bw-session-*` both default to the
-  subcommand that emits the secret, so omitting it is not the safe form.
+- A bare invocation counts. `hass-vault`, `bw-session-*` and `sops-age-key` all
+  default to the subcommand that emits the secret, so omitting it is not the
+  safe form.
 - Diagnose with the subcommands that report shape rather than value: `check`
   for whether a credential resolves, `status` for whether one is cached. If you
   need to characterize a secret, print its length, never its value.

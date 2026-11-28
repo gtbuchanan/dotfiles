@@ -1,0 +1,101 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Prints the SOPS age identity from the Bitwarden vault, for sops to read
+# through SOPS_AGE_KEY_CMD. The key then exists in this process and in sops's
+# memory for one run, and never in keys.txt, where anything running as this
+# user could read it without asking.
+#
+# The session comes from bw-session-termux and reaches bw in this process
+# alone. It is never exported: `bwu` puts BW_SESSION in the shell's
+# environment, and every child of that shell -- agent sessions included --
+# then reads the vault without a prompt.
+#
+# Each read therefore costs a fingerprint, which is the point: an agent
+# decrypting through sops becomes visible. It is a tripwire rather than a
+# boundary, though. The hardware key has no per-use authentication, so code
+# running as this user can derive the KEK and skip the dialog; see
+# bw-session-termux.
+#
+# sops runs this with no arguments and keeps stderr to itself, reporting only
+# an exit status, so nothing written below reaches whoever ran sops. Run
+# `sops-age-key check` to see why a resolve failed: it reports the same outcome
+# without printing the key.
+#
+# The identity is kept as a secure note holding keys.txt verbatim, so a backup
+# and the live copy are the same item. Only AGE-SECRET-KEY lines are printed:
+# sops tolerates the comments, but the public key in them is no use to it and
+# there is no reason to hand over more than it reads.
+#
+# Commands: identity (default) | check
+
+set -euo pipefail
+
+# Searched by name rather than opened by id, so the item stays renameable and no
+# vault identifier is committed here. bw matches loosely, so this is a
+# prefilter: the result is narrowed to items whose notes carry an identity, and
+# an ambiguous match is refused rather than guessed.
+readonly ITEM_QUERY="${SOPS_AGE_KEY_ITEM:-SOPS/AGE Key}"
+
+SCRIPT_DIR=${BASH_SOURCE[0]%/*}
+[[ "$SCRIPT_DIR" == "${BASH_SOURCE[0]}" ]] && SCRIPT_DIR=.
+readonly SCRIPT_DIR
+
+# Diagnostics to stderr, failure in the exit code: stdout carries the identity,
+# so an error written there would be parsed as one.
+die() {
+  printf '%s: %s\n' "${0##*/}" "$1" >&2
+  exit 1
+}
+
+# vault_session and vault_search, shared with the other Termux vault readers so
+# they all sync and scope the session the same way. The search syncs first, so
+# every sops run pays a network round trip; that is what keeps a rotated key
+# from being served stale, and it sits beside a fingerprint prompt anyway.
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/../lib/bw-vault-termux.sh"
+
+# The items the search returned that actually hold an identity, as a JSON array.
+find_items() { # $1 = session
+  vault_search "$1" "$ITEM_QUERY" |
+    jq -c '[.[] | select((.notes // "") | split("\n")
+      | any(startswith("AGE-SECRET-KEY-1")))]' 2>/dev/null || printf '[]'
+}
+
+resolve() {
+  local session items count
+
+  session=$(vault_session) || exit 1
+  items=$(find_items "$session")
+
+  count=$(jq 'length' <<<"$items")
+  [[ "$count" -gt 1 ]] &&
+    die "$count vault items matching '$ITEM_QUERY' hold an age identity; refusing to guess"
+  [[ "$count" -eq 0 ]] &&
+    die "no vault item matching '$ITEM_QUERY' holds an age identity in its notes; set SOPS_AGE_KEY_ITEM to search another name"
+
+  jq -r '.[0].notes | split("\n")[] | sub("\r$"; "")
+    | select(startswith("AGE-SECRET-KEY-1"))' <<<"$items"
+}
+
+# Reports shape, never the key, so a failure can be diagnosed without printing
+# it somewhere it persists; the reason itself already went to stderr.
+cmd_check() {
+  local keys count
+  keys=$(resolve) || {
+    printf 'no age identity resolved\n'
+    exit 1
+  }
+  count=$(grep -c . <<<"$keys")
+  if [[ "$count" -eq 1 ]]; then
+    printf '1 age identity resolved\n'
+  else
+    printf '%d age identities resolved\n' "$count"
+  fi
+}
+
+command -v jq >/dev/null || die 'jq not found'
+
+case "${1:-identity}" in
+check) cmd_check ;;
+identity) resolve ;;
+*) die "unknown command: $1 (expected identity|check)" ;;
+esac

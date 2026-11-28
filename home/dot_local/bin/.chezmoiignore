@@ -25,6 +25,14 @@ hass-vault.ps1
 hass-vault
 {{- end }}
 
+{{- /* Serves the SOPS age identity from the Bitwarden vault via
+       SOPS_AGE_KEY_CMD, so the key never sits in keys.txt. Gated with the
+       export in dot_profile.tmpl: the script needs bw-session-termux, and the
+       export without the script would point sops at a missing command. */}}
+{{- if or (ne .chezmoi.os "android") (ne .hosttype "personal") }}
+sops-age-key
+{{- end }}
+
 {{- /* The hass-cli pin's postinstall names this on every personal host, so both
        halves are gated only by OS: the shell script everywhere but Windows, the
        .cmd there. A missing one would fail `mise install`. */}}

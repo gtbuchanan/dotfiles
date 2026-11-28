@@ -177,6 +177,21 @@ test_bw_session_diagnostics_are_allowed() {
   assert_allowed 'reset removes rather than prints' 'bw-session-termux reset'
 }
 
+# --- sops-age-key -----------------------------------------------------------
+
+test_sops_age_key_bare_is_refused() {
+  # sops invokes it bare, so the default subcommand is the one that prints.
+  assert_denied 'a bare sops-age-key defaults to identity' 'sops-age-key'
+}
+
+test_sops_age_key_identity_is_refused() {
+  assert_denied 'identity prints the age key' 'sops-age-key identity'
+}
+
+test_sops_age_key_check_is_allowed() {
+  assert_allowed 'check reports a count, not a key' 'sops-age-key check'
+}
+
 # --- always-secret helpers --------------------------------------------------
 
 test_helpers_that_only_ever_print_a_secret_are_refused() {
