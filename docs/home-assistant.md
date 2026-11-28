@@ -22,6 +22,7 @@ hosts only**, on every platform this repo supports. Credentials are wired up on 
 | [`home/dot_local/bin/wrappers/executable_hass-cli.tmpl`](../home/dot_local/bin/wrappers/executable_hass-cli.tmpl)         | Scopes credentials to hass-cli's process, Termux and Git Bash       |
 | [`home/dot_local/bin/wrappers/hass-cli.cmd`](../home/dot_local/bin/wrappers/hass-cli.cmd)                                 | Scopes credentials to hass-cli's process, Windows                   |
 | [`home/dot_local/bin/wrappers/hass-cli.ps1`](../home/dot_local/bin/wrappers/hass-cli.ps1)                                 | Scopes credentials to hass-cli's process, PowerShell                |
+| [`home/dot_local/lib/bw-vault-termux.sh`](../home/dot_local/lib/bw-vault-termux.sh)                                       | Vault session, scoped `bw` and sync-then-search, shared on Termux   |
 | [`home/dot_profile.tmpl`](../home/dot_profile.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims                            |
 | [`home/winget.yaml.tmpl`](../home/winget.yaml.tmpl)                                                                       | Puts `wrappers/` ahead of the mise shims on the user PATH           |
 | [`test/HassCliWrapper.Tests.ps1`](../test/HassCliWrapper.Tests.ps1)                                                       | Pester suite for the PowerShell wrapper, in CI                      |

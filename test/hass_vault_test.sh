@@ -38,6 +38,7 @@ cd "$(dirname "$0")/.." || exit 1
 readonly ROOT=$PWD
 readonly TARGET="$HOME/.local/bin/hass-vault"
 readonly WRAPPER_TARGET="$HOME/.local/bin/wrappers/hass-cli"
+readonly LIB_TARGET="$HOME/.local/lib/bw-vault-termux.sh"
 readonly TEST_ALIAS=hass-vault-kek-test
 
 # Reasons to skip rather than fail: none of them indicate a defect in the code
@@ -145,6 +146,9 @@ oneTimeSetUp() {
   mkdir -p "$BIN"
 
   chezmoi cat --source "$ROOT" --no-tty "$TARGET" >"$BIN/hass-vault"
+  # Sourced from "$SCRIPT_DIR/../lib", so the sandbox mirrors ~/.local.
+  mkdir -p "$SANDBOX/lib"
+  chezmoi cat --source "$ROOT" --no-tty "$LIB_TARGET" >"$SANDBOX/lib/bw-vault-termux.sh"
   install_stubs
 
   WRAPPER="$SANDBOX/hass-cli"

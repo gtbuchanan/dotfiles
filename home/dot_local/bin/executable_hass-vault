@@ -105,6 +105,11 @@ die() {
   exit 1
 }
 
+# vault_session, vault_bw and vault_search, shared with the other Termux vault
+# readers so they all sync and scope the session the same way.
+# shellcheck source=/dev/null
+. "$SCRIPT_DIR/../lib/bw-vault-termux.sh"
+
 # Writes $2 to $1 through a private temporary file, so a reader never sees a
 # half-written cache and never sees one world-readable.
 write_private() {
@@ -316,14 +321,8 @@ read_cache() {
 
 # --- resolution -------------------------------------------------------------
 
-# The session travels by environment rather than --session, which would put the
-# key in the process command line. --nointeraction so a session the vault has
-# since invalidated errors out instead of prompting into the stdout this parses;
-# --raw likewise keeps bw's descriptive chatter out of that stream.
 find_vault_item() {
-  local session=$1
-  BW_SESSION="$session" bw list items --search "$ITEM_QUERY" \
-    --nointeraction --raw 2>/dev/null |
+  vault_search "$1" "$ITEM_QUERY" |
     jq -c --arg f "$TOKEN_FIELD" \
       '[.[] | select((.fields // []) | map(.name) | index($f))]' 2>/dev/null ||
     printf '[]'
@@ -350,30 +349,13 @@ available_ids() { # stdin: candidates JSON
 resolve_from_vault() {
   local epoch=$1 session candidates items count item name server token ids
 
-  command -v bw >/dev/null || die 'bw not found'
+  session=$(vault_session) || exit 1
 
-  # May raise a fingerprint dialog, and a master-password one past
-  # bw-session-termux's idle window -- native Android dialogs, so they reach the
-  # user though nothing here has a terminal. Its stderr passes through rather
-  # than being suppressed: it is all diagnosis, and only the key reaches stdout.
-  session=$("$SCRIPT_DIR/bw-session-termux" get) || session=''
-  [[ -n "$session" ]] || die 'could not unlock the vault'
-
-  # Sync before searching, not only when the item is missing. The CLI serves a
-  # local copy of the vault and refreshes it only on an explicit sync -- not on
-  # unlock, and not on list -- so a *rotated* token is invisible here until
-  # something else happens to sync. That failure is silent and misleading:
-  # hass-cli gets 401 while `hass-vault check` reports a perfectly good
-  # credential, because the stale token is still a valid, unexpired JWT.
-  #
-  # Syncing only on a miss caught an item that was newly added and nothing else.
-  # This costs a network round trip, but only on the cold path -- a cache lapse
-  # or a reset -- which already costs a vault unlock and possibly a prompt.
-  #
-  # Failure is ignored rather than fatal, so an offline resolve still serves the
-  # local copy instead of refusing outright.
-  BW_SESSION="$session" bw sync --nointeraction --raw >/dev/null 2>&1 || true
-
+  # The search syncs first, which matters most here: a rotated token is still a
+  # valid, unexpired JWT, so a stale one gets hass-cli a 401 while `hass-vault
+  # check` reports a perfectly good credential. The sync's round trip lands only
+  # on the cold path -- a cache lapse or a reset -- which already costs a vault
+  # unlock and possibly a prompt.
   candidates=$(find_vault_item "$session")
   items=$(select_instance <<<"$candidates")
   count=$(jq 'length' <<<"$items")

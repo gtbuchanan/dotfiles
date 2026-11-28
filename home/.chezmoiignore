@@ -26,6 +26,7 @@ Documents
 .local/bin/wrappers/gt
 .local/bin/wrappers/playwright-cli
 .local/bin/wrappers/ssh
+.local/lib/bw-vault-termux.sh
 .ssh/start_agent.sh
 .termux
 {{- end }}
